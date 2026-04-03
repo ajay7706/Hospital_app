@@ -1,6 +1,6 @@
 const Appointment = require("../models/Appointment");
 const Hospital = require("../models/Hospital");
-const { sendAppointmentEmail } = require("../config/mailer");
+const { sendAppointmentEmail, sendWhatsAppNotification } = require("../config/mailer");
 
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
@@ -24,11 +24,19 @@ exports.bookAppointment = async (req, res) => {
       patientName,
       patientEmail,
       phone,
+      hospitalName,
+      location,
       status: "pending"
     });
 
-    // Initial booking confirmation email REMOVED as per request
-    // We only send when status changes from hospital dashboard
+    // Send confirmation email
+    await sendAppointmentEmail(patientEmail, appointment);
+
+    // Send WhatsApp notification
+    if (phone) {
+      const waMessage = `Hello ${patientName}, your appointment at ${hospitalName} is confirmed for ${date} at ${time}. Thank you for using BookVisit!`;
+      await sendWhatsAppNotification(phone, waMessage);
+    }
 
     res.status(201).json({ msg: "Appointment booked successfully", appointment });
   } catch (error) {

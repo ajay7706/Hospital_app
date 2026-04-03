@@ -1,6 +1,6 @@
 const Hospital = require("../models/Hospital");
 const User = require("../models/Users");
-const { sendHospitalApprovalEmail, sendHospitalPendingEmail } = require("../config/mailer");
+const { sendHospitalApprovalEmail, sendHospitalPendingEmail, sendWhatsAppNotification } = require("../config/mailer");
 
 // Add Hospital (Hospital Setup)
 exports.addHospital = async (req, res) => {
@@ -25,6 +25,12 @@ exports.addHospital = async (req, res) => {
       await sendHospitalPendingEmail(hospital.officialEmail, hospital.hospitalName);
     } else {
       console.log("No official email found for hospital, skipping pending email.");
+    }
+
+    // Send WhatsApp notification for pending status
+    if (hospital.contactNumber) {
+      const waMessage = `Hello ${hospital.hospitalName}, your registration is UNDER REVIEW. We will notify you once approved within 24 hours. Thank you!`;
+      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
     }
 
     res.status(201).json({ 
@@ -162,6 +168,12 @@ exports.approveHospital = async (req, res) => {
       console.log("No official email for hospital, skipping approval email.");
     }
 
+    // Send WhatsApp notification for approval
+    if (hospital.contactNumber) {
+      const waMessage = `Congratulations! Your hospital "${hospital.hospitalName}" has been APPROVED. You can now manage your dashboard.`;
+      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+    }
+
     res.json({ msg: "Your hospital has been approved successfully.", hospital });
   } catch (error) {
     console.error("Approve Hospital Error:", error);
@@ -189,6 +201,12 @@ exports.rejectHospital = async (req, res) => {
       await sendHospitalApprovalEmail(hospital.officialEmail, hospital.hospitalName, "rejected");
     } else {
       console.log("No official email for hospital, skipping rejection email.");
+    }
+
+    // Send WhatsApp notification for rejection
+    if (hospital.contactNumber) {
+      const waMessage = `Hello ${hospital.hospitalName}, your registration status has been updated to REJECTED. Please contact support for more details.`;
+      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
     }
 
     res.json({ msg: "Hospital has been rejected.", hospital });

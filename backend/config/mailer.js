@@ -59,6 +59,29 @@ transporter.verify(function (error, success) {
   }
 });
 
+const twilio = require("twilio");
+
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
+const sendWhatsAppNotification = async (phone, message) => {
+  try {
+    // Ensure phone number is in correct format for WhatsApp (e.g., whatsapp:+91...)
+    const formattedPhone = phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`;
+    
+    await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_NUMBER,
+      to: formattedPhone,
+      body: message,
+    });
+    console.log(`WhatsApp sent to ${formattedPhone}`);
+  } catch (error) {
+    console.error("Twilio WhatsApp Error:", error);
+  }
+};
+
 const sendAppointmentEmail = async (patientEmail, bookingDetails) => {
   try {
     const doc = new PDFDocument({ margin: 50 });
@@ -86,22 +109,21 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails) => {
   }
 };
 
-const sendWhatsAppNotification = async (phone, details) => {
-  // Simulating WhatsApp send (using Twilio config from .env if available)
-  console.log(`[WhatsApp Simulation] Sending to ${phone}: Your appointment at ${details.hospitalName} is COMPLETED. You can now leave a review!`);
-};
-
 const sendHospitalApprovalEmail = async (hospitalEmail, hospitalName, status) => {
   try {
+    const message = `Hello ${hospitalName},\n\nYour hospital registration status has been updated to: ${status.toUpperCase()}.\n\n${status === 'approved' ? 'You can now log in and manage your dashboard.' : 'Please contact support for more details.'}\n\nThank you,\nBookVisit Team`;
+
     const mailOptions = {
       from: `"BookVisit Admin" <${process.env.EMAIL_USER}>`,
       to: hospitalEmail,
       subject: `Hospital Status Update: ${status.toUpperCase()}`,
-      text: `Hello ${hospitalName},\n\nYour hospital registration status has been updated to: ${status.toUpperCase()}.\n\n${status === 'approved' ? 'You can now log in and manage your dashboard.' : 'Please contact support for more details.'}\n\nThank you,\nBookVisit Team`,
+      text: message,
     };
 
     await transporter.sendMail(mailOptions);
     console.log(`Email sent to hospital: ${status} to ${hospitalEmail}`);
+    
+    // Also send WhatsApp if needed (requires phone number, which we'll handle in controller)
   } catch (error) {
     console.error("Hospital Mailer Error:", error);
   }
