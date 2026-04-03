@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BookVisit Healthcare Design System */
+
+@layer base {
+  :root {
+    /* Primary Healthcare Blue */
+    --primary: 210 79% 51%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* CTA Green for Actions */
+    --cta: 145 63% 49%;
+    --cta-foreground: 0 0% 100%;
+    
+    /* Background & Surfaces */
+    --background: 210 20% 98%;
+    --foreground: 220 14% 17%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 17%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 17%;
+    
+    /* Secondary Colors */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 220 14% 17%;
+    
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 16% 47%;
+    
+    --accent: 210 79% 95%;
+    --accent-foreground: 210 79% 40%;
+    
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 145 63% 49%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Borders & Inputs */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 210 79% 51%;
+    
+    --radius: 0.75rem;
+    
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(210 79% 51% / 0.05) 0%, hsl(145 63% 49% / 0.05) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(210 79% 51%) 0%, hsl(210 79% 40%) 100%);
+    --gradient-cta: linear-gradient(135deg, hsl(145 63% 49%) 0%, hsl(145 63% 40%) 100%);
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(220 14% 17% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(220 14% 17% / 0.1), 0 2px 4px -2px hsl(220 14% 17% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(220 14% 17% / 0.1), 0 4px 6px -4px hsl(220 14% 17% / 0.1);
+    --shadow-card: 0 4px 20px -2px hsl(210 79% 51% / 0.1);
+    
+    /* Sidebar (keep existing) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 210 79% 51%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 220 14% 17%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 210 79% 51%;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
+    
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    
+    --primary: 210 79% 51%;
+    --primary-foreground: 0 0% 100%;
+    
+    --cta: 145 63% 49%;
+    --cta-foreground: 0 0% 100%;
+    
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    
+    --accent: 217 33% 17%;
+    --accent-foreground: 210 40% 98%;
+    
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+    
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 210 79% 51%;
+    
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 210 79% 51%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 210 79% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-cta {
+    background: var(--gradient-cta);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+}
