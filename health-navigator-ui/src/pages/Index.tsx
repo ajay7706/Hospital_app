@@ -1,12 +1,36 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { HowItWorks } from '@/components/home/HowItWorks';
-import { FeaturedHospitals } from '@/components/home/FeaturedHospitals';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { ForHospitals } from '@/components/home/ForHospitals';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Star, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import api from '@/lib/api';
 
 const Index = () => {
+  const [featuredHospitals, setFeaturedHospitals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const data = await api.getHospitals();
+        // Show top 4 as featured
+        setFeaturedHospitals(data.slice(0, 4));
+      } catch (err) {
+        console.error("Failed to fetch featured hospitals:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHospitals();
+  }, []);
+
   const getHospitalImage = (h: any) => {
     if (h.hospitalLogo) return h.hospitalLogo;
     if (h.image) return h.image;
