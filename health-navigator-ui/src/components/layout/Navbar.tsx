@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Menu, X, Calendar, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck } from 'lucide-react';
+import { Menu, X, Plus, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
@@ -69,10 +69,17 @@ export const Navbar = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:h-20">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-            <Calendar className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
+            <Plus className="h-6 w-6" strokeWidth={3} />
           </div>
-          <span className="text-xl font-bold text-foreground">BookVisit</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-black leading-none tracking-tight text-foreground">
+              Apna<span className="text-primary">Clinic</span>
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
+              Healthcare
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}

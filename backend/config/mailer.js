@@ -6,44 +6,84 @@ const { PassThrough } = require("stream");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const createProfessionalPDF = (doc, details) => {
-  // Add a nice header background
-  doc.rect(0, 0, 612, 100).fill("#2563eb"); // Primary blue color
+  // --- Header with Blue Background ---
+  doc.rect(0, 0, 612, 100).fill("#2563eb");
   
+  // --- Logo Placeholder (White Plus) ---
   doc.fillColor("#ffffff")
-     .fontSize(24)
-     .text("BOOK VISIT - APPOINTMENT", 50, 40, { align: "left" });
-  
-  doc.fontSize(10)
-     .text("Official Medical Receipt", 50, 70);
+     .rect(50, 30, 40, 40).fill()
+     .fillColor("#2563eb")
+     .fontSize(30).text("+", 61, 33);
 
-  // Body content
-  doc.fillColor("#333333").moveDown(4);
-  
-  doc.fontSize(18).text("Patient Information", { underline: true });
-  doc.moveDown();
-  doc.fontSize(12).text(`Name: ${details.patientName}`);
-  doc.text(`Email: ${details.patientEmail || "N/A"}`);
-  doc.text(`Contact: ${details.phone || "N/A"}`);
-  
-  doc.moveDown(2);
-  doc.fontSize(18).text("Hospital Details", { underline: true });
-  doc.moveDown();
-  doc.fontSize(14).fillColor("#2563eb").text(`${details.hospitalName}`, { bold: true });
-  doc.fillColor("#333333").fontSize(12).text(`Location: ${details.location}`);
-  
-  doc.moveDown(2);
-  doc.fontSize(18).text("Appointment Schedule", { underline: true });
-  doc.moveDown();
-  doc.rect(50, doc.y, 500, 80).fill("#f3f4f6");
-  doc.fillColor("#1f2937")
-     .text(`Date: ${details.date}`, 70, doc.y + 15)
-     .text(`Time: ${details.time}`, 70, doc.y + 35)
-     .text(`Ambulance Service: ${details.ambulanceRequired ? 'YES' : 'NO'}`, 70, doc.y + 55);
-
-  // Footer
-  doc.fillColor("#9ca3af")
+  // --- Brand Name ---
+  doc.fillColor("#ffffff")
+     .fontSize(22)
+     .text("Apna Clinic", 100, 35, { bold: true })
      .fontSize(10)
-     .text("This is a computer-generated document. No signature required.", 0, 700, { align: "center" });
+     .text("Healthcare", 100, 60);
+  
+  // --- Header Badge ---
+  doc.rect(400, 40, 180, 30).fill("#1e40af");
+  doc.fillColor("#ffffff")
+     .fontSize(10)
+     .text("APPOINTMENT CONFIRMATION", 410, 50, { align: "center", width: 160 });
+
+  // --- Section 1: Booking Details ---
+  doc.fillColor("#2563eb")
+     .fontSize(16)
+     .text("Booking Details", 50, 120, { bold: true });
+  doc.moveTo(50, 140).lineTo(562, 140).stroke("#e5e7eb");
+
+  // --- Two Columns for Info ---
+  // Left Column Box
+  doc.roundedRect(50, 160, 240, 120, 10).stroke("#e5e7eb");
+  doc.fillColor("#374151").fontSize(10)
+     .text("Patient Name:", 70, 180)
+     .fillColor("#1e3a8a").fontSize(11).text(details.patientName, 150, 180, { bold: true })
+     .fillColor("#374151").fontSize(10)
+     .text("Patient ID:", 70, 210)
+     .fillColor("#1e3a8a").text(`PAT${details.patientId?.toString().slice(-6) || "123456"}`, 150, 210)
+     .fillColor("#374151")
+     .text("Date:", 70, 240)
+     .fillColor("#1e3a8a").text(details.date, 150, 240);
+
+  // Right Column Box
+  doc.roundedRect(310, 160, 252, 120, 10).stroke("#e5e7eb");
+  doc.fillColor("#374151").fontSize(10)
+     .text("Hospital Name:", 330, 180)
+     .fillColor("#1e3a8a").fontSize(11).text(details.hospitalName, 420, 180, { bold: true })
+     .fillColor("#374151").fontSize(10)
+     .text("Location:", 330, 210)
+     .fillColor("#1e3a8a").text(details.location, 420, 210);
+
+  // --- Section 2: Appointment Summary ---
+  doc.rect(50, 310, 512, 25).fill("#16a34a"); // Green banner
+  doc.fillColor("#ffffff")
+     .fontSize(12)
+     .text("Appointment Summary", 0, 318, { align: "center", width: 612 });
+
+  doc.roundedRect(50, 345, 512, 150, 10).stroke("#e5e7eb");
+  
+  // Summary List
+  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 370); // Checkmark icon
+  doc.fillColor("#374151").fontSize(11).text("Check-Up:", 90, 370, { bold: true });
+  
+  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 405);
+  doc.fillColor("#374151").fontSize(11).text("Full Body Checkup, Blood Test", 90, 405);
+  
+  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 440);
+  doc.fillColor("#374151").fontSize(11).text("Ambulance Required:", 90, 440);
+  if (details.ambulanceRequired) {
+    doc.fillColor("#16a34a").text("Yes", 220, 440, { bold: true });
+  } else {
+    doc.fillColor("#dc2626").text("No", 220, 440, { bold: true });
+  }
+
+  // --- Footer ---
+  doc.rect(0, 750, 612, 42).fill("#1e3a8a");
+  doc.fillColor("#ffffff").fontSize(10)
+     .text(`Contact Us: +91 9876543210 | info@apnaclinic.com`, 0, 765, { align: "center", width: 612 });
+  doc.fontSize(8).text("www.apnaclinic.com", 0, 780, { align: "center", width: 612 });
 };
 
 const twilio = require("twilio");
@@ -55,17 +95,24 @@ const twilioClient = twilio(
 
 const sendWhatsAppNotification = async (phone, message) => {
   try {
-    // Ensure phone number is in correct format for WhatsApp (e.g., whatsapp:+91...)
-    const formattedPhone = phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`;
-    
+    const textMessage = message || "Notification from Apna Clinic";
+
+    const formattedPhone = phone.startsWith("whatsapp:") 
+      ? phone 
+      : `whatsapp:${phone}`;
+
+    console.log("Sending WhatsApp to:", formattedPhone);
+    console.log("Message:", textMessage);
+
     await twilioClient.messages.create({
       from: process.env.TWILIO_WHATSAPP_NUMBER,
       to: formattedPhone,
-      body: message,
+      body: textMessage,
     });
-    console.log(`WhatsApp sent to ${formattedPhone}`);
+
+    console.log("WhatsApp sent successfully");
   } catch (error) {
-    console.error("Twilio WhatsApp Error:", error);
+    console.error("Twilio WhatsApp Error:", error.message);
   }
 };
 

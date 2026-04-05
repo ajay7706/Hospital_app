@@ -75,10 +75,21 @@ const BookVisit = () => {
         description: 'Please login or sign up to book an appointment.',
         variant: 'destructive',
       });
-      // Store current path to redirect back after login if desired
       navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      return;
     }
-  }, [navigate]);
+
+    // Validation: Ensure hospital ID exists in URL
+    const id = searchParams.get('id');
+    if (!id) {
+      toast({
+        title: 'No Hospital Selected',
+        description: 'Please select a hospital card first to book an appointment.',
+        variant: 'destructive',
+      });
+      navigate('/hospitals');
+    }
+  }, [navigate, searchParams]);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
