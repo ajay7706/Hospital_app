@@ -5,15 +5,18 @@ const { sendHospitalApprovalEmail, sendHospitalPendingEmail, sendWhatsAppNotific
 // Add Hospital (Hospital Setup)
 exports.addHospital = async (req, res) => {
   try {
-    console.log("Received addHospital request. Body:", req.body); // Log incoming request body
+    console.log("Received addHospital request. Body:", req.body); 
+    console.log("Uploaded File:", req.file); // Log the uploaded file for debugging
+
     const { specialties, services, ...otherHospitalData } = req.body;
 
     const hospitalData = { 
       ...otherHospitalData, 
       userId: req.user.id,
+      hospitalLogo: req.file ? req.file.path : null, // Save Cloudinary URL
       specialties: Array.isArray(specialties) ? specialties : (specialties ? specialties.split(',').map(s => s.trim()) : []),
       services: services || [],
-      approvalStatus: "pending" // Ensure default is pending
+      approvalStatus: "pending" 
     };
     
     const hospital = await Hospital.create(hospitalData);
@@ -92,6 +95,9 @@ exports.getHospitalById = async (req, res) => {
 // Update Hospital Profile
 exports.updateHospitalProfile = async (req, res) => {
   try {
+    console.log("Update Hospital Body:", req.body);
+    console.log("Update Hospital File:", req.file);
+
     const { specialties, services, ...otherHospitalData } = req.body;
 
     let hospital = await Hospital.findOne({ userId: req.user.id });
@@ -101,9 +107,14 @@ exports.updateHospitalProfile = async (req, res) => {
 
     const updateData = {
       ...otherHospitalData,
-      specialties: specialties ? specialties.split(',').map(s => s.trim()) : [],
+      specialties: Array.isArray(specialties) ? specialties : (specialties ? specialties.split(',').map(s => s.trim()) : []),
       services: services || [],
     };
+
+    // Update logo only if a new file is uploaded
+    if (req.file) {
+      updateData.hospitalLogo = req.file.path;
+    }
 
     hospital = await Hospital.findByIdAndUpdate(hospital._id, updateData, { new: true });
     res.json({ msg: "Hospital profile updated", hospital });
