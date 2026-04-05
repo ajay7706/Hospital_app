@@ -33,6 +33,7 @@ exports.signup = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        hospitalAdded: user.hospitalAdded,
       },
       msg: "Signup successful",
     });
@@ -91,6 +92,7 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        hospitalAdded: user.hospitalAdded,
       },
       msg: "Login successful",
     });

@@ -48,7 +48,7 @@ export const Navbar = () => {
       setUser(null);
       setHospitalLogo(null);
     }
-  }, [location]);
+  }, [location, localStorage.getItem('hospitalProfile')]); // Added hospitalProfile as dependency
 
   const handleLogout = () => {
     localStorage.removeItem('user');

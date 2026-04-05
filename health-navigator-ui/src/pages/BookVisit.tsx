@@ -65,6 +65,19 @@ const BookVisit = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please login or sign up to book an appointment.',
+        variant: 'destructive',
+      });
+      // Store current path to redirect back after login if desired
+      navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    }
+  }, [navigate]);
+
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {

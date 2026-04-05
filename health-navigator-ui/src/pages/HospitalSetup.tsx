@@ -172,6 +172,11 @@ const HospitalSetup = () => {
 
       const result = await response.json();
       
+      // Update user info in localStorage to reflect hospitalAdded
+      const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      storedUser.hospitalAdded = true;
+      localStorage.setItem('user', JSON.stringify(storedUser));
+      
       // Store hospital info in localStorage for reference
       localStorage.setItem('hospitalProfile', JSON.stringify({
         ...data,

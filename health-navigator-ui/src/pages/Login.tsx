@@ -70,10 +70,20 @@ const Login = () => {
       });
 
       setTimeout(() => {
+        const redirect = searchParams.get('redirect');
+        if (redirect) {
+          navigate(redirect);
+          return;
+        }
+
         if (result.role === 'admin' || result.user?.role === 'admin') {
           navigate('/admin-dashboard');
         } else if (result.user?.role === 'hospital') {
-          navigate('/hospital-dashboard');
+          if (result.user?.hospitalAdded) {
+            navigate('/hospital-dashboard');
+          } else {
+            navigate('/hospital-setup');
+          }
         } else {
           navigate('/');
         }

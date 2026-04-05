@@ -1,6 +1,9 @@
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
+
+// Set SendGrid API Key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const createProfessionalPDF = (doc, details) => {
   // Add a nice header background
@@ -42,28 +45,6 @@ const createProfessionalPDF = (doc, details) => {
      .text("This is a computer-generated document. No signature required.", 0, 700, { align: "center" });
 };
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
-
-// Verify connection configuration
-transporter.verify(function (error, success) {
-  if (error) {
-    console.log("Mailer connection error:", error);
-  } else {
-    console.log("Server is ready to take our messages");
-  }
-});
-
 const twilio = require("twilio");
 
 const twilioClient = twilio(
@@ -99,18 +80,25 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails) => {
     for await (const chunk of stream) { chunks.push(chunk); }
     const pdfBuffer = Buffer.concat(chunks);
 
-    const mailOptions = {
-      from: `"BookVisit Support" <${process.env.EMAIL_USER}>`,
+    const msg = {
       to: patientEmail,
+      from: process.env.SENDGRID_SENDER_EMAIL, // Verified sender
       subject: `Appointment Update: ${bookingDetails.status.toUpperCase()} - ${bookingDetails.hospitalName}`,
       text: `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nPlease find the details in the attached professional PDF.\n\nThank you for using BookVisit!`,
-      attachments: [{ filename: "Appointment_Summary.pdf", content: pdfBuffer }],
+      attachments: [
+        {
+          content: pdfBuffer.toString("base64"),
+          filename: "Appointment_Summary.pdf",
+          type: "application/pdf",
+          disposition: "attachment",
+        },
+      ],
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent: ${bookingDetails.status} PDF to ${patientEmail}`);
+    await sgMail.send(msg);
+    console.log(`Email sent: ${bookingDetails.status} PDF to ${patientEmail} via SendGrid`);
   } catch (error) {
-    console.error("Mailer Error:", error);
+    console.error("SendGrid Mailer Error:", error.response ? error.response.body : error);
   }
 };
 
@@ -118,35 +106,33 @@ const sendHospitalApprovalEmail = async (hospitalEmail, hospitalName, status) =>
   try {
     const message = `Hello ${hospitalName},\n\nYour hospital registration status has been updated to: ${status.toUpperCase()}.\n\n${status === 'approved' ? 'You can now log in and manage your dashboard.' : 'Please contact support for more details.'}\n\nThank you,\nBookVisit Team`;
 
-    const mailOptions = {
-      from: `"BookVisit Admin" <${process.env.EMAIL_USER}>`,
+    const msg = {
       to: hospitalEmail,
+      from: process.env.SENDGRID_SENDER_EMAIL,
       subject: `Hospital Status Update: ${status.toUpperCase()}`,
       text: message,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent to hospital: ${status} to ${hospitalEmail}`);
-    
-    // Also send WhatsApp if needed (requires phone number, which we'll handle in controller)
+    await sgMail.send(msg);
+    console.log(`Email sent to hospital: ${status} to ${hospitalEmail} via SendGrid`);
   } catch (error) {
-    console.error("Hospital Mailer Error:", error);
+    console.error("SendGrid Hospital Mailer Error:", error.response ? error.response.body : error);
   }
 };
 
 const sendHospitalPendingEmail = async (hospitalEmail, hospitalName) => {
   try {
-    const mailOptions = {
-      from: `"BookVisit Admin" <${process.env.EMAIL_USER}>`,
+    const msg = {
       to: hospitalEmail,
+      from: process.env.SENDGRID_SENDER_EMAIL,
       subject: `Hospital Registration: UNDER REVIEW`,
       text: `Hello ${hospitalName},\n\nYour hospital registration is currently UNDER REVIEW.\n\nOur admin team will verify your details and approve it within 24 hours.\n\nYou will receive another email once it is approved.\n\nThank you for joining BookVisit!`,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Pending email sent to hospital: ${hospitalName} to ${hospitalEmail}`);
+    await sgMail.send(msg);
+    console.log(`Pending email sent to hospital: ${hospitalName} to ${hospitalEmail} via SendGrid`);
   } catch (error) {
-    console.error("Hospital Pending Mailer Error:", error);
+    console.error("SendGrid Hospital Pending Mailer Error:", error.response ? error.response.body : error);
   }
 };
 
