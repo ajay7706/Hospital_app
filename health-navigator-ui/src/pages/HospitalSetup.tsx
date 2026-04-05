@@ -125,7 +125,7 @@ const HospitalSetup = () => {
           });
           if (uploadRes.ok) {
             const uploadData = await uploadRes.json();
-            logoPat = uploadData.filePath;
+            logoPat = uploadData.imageUrl; // Cloudinary URL
           }
         } catch (err) {
           console.warn('Logo upload failed, continuing without logo', err);

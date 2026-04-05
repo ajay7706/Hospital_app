@@ -13,7 +13,7 @@ exports.addHospital = async (req, res) => {
     const hospitalData = { 
       ...otherHospitalData, 
       userId: req.user.id,
-      hospitalLogo: req.file ? req.file.path : null, // Save Cloudinary URL
+      hospitalLogo: req.file ? req.file.path : otherHospitalData.hospitalLogo, // Support logo from file OR body
       specialties: Array.isArray(specialties) ? specialties : (specialties ? specialties.split(',').map(s => s.trim()) : []),
       services: services || [],
       approvalStatus: "pending" 
