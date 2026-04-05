@@ -27,6 +27,12 @@ const appointmentSchema = new mongoose.Schema({
   patientName: String,
   patientEmail: String,
   phone: String,
-});
+  hospitalName: String,
+  location: String,
+  ambulanceRequired: {
+    type: Boolean,
+    default: false,
+  },
+}, { timestamps: true });
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

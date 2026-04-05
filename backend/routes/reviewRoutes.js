@@ -10,6 +10,5 @@ const {
 // Review Routes
 router.post("/add", protect, addReview);
 router.get("/:id", getHospitalReviews);
-router.get("/average/:id", getAverageRating);
 
 module.exports = router;

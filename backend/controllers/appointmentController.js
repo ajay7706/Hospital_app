@@ -1,11 +1,12 @@
 const Appointment = require("../models/Appointment");
 const Hospital = require("../models/Hospital");
+const User = require("../models/Users");
 const { sendAppointmentEmail, sendWhatsAppNotification } = require("../config/mailer");
 
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
   try {
-    const { hospitalId, date, time, patientName, patientEmail, location, hospitalName, phone } = req.body;
+    const { hospitalId, date, time, patientName, patientEmail, location, hospitalName, phone, ambulanceRequired } = req.body;
     
     // Check if hospital exists and is approved
     const hospital = await Hospital.findById(hospitalId);
@@ -26,16 +27,25 @@ exports.bookAppointment = async (req, res) => {
       phone,
       hospitalName,
       location,
-      status: "pending"
+      status: "pending",
+      ambulanceRequired: ambulanceRequired || false
     });
 
-    // Send confirmation email
-    await sendAppointmentEmail(patientEmail, appointment);
-
-    // Send WhatsApp notification
-    if (phone) {
-      const waMessage = `Hello ${patientName}, your appointment at ${hospitalName} is confirmed for ${date} at ${time}. Thank you for using BookVisit!`;
-      await sendWhatsAppNotification(phone, waMessage);
+    // Send confirmation message (TEXT ONLY - No PDF for pending)
+    const pendingMsg = `Hello ${patientName}, your appointment at ${hospitalName} for ${date} is currently PENDING approval. We will notify you once confirmed. Ambulance Required: ${ambulanceRequired ? 'Yes' : 'No'}.`;
+    
+    try {
+      await sendAppointmentEmail(patientEmail, {
+        ...appointment.toObject(),
+        status: "pending",
+        msg: pendingMsg
+      }, false); // Pass false to indicate no PDF
+      
+      if (phone) {
+        await sendWhatsAppNotification(phone, pendingMsg);
+      }
+    } catch (mailErr) {
+      console.error("Email/WhatsApp Notification Error (Pending):", mailErr);
     }
 
     res.status(201).json({ msg: "Appointment booked successfully", appointment });
@@ -45,11 +55,93 @@ exports.bookAppointment = async (req, res) => {
   }
 };
 
-// Get Patient Appointments
+// Get Appointments for a Hospital
+exports.getHospitalAppointments = async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ userId: req.user.id });
+    if (!hospital) {
+      return res.status(404).json({ msg: "Hospital profile not found" });
+    }
+    const appointments = await Appointment.find({ hospitalId: hospital._id }).sort({ createdAt: -1 });
+    
+    // Calculate statistics
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    
+    const stats = {
+      total: appointments.length,
+      today: appointments.filter(a => a.date === today).length,
+      yesterday: appointments.filter(a => a.date === yesterday).length,
+      pending: appointments.filter(a => a.status?.toLowerCase() === 'pending').length,
+      approved: appointments.filter(a => a.status?.toLowerCase() === 'approved').length,
+      completed: appointments.filter(a => a.status?.toLowerCase() === 'completed').length
+    };
+
+    res.json({ appointments, stats });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Get Appointments for a Patient
 exports.getPatientAppointments = async (req, res) => {
   try {
-    const appointments = await Appointment.find({ patientId: req.user.id });
+    const appointments = await Appointment.find({ patientId: req.user.id }).sort({ createdAt: -1 });
     res.json(appointments);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Update Appointment Status
+exports.updateAppointmentStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const appointment = await Appointment.findById(req.params.id);
+    
+    if (!appointment) {
+      return res.status(404).json({ msg: "Appointment not found" });
+    }
+
+    appointment.status = status;
+    await appointment.save();
+
+    // Trigger notifications based on status
+    if (status === "approved") {
+      const approvalMsg = `Congratulations! Your appointment at ${appointment.hospitalName} has been APPROVED for ${appointment.date} at ${appointment.time}. Please find the details in the attached PDF.`;
+      
+      try {
+        // Send Email with PDF
+        await sendAppointmentEmail(appointment.patientEmail, {
+          ...appointment.toObject(),
+          status: "approved"
+        }, true); // Pass true for PDF
+        
+        if (appointment.phone) {
+          await sendWhatsAppNotification(appointment.phone, approvalMsg);
+        }
+      } catch (mailErr) {
+        console.error("Notification Error (Approved):", mailErr);
+      }
+    } else if (status === "completed") {
+      const completionMsg = `Your visit to ${appointment.hospitalName} is marked as completed. Please take a moment to rate and review your experience: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/hospital-details?id=${appointment.hospitalId}`;
+      
+      try {
+        await sendAppointmentEmail(appointment.patientEmail, {
+          ...appointment.toObject(),
+          status: "completed",
+          msg: completionMsg
+        }, false);
+        
+        if (appointment.phone) {
+          await sendWhatsAppNotification(appointment.phone, completionMsg);
+        }
+      } catch (mailErr) {
+        console.error("Notification Error (Completed):", mailErr);
+      }
+    }
+
+    res.json({ msg: `Appointment status updated to ${status}`, appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
@@ -63,7 +155,21 @@ exports.getHospitalAppointments = async (req, res) => {
       return res.status(404).json({ msg: "Hospital not found" });
     }
     const appointments = await Appointment.find({ hospitalId: hospital._id });
-    res.json(appointments);
+    
+    // Calculate statistics
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    
+    const stats = {
+      total: appointments.length,
+      today: appointments.filter(a => a.date === today).length,
+      yesterday: appointments.filter(a => a.date === yesterday).length,
+      pending: appointments.filter(a => a.status?.toLowerCase() === 'pending').length,
+      approved: appointments.filter(a => a.status?.toLowerCase() === 'approved').length,
+      completed: appointments.filter(a => a.status?.toLowerCase() === 'completed').length
+    };
+
+    res.json({ appointments, stats });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
@@ -73,42 +179,52 @@ exports.getHospitalAppointments = async (req, res) => {
 exports.updateAppointmentStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const appointment = await Appointment.findById(req.params.id).populate("hospitalId");
+    const appointment = await Appointment.findById(req.params.id);
     
     if (!appointment) {
       return res.status(404).json({ msg: "Appointment not found" });
     }
 
-    // Verify ownership
-    const hospital = await Hospital.findOne({ userId: req.user.id });
-    if (!hospital || appointment.hospitalId._id.toString() !== hospital._id.toString()) {
-      return res.status(401).json({ msg: "Not authorized to update this appointment" });
-    }
-
     appointment.status = status;
     await appointment.save();
 
-    const hospitalDetails = {
-      hospitalName: hospital.hospitalName,
-      location: hospital.city,
-      patientName: appointment.patientName,
-      patientEmail: appointment.patientEmail,
-      date: appointment.date,
-      time: appointment.time,
-      phone: appointment.phone,
-      status: status
-    };
-
+    // Trigger notifications based on status
     if (status === "approved") {
-      await sendAppointmentEmail(appointment.patientEmail, hospitalDetails);
+      const approvalMsg = `Congratulations! Your appointment at ${appointment.hospitalName} has been APPROVED for ${appointment.date} at ${appointment.time}. Please find the details in the attached PDF.`;
+      
+      try {
+        // Send Email with PDF
+        await sendAppointmentEmail(appointment.patientEmail, {
+          ...appointment.toObject(),
+          status: "approved"
+        }, true); // Pass true for PDF
+        
+        if (appointment.phone) {
+          await sendWhatsAppNotification(appointment.phone, approvalMsg);
+        }
+      } catch (mailErr) {
+        console.error("Notification Error (Approved):", mailErr);
+      }
     } else if (status === "completed") {
-      await sendAppointmentEmail(appointment.patientEmail, hospitalDetails);
-      await sendWhatsAppNotification(appointment.phone, hospitalDetails);
+      const completionMsg = `Your visit to ${appointment.hospitalName} is marked as completed. Please take a moment to rate and review your experience: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/hospital-details?id=${appointment.hospitalId}`;
+      
+      try {
+        await sendAppointmentEmail(appointment.patientEmail, {
+          ...appointment.toObject(),
+          status: "completed",
+          msg: completionMsg
+        }, false);
+        
+        if (appointment.phone) {
+          await sendWhatsAppNotification(appointment.phone, completionMsg);
+        }
+      } catch (mailErr) {
+        console.error("Notification Error (Completed):", mailErr);
+      }
     }
 
     res.json({ msg: `Appointment status updated to ${status}`, appointment });
   } catch (error) {
-    console.error("Status update error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };

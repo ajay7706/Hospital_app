@@ -29,11 +29,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { User, Phone, Mail, CalendarIcon, Clock, Building2, Loader2, CheckCircle2, FileText } from 'lucide-react';
+import { User, Phone, Mail, CalendarIcon, Clock, Building2, Loader2, CheckCircle2, FileText, Ambulance } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
@@ -44,6 +45,7 @@ const bookingSchema = z.object({
   symptoms: z.string().min(5, 'Describe your symptoms'),
   date: z.date({ required_error: 'Select appointment date' }),
   time: z.string().min(1, 'Select appointment time'),
+  ambulanceRequired: z.boolean().default(false),
 });
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
@@ -114,7 +116,8 @@ const BookVisit = () => {
           age: data.age,
           gender: data.gender,
           symptoms: data.symptoms,
-          phone: data.phone
+          phone: data.phone,
+          ambulanceRequired: data.ambulanceRequired
         }),
       });
 
@@ -322,6 +325,28 @@ const BookVisit = () => {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="ambulanceRequired"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 bg-muted/20">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none flex items-center gap-2">
+                        <Ambulance className="h-4 w-4 text-primary" />
+                        <FormLabel>
+                          Ambulance Service Required?
+                        </FormLabel>
+                      </div>
                     </FormItem>
                   )}
                 />

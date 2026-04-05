@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { getAllHospitals } from '@/lib/hospitalStore';
 import api from '@/lib/api';
 import { useState, useEffect } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper function to get icon based on service title
 const getServiceIcon = (title: string = "") => {
@@ -24,6 +26,26 @@ const HospitalDetails = () => {
   const [hospital, setHospital] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'reviews'>('overview');
+  
+  // Review state
+  const { toast } = useToast();
+  const [reviewsData, setReviewsData] = useState<{ reviews: any[], averageRating: number, totalReviews: number }>({ reviews: [], averageRating: 0, totalReviews: 0 });
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const fetchReviews = async () => {
+    if (!hospitalId) return;
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const res = await fetch(`${API_BASE}/api/reviews/${hospitalId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviewsData(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch reviews:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,6 +56,7 @@ const HospitalDetails = () => {
         const remote = await api.getHospitalById(hospitalId);
         if (remote) {
           setHospital(remote);
+          fetchReviews();
           setLoading(false);
           return;
         }
@@ -55,11 +78,47 @@ const HospitalDetails = () => {
     fetchData();
   }, [hospitalId]);
 
-  const reviews = [
-    { name: 'Rahul Sharma', rating: 5, text: 'Excellent care and very professional staff. Highly recommended!', date: '2 weeks ago' },
-    { name: 'Priya Patel', rating: 4, text: 'Good facilities and friendly doctors. Wait time could be better.', date: '1 month ago' },
-    { name: 'Amit Kumar', rating: 5, text: 'Best hospital experience. Clean, modern, and efficient service.', date: '3 weeks ago' },
-  ];
+  const handleAddReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({ title: "Login Required", description: "Please login to leave a review.", variant: "destructive" });
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      const res = await fetch(`${API_BASE}/api/reviews/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          hospitalId,
+          rating: newReview.rating,
+          comment: newReview.comment,
+          patientName: user.name
+        })
+      });
+
+      if (res.ok) {
+        toast({ title: "Review Added", description: "Thank you for your feedback!" });
+        setNewReview({ rating: 5, comment: '' });
+        fetchReviews(); // Refresh reviews instantly
+      } else {
+        const err = await res.json();
+        toast({ title: "Failed to add review", description: err.msg || "Make sure you have a completed appointment.", variant: "destructive" });
+      }
+    } catch (err) {
+      toast({ title: "Error", description: "Something went wrong.", variant: "destructive" });
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -97,7 +156,8 @@ const HospitalDetails = () => {
     );
   }
 
-  const rating = hospital.rating || 0;
+  const rating = reviewsData.averageRating || hospital.rating || 0;
+  const totalReviews = reviewsData.totalReviews || 0;
   const fullStars = Math.floor(rating);
   const hasHalf = rating % 1 >= 0.3;
 
@@ -151,7 +211,7 @@ const HospitalDetails = () => {
                     ))}
                   </div>
                   <span className="text-lg font-semibold text-white">{rating}</span>
-                  <span className="text-sm text-white/70">(128 reviews)</span>
+                  <span className="text-sm text-white/70">({totalReviews} reviews)</span>
                 </div>
                 <div className="mt-1 flex items-center gap-1 text-sm text-white/80">
                   <MapPin className="h-4 w-4" /> {hospital.location || 'Unknown'}
@@ -339,35 +399,73 @@ const HospitalDetails = () => {
 
           {/* Reviews Tab */}
           {activeTab === 'reviews' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl space-y-4">
-              {reviews.map((r, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * i }}
-                  className="rounded-2xl border border-border bg-card p-5 shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        {r.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">{r.name}</p>
-                        <p className="text-xs text-muted-foreground">{r.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-0.5">
-                      {[...Array(r.rating)].map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
+            <div className="mx-auto max-w-2xl space-y-8">
+              {/* Add Review Form */}
+              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="text-lg font-bold text-foreground mb-4">Rate your experience</h3>
+                <form onSubmit={handleAddReview} className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setNewReview({ ...newReview, rating: s })}
+                        className="transition-transform hover:scale-110"
+                      >
+                        <Star className={`h-8 w-8 ${s <= newReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground opacity-30'}`} />
+                      </button>
+                    ))}
                   </div>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{r.text}</p>
-                </motion.div>
-              ))}
-            </motion.div>
+                  <Textarea
+                    placeholder="Tell us about your visit..."
+                    value={newReview.comment}
+                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                    required
+                    className="min-h-[100px]"
+                  />
+                  <Button type="submit" variant="cta" disabled={submittingReview}>
+                    {submittingReview ? "Submitting..." : "Post Review"}
+                  </Button>
+                </form>
+              </motion.div>
+
+              {/* Reviews List */}
+              <div className="space-y-4">
+                {reviewsData.reviews.length > 0 ? (
+                  reviewsData.reviews.map((r, i) => (
+                    <motion.div
+                      key={r._id || i}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 * i }}
+                      className="rounded-2xl border border-border bg-card p-5 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary uppercase">
+                            {(r.patientName || 'A').charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">{r.patientName || 'Anonymous'}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[...Array(r.rating)].map((_, i) => (
+                            <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{r.comment}</p>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    No reviews yet. Be the first to review!
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </main>

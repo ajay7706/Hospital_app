@@ -22,27 +22,37 @@ export interface BackendHospital {
 }
 
 function toLocal(h: BackendHospital, index: number) {
-  const image = h.hospitalLogo
-    ? (h.hospitalLogo.startsWith('uploads') ? `${BASE}/${h.hospitalLogo}` : h.hospitalLogo)
-    : `/assets/hospital-1.jpg`;
+  let image = "/assets/hospital-1.jpg";
+  if (h.hospitalLogo) {
+    if (h.hospitalLogo.startsWith('http')) {
+      image = h.hospitalLogo;
+    } else if (h.hospitalLogo.startsWith('uploads')) {
+      image = `${BASE}/${h.hospitalLogo}`;
+    } else {
+      // Handle cases where it might just be a path or cloud url without protocol
+      image = h.hospitalLogo;
+    }
+  }
 
   return {
     id: h._id,
     name: h.hospitalName,
     image,
+    hospitalLogo: image, // Added for consistency
     location: h.city || 'Unknown',
+    city: h.city || 'Unknown',
     address: h.address || h.city || 'Unknown',
     rating: 4.5,
     specialty: h.specialties && h.specialties.length > 0 ? h.specialties[0] : (h.description ? h.description.slice(0, 40) : 'General'),
     description: h.description || '',
     phone: h.contactNumber || '+91 98765 43210',
     email: h.officialEmail || `contact@${h.hospitalName.toLowerCase().replace(/\s+/g, '')}.com`,
-    specialties: h.specialties || [], // Map specialties
-    services: h.services || [], // Map services
+    specialties: h.specialties || [],
+    services: h.services || [],
     workingDays: h.workingDays || ['Monday - Friday'],
     hours: h.openingTime && h.closingTime ? `${h.openingTime} - ${h.closingTime}` : '8:00 AM - 9:00 PM',
     emergency24x7: h.emergency24x7 || false,
-    ambulanceAvailable: h.ambulanceAvailable || false, // Map ambulanceAvailable
+    ambulanceAvailable: h.ambulanceAvailable || false,
   };
 }
 

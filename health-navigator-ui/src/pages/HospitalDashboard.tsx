@@ -11,6 +11,8 @@ import {
   Phone,
   Building2,
   ChevronDown,
+  Ambulance,
+  XCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
@@ -23,6 +25,7 @@ import {
 } from '@/components/ui/table';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 const statusStyles: Record<string, string> = {
   Pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
@@ -33,6 +36,7 @@ const statusStyles: Record<string, string> = {
 const HospitalDashboard = () => {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [hospitalName, setHospitalName] = useState('Your Hospital');
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('All');
@@ -58,7 +62,8 @@ const HospitalDashboard = () => {
         
         if (res.ok) {
           const data = await res.json();
-          setAppointments(Array.isArray(data) ? data : []);
+          setAppointments(Array.isArray(data.appointments) ? data.appointments : []);
+          setStats(data.stats);
         }
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
@@ -84,9 +89,21 @@ const HospitalDashboard = () => {
       });
 
       if (res.ok) {
-        setAppointments(prev => 
-          prev.map(appt => appt._id === id ? { ...appt, status: newStatus } : appt)
-        );
+        // Refetch to update everything in real-time
+        const fetchDashboardData = async () => {
+          try {
+            const res = await fetch(`${API_BASE}/api/appointments/hospital`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setAppointments(Array.isArray(data.appointments) ? data.appointments : []);
+              setStats(data.stats);
+            }
+          } catch (err) { console.error(err); }
+        };
+        fetchDashboardData();
+
         toast({
           title: `Status Updated`,
           description: `Appointment marked as ${newStatus}.`,
@@ -97,11 +114,6 @@ const HospitalDashboard = () => {
     }
   };
 
-  const today = '2026-02-20';
-  const totalAppointments = appointments.length;
-  const todayAppointments = appointments.filter((a) => a.date === today).length;
-  const pendingAppointments = appointments.filter((a) => a.status?.toLowerCase() === 'pending').length;
-
   const filtered =
     statusFilter === 'All'
       ? appointments
@@ -110,24 +122,45 @@ const HospitalDashboard = () => {
   const summaryCards = [
     {
       label: 'Total Patients',
-      value: totalAppointments,
+      value: stats?.total || 0,
       icon: Users,
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
     {
-      label: "Today's Appointments",
-      value: todayAppointments,
+      label: "Today's",
+      value: stats?.today || 0,
       icon: Calendar,
       color: 'text-cta',
       bg: 'bg-cta/10',
     },
     {
-      label: 'Pending Requests',
-      value: pendingAppointments,
+      label: "Yesterday's",
+      value: stats?.yesterday || 0,
+      icon: Clock,
+      color: 'text-muted-foreground',
+      bg: 'bg-muted',
+    },
+    {
+      label: 'Pending',
+      value: stats?.pending || 0,
       icon: Clock,
       color: 'text-amber-500',
       bg: 'bg-amber-100 dark:bg-amber-900/20',
+    },
+    {
+      label: 'Approved',
+      value: stats?.approved || 0,
+      icon: CheckCircle2,
+      color: 'text-blue-500',
+      bg: 'bg-blue-100 dark:bg-blue-900/20',
+    },
+    {
+      label: 'Completed',
+      value: stats?.completed || 0,
+      icon: CheckCircle2,
+      color: 'text-green-500',
+      bg: 'bg-green-100 dark:bg-green-900/20',
     },
   ];
 
@@ -235,6 +268,7 @@ const HospitalDashboard = () => {
                   <TableHead>#</TableHead>
                   <TableHead>Patient Name</TableHead>
                   <TableHead>Phone Number</TableHead>
+                  <TableHead>Ambulance</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Status</TableHead>
@@ -244,7 +278,7 @@ const HospitalDashboard = () => {
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                       No appointments found.
                     </TableCell>
                   </TableRow>
@@ -258,6 +292,17 @@ const HospitalDashboard = () => {
                           <Phone className="h-3.5 w-3.5" />
                           {appt.phone}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {appt.ambulanceRequired ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100 gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Yes
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-red-100 text-red-700 hover:bg-red-100 gap-1">
+                            <XCircle className="h-3 w-3" /> No
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell className="text-foreground">{appt.date}</TableCell>
                       <TableCell className="text-foreground">{appt.time}</TableCell>

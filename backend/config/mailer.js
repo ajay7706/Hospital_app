@@ -34,10 +34,11 @@ const createProfessionalPDF = (doc, details) => {
   doc.moveDown(2);
   doc.fontSize(18).text("Appointment Schedule", { underline: true });
   doc.moveDown();
-  doc.rect(50, doc.y, 500, 60).fill("#f3f4f6");
+  doc.rect(50, doc.y, 500, 80).fill("#f3f4f6");
   doc.fillColor("#1f2937")
      .text(`Date: ${details.date}`, 70, doc.y + 15)
-     .text(`Time: ${details.time}`, 70, doc.y + 35);
+     .text(`Time: ${details.time}`, 70, doc.y + 35)
+     .text(`Ambulance Service: ${details.ambulanceRequired ? 'YES' : 'NO'}`, 70, doc.y + 55);
 
   // Footer
   doc.fillColor("#9ca3af")
@@ -68,35 +69,39 @@ const sendWhatsAppNotification = async (phone, message) => {
   }
 };
 
-const sendAppointmentEmail = async (patientEmail, bookingDetails) => {
+const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = true) => {
   try {
-    const doc = new PDFDocument({ margin: 50 });
-    const stream = new PassThrough();
-    doc.pipe(stream);
-    createProfessionalPDF(doc, bookingDetails);
-    doc.end();
+    let attachments = [];
+    
+    if (includePDF) {
+      const doc = new PDFDocument({ margin: 50 });
+      const stream = new PassThrough();
+      doc.pipe(stream);
+      createProfessionalPDF(doc, bookingDetails);
+      doc.end();
 
-    const chunks = [];
-    for await (const chunk of stream) { chunks.push(chunk); }
-    const pdfBuffer = Buffer.concat(chunks);
+      const chunks = [];
+      for await (const chunk of stream) { chunks.push(chunk); }
+      const pdfBuffer = Buffer.concat(chunks);
+      
+      attachments.push({
+        content: pdfBuffer.toString("base64"),
+        filename: "Appointment_Summary.pdf",
+        type: "application/pdf",
+        disposition: "attachment",
+      });
+    }
 
     const msg = {
       to: patientEmail,
-      from: process.env.SENDGRID_SENDER_EMAIL, // Verified sender
+      from: process.env.SENDGRID_SENDER_EMAIL,
       subject: `Appointment Update: ${bookingDetails.status.toUpperCase()} - ${bookingDetails.hospitalName}`,
-      text: `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nPlease find the details in the attached professional PDF.\n\nThank you for using BookVisit!`,
-      attachments: [
-        {
-          content: pdfBuffer.toString("base64"),
-          filename: "Appointment_Summary.pdf",
-          type: "application/pdf",
-          disposition: "attachment",
-        },
-      ],
+      text: bookingDetails.msg || `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nThank you for using BookVisit!`,
+      attachments: attachments,
     };
 
     await sgMail.send(msg);
-    console.log(`Email sent: ${bookingDetails.status} PDF to ${patientEmail} via SendGrid`);
+    console.log(`Email sent: ${bookingDetails.status} to ${patientEmail} via SendGrid (PDF: ${includePDF})`);
   } catch (error) {
     console.error("SendGrid Mailer Error:", error.response ? error.response.body : error);
   }

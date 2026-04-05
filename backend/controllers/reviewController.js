@@ -4,8 +4,9 @@ const Appointment = require("../models/Appointment");
 // Add Review
 exports.addReview = async (req, res) => {
   try {
-    const { hospitalId, rating, comment } = req.body;
+    const { hospitalId, rating, comment, patientName } = req.body;
 
+    // Rule: Only patients with COMPLETED appointment can review
     const appointment = await Appointment.findOne({
       patientId: req.user.id,
       hospitalId,
@@ -16,16 +17,10 @@ exports.addReview = async (req, res) => {
       return res.status(403).json({ msg: "You can only review after a completed appointment" });
     }
 
-    // Constraint: 1 rating per patient
-    const existingRating = await Review.findOne({ patientId: req.user.id, hospitalId, rating: { $exists: true } });
-    if (existingRating && rating) {
-      return res.status(400).json({ msg: "You have already rated this hospital" });
-    }
-
-    // Constraint: Max 2 reviews per patient
-    const reviewCount = await Review.countDocuments({ patientId: req.user.id, hospitalId });
-    if (reviewCount >= 2) {
-      return res.status(400).json({ msg: "You can write a maximum of 2 reviews for a hospital" });
+    // Rule: Only ONE review per hospital per patient
+    const existingReview = await Review.findOne({ patientId: req.user.id, hospitalId });
+    if (existingReview) {
+      return res.status(400).json({ msg: "You have already reviewed this hospital" });
     }
 
     const review = await Review.create({
@@ -33,36 +28,33 @@ exports.addReview = async (req, res) => {
       hospitalId,
       rating,
       comment,
+      patientName: patientName || req.user.name || "Anonymous"
     });
 
     res.status(201).json({ msg: "Review added successfully", review });
   } catch (error) {
+    console.error("Add Review Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
 
-// Get All Reviews for a Hospital
+// Get All Reviews for a Hospital (with stats)
 exports.getHospitalReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ hospitalId: req.params.id });
-    res.json(reviews);
-  } catch (error) {
-    res.status(500).json({ msg: "Server error", error: error.message });
-  }
-};
-
-// Get Average Rating for a Hospital
-exports.getAverageRating = async (req, res) => {
-  try {
-    const reviews = await Review.find({ hospitalId: req.params.id });
+    const reviews = await Review.find({ hospitalId: req.params.id }).sort({ createdAt: -1 });
+    
     if (reviews.length === 0) {
-      return res.json({ averageRating: 0 });
+      return res.json({ reviews: [], averageRating: 0, totalReviews: 0 });
     }
 
-    const totalRating = reviews.reduce((acc, review) => acc + review.rating, 0);
-    const averageRating = totalRating / reviews.length;
+    const totalRating = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    const averageRating = (totalRating / reviews.length).toFixed(1);
 
-    res.json({ averageRating });
+    res.json({ 
+      reviews, 
+      averageRating: parseFloat(averageRating), 
+      totalReviews: reviews.length 
+    });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

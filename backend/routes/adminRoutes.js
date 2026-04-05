@@ -7,6 +7,7 @@ const {
   approveHospital,
   rejectHospital,
   deleteHospital,
+  getAdminStats,
 } = require("../controllers/hospitalController");
 
 // All routes here are prefixed with /api/admin in app.js
@@ -14,6 +15,7 @@ const {
 router.use(protect, isAdmin);
 
 // Admin Dashboard routes
+router.get("/stats", getAdminStats);
 router.get("/hospital/all", getAdminAllHospitals);
 router.get("/hospital/pending", getPendingHospitals);
 router.patch("/hospital/:id/approve", approveHospital);

@@ -160,6 +160,36 @@ exports.getAdminAllHospitals = async (req, res) => {
   }
 };
 
+// Admin Dashboard Stats
+exports.getAdminStats = async (req, res) => {
+  try {
+    const totalHospitals = await Hospital.countDocuments();
+    const approvedHospitals = await Hospital.countDocuments({ approvalStatus: "approved" });
+    const pendingHospitals = await Hospital.countDocuments({ approvalStatus: "pending" });
+    const totalUsers = await User.countDocuments();
+    const totalAppointments = await mongoose.model('Appointment').countDocuments();
+    
+    // Newly added hospitals (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const newHospitals = await Hospital.find({ createdAt: { $gte: sevenDaysAgo } }).sort({ createdAt: -1 });
+    
+    // Users who haven't completed hospital setup
+    const incompleteHospitals = await User.countDocuments({ role: "hospital", hospitalAdded: false });
+
+    res.json({
+      totalHospitals,
+      approvedHospitals,
+      pendingHospitals,
+      totalUsers,
+      totalAppointments,
+      newHospitals,
+      incompleteHospitals
+    });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
 // Admin: Get Only Pending Hospitals
 exports.getPendingHospitals = async (req, res) => {
   try {
