@@ -143,7 +143,7 @@ const Hospitals = () => {
                         <span>{hospital.location}</span>
                       </div>
                       {hospital.ambulanceAvailable && (
-                        <Ambulance className="h-5 w-5 text-red-500" title="Ambulance Available" />
+                        <Ambulance className="h-5 w-5 text-red-500" />
                       )}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">

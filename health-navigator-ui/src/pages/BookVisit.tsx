@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Navbar } from '@/components/layout/Navbar';
@@ -57,6 +57,7 @@ const timeSlots = [
 
 const BookVisit = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const hospitalName = searchParams.get('name') || 'CityCare Hospital';
   const hospitalLocation = searchParams.get('location') || 'Downtown, New York';
   const hospitalId = searchParams.get('id');

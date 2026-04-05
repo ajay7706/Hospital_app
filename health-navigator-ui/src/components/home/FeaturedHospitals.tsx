@@ -132,7 +132,7 @@ export const FeaturedHospitals = () => {
                         <span className="truncate">{hospital.location || 'Unknown'}</span>
                       </div>
                       {hospital.ambulanceAvailable && (
-                        <Ambulance className="h-5 w-5 text-red-500 flex-shrink-0" title="Ambulance Available" />
+                        <Ambulance className="h-5 w-5 text-red-500 flex-shrink-0" />
                       )}
                     </div>
 
