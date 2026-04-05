@@ -176,7 +176,7 @@ const HospitalSetup = () => {
       localStorage.setItem('hospitalProfile', JSON.stringify({
         ...data,
         hospitalId: result.hospital._id,
-        logoFileName: logoFile?.name || null,
+        hospitalLogo: result.hospital.hospitalLogo,
         completedAt: new Date().toISOString(),
       }));
       
@@ -185,9 +185,9 @@ const HospitalSetup = () => {
         description: 'Your profile is pending approval. Check your email for updates.',
       });
       
-      // Redirect to hospitals after a short delay
+      // Redirect to hospital dashboard after a short delay
       setTimeout(() => {
-        navigate('/hospitals');
+        navigate('/hospital-dashboard');
       }, 1500);
     } catch (err) {
       toast({

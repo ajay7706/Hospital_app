@@ -67,7 +67,9 @@ const AdminDashboard = () => {
       });
 
       if (res.ok) {
-        setHospitals(prev => prev.filter(h => h._id !== id));
+        // Refetch hospitals to ensure UI is in sync with backend
+        fetchPendingHospitals();
+        
         toast({
           title: `Hospital ${status.charAt(0).toUpperCase() + status.slice(1)}`,
           description: `The hospital has been ${status} successfully.`,

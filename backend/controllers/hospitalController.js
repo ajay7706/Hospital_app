@@ -92,6 +92,19 @@ exports.getHospitalById = async (req, res) => {
   }
 };
 
+// Get Hospital by User ID
+exports.getHospitalByUserId = async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ userId: req.user.id });
+    if (!hospital) {
+      return res.status(404).json({ msg: "Hospital not found" });
+    }
+    res.json(hospital);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
 // Update Hospital Profile
 exports.updateHospitalProfile = async (req, res) => {
   try {

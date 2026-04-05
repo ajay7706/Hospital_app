@@ -23,20 +23,43 @@ const HospitalProfile = () => {
   const [hospital, setHospital] = useState<any>(null);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    const parsed = JSON.parse(user);
-    if (parsed.role !== 'hospital') {
-      navigate('/');
-      return;
-    }
-    const profile = localStorage.getItem('hospitalProfile');
-    if (profile) {
-      setHospital(JSON.parse(profile));
-    }
+    const fetchHospitalProfile = async () => {
+      const user = localStorage.getItem('user');
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      const parsed = JSON.parse(user);
+      if (parsed.role !== 'hospital') {
+        navigate('/');
+        return;
+      }
+
+      // Try to fetch from backend first to get fresh data
+      try {
+        const token = localStorage.getItem('token');
+        const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+        const res = await fetch(`${API_BASE}/api/hospitals/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setHospital(data);
+          localStorage.setItem('hospitalProfile', JSON.stringify(data));
+          return;
+        }
+      } catch (err) {
+        console.error("Failed to fetch hospital profile:", err);
+      }
+
+      // Fallback to localStorage
+      const profile = localStorage.getItem('hospitalProfile');
+      if (profile) {
+        setHospital(JSON.parse(profile));
+      }
+    };
+
+    fetchHospitalProfile();
   }, [navigate]);
 
   if (!hospital) {
@@ -96,8 +119,8 @@ const HospitalProfile = () => {
           <div className="relative bg-primary/5 px-6 py-8 sm:px-8">
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
               <Avatar className="h-20 w-20 border-4 border-background shadow-md">
-                {hospital.profileImage ? (
-                  <AvatarImage src={hospital.profileImage} alt={hospital.hospitalName} />
+                {hospital.hospitalLogo ? (
+                  <AvatarImage src={hospital.hospitalLogo} alt={hospital.hospitalName} />
                 ) : null}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
                   {initials}

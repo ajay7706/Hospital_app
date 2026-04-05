@@ -90,27 +90,64 @@ const EditProfile = () => {
 
   const onSubmit = async (data: EditForm) => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 1000));
-
-    const updated = { ...hospital, ...data, profileImage: imagePreview };
-    localStorage.setItem('hospitalProfile', JSON.stringify(updated));
-
-    // Also update hospital in allHospitals list
     try {
-      const allRaw = localStorage.getItem('hospitals');
-      if (allRaw) {
-        const all = JSON.parse(allRaw);
-        const idx = all.findIndex((h: any) => h.name === hospital.hospitalName || h.id === hospital._id);
-        if (idx !== -1) {
-          all[idx] = { ...all[idx], ...data };
-          localStorage.setItem('hospitals', JSON.stringify(all));
+      const token = localStorage.getItem('token');
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+      let hospitalLogo = hospital.hospitalLogo;
+
+      // Upload new image if provided
+      if (imagePreview && imagePreview !== hospital.hospitalLogo && imagePreview.startsWith('data:')) {
+        const formData = new FormData();
+        // Convert base64 to file
+        const res = await fetch(imagePreview);
+        const blob = await res.blob();
+        const file = new File([blob], 'hospital-logo.jpg', { type: 'image/jpeg' });
+        formData.append('file', file);
+
+        const uploadRes = await fetch(`${API_BASE}/api/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          hospitalLogo = uploadData.imageUrl;
         }
       }
-    } catch { /* ignore */ }
 
-    setSaving(false);
-    toast({ title: 'Profile updated successfully!' });
-    navigate('/profile');
+      const response = await fetch(`${API_BASE}/api/hospitals/update`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...data,
+          hospitalLogo
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const result = await response.json();
+      const updatedHospital = result.hospital;
+
+      // Update localStorage
+      localStorage.setItem('hospitalProfile', JSON.stringify(updatedHospital));
+      
+      toast({ title: 'Profile updated successfully!' });
+      navigate('/profile');
+    } catch (err) {
+      toast({ 
+        title: 'Update failed', 
+        description: err instanceof Error ? err.message : 'Something went wrong',
+        variant: 'destructive' 
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initials = hospital?.hospitalName?.slice(0, 2).toUpperCase() || 'H';

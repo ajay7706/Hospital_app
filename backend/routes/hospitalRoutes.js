@@ -7,10 +7,12 @@ const {
   getAllHospitals,
   getHospitalById,
   updateHospitalProfile,
+  getHospitalByUserId,
 } = require("../controllers/hospitalController");
 
 // Public routes
 router.get("/all", getAllHospitals);
+router.get("/me", protect, isHospital, getHospitalByUserId);
 router.get("/:id", optionalProtect, getHospitalById);
 
 // Hospital owner routes

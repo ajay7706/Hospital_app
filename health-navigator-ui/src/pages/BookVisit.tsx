@@ -114,6 +114,12 @@ const BookVisit = () => {
         title: 'Appointment Booked Successfully!',
         description: `Confirmation PDF sent to ${data.email}`,
       });
+
+      // Clear search params to prevent re-booking on refresh if needed
+      // or redirect to a dashboard
+      setTimeout(() => {
+        navigate('/hospitals'); // Redirect back to hospitals list or dashboard
+      }, 3000);
     } catch (err) {
       toast({
         title: 'Booking Failed',
