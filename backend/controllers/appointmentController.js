@@ -124,7 +124,7 @@ exports.updateAppointmentStatus = async (req, res) => {
         console.error("Notification Error (Approved):", mailErr);
       }
     } else if (status === "completed") {
-      const frontendUrl = process.env.FRONTEND_URL || 'https://hospital-app-rouge.vercel.app';
+      const frontendUrl = process.env.FRONTEND_URL || 'https://hospital-app-rouge.vercel.app/review';
       const completionMsg = `Your visit to ${appointment.hospitalName} is marked as completed. Please take a moment to rate and review your experience: ${frontendUrl}/hospital-details?id=${appointment.hospitalId}`;
       
       try {
