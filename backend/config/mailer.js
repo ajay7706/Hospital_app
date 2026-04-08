@@ -28,56 +28,44 @@ const createProfessionalPDF = (doc, details) => {
      .fontSize(10)
      .text("APPOINTMENT CONFIRMATION", 410, 50, { align: "center", width: 160 });
 
-  // --- Section 1: Booking Details ---
+  // --- Section 1: Basic Information ---
   doc.fillColor("#2563eb")
      .fontSize(16)
-     .text("Booking Details", 50, 120, { bold: true });
+     .text("Patient Basic Information", 50, 120, { bold: true });
   doc.moveTo(50, 140).lineTo(562, 140).stroke("#e5e7eb");
 
-  // --- Two Columns for Info ---
-  // Left Column Box
-  doc.roundedRect(50, 160, 240, 120, 10).stroke("#e5e7eb");
-  doc.fillColor("#374151").fontSize(10)
-     .text("Patient Name:", 70, 180)
-     .fillColor("#1e3a8a").fontSize(11).text(details.patientName, 150, 180, { bold: true })
-     .fillColor("#374151").fontSize(10)
-     .text("Patient ID:", 70, 210)
-     .fillColor("#1e3a8a").text(`PAT${details.patientId?.toString().slice(-6) || "123456"}`, 150, 210)
-     .fillColor("#374151")
-     .text("Date:", 70, 240)
-     .fillColor("#1e3a8a").text(details.date, 150, 240);
-
-  // Right Column Box
-  doc.roundedRect(310, 160, 252, 120, 10).stroke("#e5e7eb");
-  doc.fillColor("#374151").fontSize(10)
-     .text("Hospital Name:", 330, 180)
-     .fillColor("#1e3a8a").fontSize(11).text(details.hospitalName, 420, 180, { bold: true })
-     .fillColor("#374151").fontSize(10)
-     .text("Location:", 330, 210)
-     .fillColor("#1e3a8a").text(details.location, 420, 210);
-
-  // --- Section 2: Appointment Summary ---
-  doc.rect(50, 310, 512, 25).fill("#16a34a"); // Green banner
-  doc.fillColor("#ffffff")
-     .fontSize(12)
-     .text("Appointment Summary", 0, 318, { align: "center", width: 612 });
-
-  doc.roundedRect(50, 345, 512, 150, 10).stroke("#e5e7eb");
+  // --- Information Box ---
+  doc.roundedRect(50, 160, 512, 180, 10).stroke("#e5e7eb");
   
-  // Summary List
-  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 370); // Checkmark icon
-  doc.fillColor("#374151").fontSize(11).text("Check-Up:", 90, 370, { bold: true });
+  const leftX = 70;
+  const rightX = 300;
+  let currentY = 180;
+
+  doc.fillColor("#374151").fontSize(10).text("Patient Name:", leftX, currentY);
+  doc.fillColor("#1e3a8a").fontSize(11).text(details.patientName, leftX + 80, currentY, { bold: true });
   
-  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 405);
-  doc.fillColor("#374151").fontSize(11).text("Full Body Checkup, Blood Test", 90, 405);
+  currentY += 30;
+  doc.fillColor("#374151").fontSize(10).text("Contact No:", leftX, currentY);
+  doc.fillColor("#1e3a8a").text(details.phone || "N/A", leftX + 80, currentY);
+
+  currentY += 30;
+  doc.fillColor("#374151").fontSize(10).text("Email:", leftX, currentY);
+  doc.fillColor("#1e3a8a").text(details.patientEmail || "N/A", leftX + 80, currentY);
+
+  currentY += 30;
+  doc.fillColor("#374151").fontSize(10).text("Date:", leftX, currentY);
+  doc.fillColor("#1e3a8a").text(details.date, leftX + 80, currentY);
+
+  currentY += 30;
+  doc.fillColor("#374151").fontSize(10).text("Time:", leftX, currentY);
+  doc.fillColor("#1e3a8a").text(details.time, leftX + 80, currentY);
+
+  // --- Hospital Info ---
+  doc.fillColor("#374151").fontSize(10).text("Hospital:", rightX, 180);
+  doc.fillColor("#1e3a8a").fontSize(11).text(details.hospitalName, rightX + 60, 180, { bold: true });
   
-  doc.fillColor("#16a34a").fontSize(14).text("v", 70, 440);
-  doc.fillColor("#374151").fontSize(11).text("Ambulance Required:", 90, 440);
-  if (details.ambulanceRequired) {
-    doc.fillColor("#16a34a").text("Yes", 220, 440, { bold: true });
-  } else {
-    doc.fillColor("#dc2626").text("No", 220, 440, { bold: true });
-  }
+  doc.fillColor("#374151").fontSize(10).text("Location:", rightX, 210);
+  doc.fillColor("#1e3a8a").fontSize(10).text(details.location, rightX + 60, 210, { width: 180 });
 
   // --- Footer ---
   doc.rect(0, 750, 612, 42).fill("#1e3a8a");

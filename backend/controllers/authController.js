@@ -6,16 +6,24 @@ const adminCreds = require("../config/adminCredentials");
 // SIGNUP
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, phone, password, role } = req.body;
 
-    const userExists = await User.findOne({ email });
-    if (userExists) return res.status(400).json({ msg: "User already exists" });
+    if (email) {
+      const userExists = await User.findOne({ email });
+      if (userExists) return res.status(400).json({ msg: "User with this email already exists" });
+    }
+
+    if (phone) {
+      const phoneExists = await User.findOne({ phone });
+      if (phoneExists) return res.status(400).json({ msg: "User with this phone number already exists" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
+      phone,
       password: hashedPassword,
       role,
     });
@@ -46,10 +54,14 @@ exports.signup = async (req, res) => {
 // LOGIN
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body; // 'identifier' can be email or phone
 
-    // ADMIN LOGIN CHECK (From Separate File)
-    if (email === adminCreds.email && password === adminCreds.password) {
+    // identifier check - could be email or phone
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    const isEmail = emailRegex.test(identifier);
+
+    // ADMIN LOGIN CHECK
+    if (isEmail && identifier === adminCreds.email && password === adminCreds.password) {
       const token = jwt.sign(
         { id: "admin-id", role: "admin" },
         process.env.JWT_SECRET,
@@ -68,7 +80,14 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    // Find user by email or phone
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { phone: identifier }
+      ]
+    });
+
     if (!user) return res.status(400).json({ msg: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);

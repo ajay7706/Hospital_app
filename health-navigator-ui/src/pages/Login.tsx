@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Calendar, Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
+import { Calendar, Mail, Lock, Eye, EyeOff, Loader2, ShieldCheck, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/form';
 
 const loginSchema = z.object({
-  email: z.string().trim().email('Please enter a valid email address'),
+  identifier: z.string().trim().min(1, 'Email or Phone is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -35,7 +35,7 @@ const Login = () => {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { identifier: '', password: '' },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -106,9 +106,9 @@ const Login = () => {
         <div className="mx-auto max-w-md">
           <Link to="/" className="mb-8 flex items-center gap-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground">
-              <Calendar className="h-7 w-7 text-primary" />
+              <Plus className="h-7 w-7 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">BookVisit</span>
+            <span className="text-2xl font-bold text-primary-foreground">Apna Clinic</span>
           </Link>
           <h1 className="text-3xl font-bold text-primary-foreground">
             Welcome back to your healthcare companion
@@ -130,9 +130,9 @@ const Login = () => {
           {/* Mobile Logo */}
           <Link to="/" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+              <Plus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">BookVisit</span>
+            <span className="text-xl font-bold text-foreground">Apna Clinic</span>
           </Link>
 
           <div className="text-center lg:text-left">
@@ -144,19 +144,18 @@ const Login = () => {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-5">
-              {/* Email */}
+              {/* Identifier (Email or Phone) */}
               <FormField
                 control={form.control}
-                name="email"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email address</FormLabel>
+                    <FormLabel>Email or Phone Number</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          type="email"
-                          placeholder="name@example.com"
+                          placeholder="Email or Phone"
                           className="h-12 pl-10"
                           disabled={isLoading}
                           {...field}

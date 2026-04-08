@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Calendar, Mail, Lock, Eye, EyeOff, User, Building2, Loader2 } from 'lucide-react';
+import { Calendar, Mail, Lock, Eye, EyeOff, User, Building2, Loader2, Phone, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
@@ -24,6 +24,7 @@ type UserRole = 'patient' | 'hospital';
 const signUpSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters'),
   email: z.string().trim().email('Please enter a valid email address').max(255, 'Email must be less than 255 characters'),
+  phone: z.string().trim().min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number too long'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(100, 'Password must be less than 100 characters'),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -45,6 +46,7 @@ const SignUp = () => {
     defaultValues: {
       name: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
     },
@@ -59,6 +61,7 @@ const SignUp = () => {
         body: JSON.stringify({
           name: data.name,
           email: data.email,
+          phone: data.phone,
           password: data.password,
           role: selectedRole,
         }),
@@ -87,7 +90,7 @@ const SignUp = () => {
 
       toast({
         title: 'Account created successfully!',
-        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to BookVisit! Redirecting to login...',
+        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Apna Clinic! Redirecting to login...',
       });
 
       setTimeout(() => {
@@ -111,9 +114,9 @@ const SignUp = () => {
         <div className="mx-auto max-w-md">
           <Link to="/" className="mb-8 flex items-center gap-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground">
-              <Calendar className="h-7 w-7 text-primary" />
+              <Plus className="h-7 w-7 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">BookVisit</span>
+            <span className="text-2xl font-bold text-primary-foreground">Apna Clinic</span>
           </Link>
           <h1 className="text-3xl font-bold text-primary-foreground">
             Join thousands of users finding better healthcare
@@ -135,9 +138,9 @@ const SignUp = () => {
           {/* Mobile Logo */}
           <Link to="/" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Calendar className="h-6 w-6 text-primary-foreground" />
+              <Plus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">BookVisit</span>
+            <span className="text-xl font-bold text-foreground">Apna Clinic</span>
           </Link>
 
           <div className="text-center lg:text-left">
@@ -217,6 +220,29 @@ const SignUp = () => {
                         <Input
                           type="email"
                           placeholder="name@example.com"
+                          className="h-12 pl-10"
+                          disabled={isLoading}
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Phone */}
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="+91 98765 43210"
                           className="h-12 pl-10"
                           disabled={isLoading}
                           {...field}

@@ -169,6 +169,16 @@ exports.getAdminStats = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalAppointments = await mongoose.model('Appointment').countDocuments();
     
+    // Daily Stats (Today)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayHospitals = await Hospital.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
+    const todayUsers = await User.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
+    const todayAppointments = await mongoose.model('Appointment').countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
+
     // Newly added hospitals (last 7 days)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const newHospitals = await Hospital.find({ createdAt: { $gte: sevenDaysAgo } }).sort({ createdAt: -1 });
@@ -182,6 +192,9 @@ exports.getAdminStats = async (req, res) => {
       pendingHospitals,
       totalUsers,
       totalAppointments,
+      todayHospitals,
+      todayUsers,
+      todayAppointments,
       newHospitals,
       incompleteHospitals
     });

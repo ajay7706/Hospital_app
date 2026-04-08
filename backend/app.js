@@ -10,16 +10,24 @@ connectDB();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8080",
-  "https://hospital-app-rouge.vercel.app"
+  "https://hospital-app-rouge.vercel.app",
+  "https://hospital-app-rouge.vercel.app/"
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps or curl requests or Postman)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    
+    // Check if origin is in allowed list OR is a vercel preview/subdomain
+    const isAllowed = allowedOrigins.indexOf(origin) !== -1 || 
+                     origin.endsWith(".vercel.app") || 
+                     origin.includes("localhost");
+
+    if (isAllowed) {
       return callback(null, true);
     } else {
+      console.log("Blocked by CORS:", origin);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
