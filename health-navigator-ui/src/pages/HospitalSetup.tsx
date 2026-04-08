@@ -121,6 +121,9 @@ const HospitalSetup = () => {
         try {
           const uploadRes = await fetch(`${API_BASE}/api/upload`, {
             method: 'POST',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+            },
             body: formData,
           });
           if (uploadRes.ok) {

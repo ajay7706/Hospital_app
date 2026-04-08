@@ -107,6 +107,9 @@ const EditProfile = () => {
 
         const uploadRes = await fetch(`${API_BASE}/api/upload`, {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token || ''}`,
+          },
           body: formData,
         });
         if (uploadRes.ok) {
