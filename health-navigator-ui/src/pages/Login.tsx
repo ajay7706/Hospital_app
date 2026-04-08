@@ -215,7 +215,7 @@ const Login = () => {
                     variant="outline"
                     className="w-full border-dashed border-primary/50 text-primary hover:bg-primary/5 hover:text-primary"
                     onClick={() => {
-                      form.setValue('email', 'admin@gmail.com');
+                      form.setValue('identifier', 'admin@gmail.com');
                       form.setValue('password', '123456789');
                       toast({
                         title: 'Admin Credentials Loaded',
