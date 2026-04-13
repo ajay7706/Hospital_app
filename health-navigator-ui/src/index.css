@@ -4,72 +4,59 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BookVisit Healthcare Design System */
-
 @layer base {
   :root {
-    /* Primary Healthcare Blue */
-    --primary: 210 79% 51%;
-    --primary-foreground: 0 0% 100%;
+    /* Premium Healthcare Blue - Deeper and richer */
+    --primary: 221 83% 45%;
+    --primary-foreground: 210 40% 98%;
     
-    /* CTA Green for Actions */
-    --cta: 145 63% 49%;
-    --cta-foreground: 0 0% 100%;
+    /* Premium CTA Green - Emerald like */
+    --cta: 160 84% 39%;
+    --cta-foreground: 210 40% 98%;
     
-    /* Background & Surfaces */
-    --background: 210 20% 98%;
-    --foreground: 220 14% 17%;
+    /* Clean Professional Background */
+    --background: 210 40% 99%;
+    --foreground: 222 47% 11%;
     
     --card: 0 0% 100%;
-    --card-foreground: 220 14% 17%;
+    --card-foreground: 222 47% 11%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 220 14% 17%;
+    --popover-foreground: 222 47% 11%;
     
-    /* Secondary Colors */
+    /* Soft Secondary */
     --secondary: 210 40% 96%;
-    --secondary-foreground: 220 14% 17%;
+    --secondary-foreground: 222 47% 11%;
     
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
     
-    --accent: 210 79% 95%;
-    --accent-foreground: 210 79% 40%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     
     /* Status Colors */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
     
-    --success: 145 63% 49%;
-    --success-foreground: 0 0% 100%;
+    --success: 160 84% 39%;
+    --success-foreground: 210 40% 98%;
     
     /* Borders & Inputs */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 210 79% 51%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
     
     --radius: 0.75rem;
-    
-    /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(210 79% 51% / 0.05) 0%, hsl(145 63% 49% / 0.05) 100%);
-    --gradient-primary: linear-gradient(135deg, hsl(210 79% 51%) 0%, hsl(210 79% 40%) 100%);
-    --gradient-cta: linear-gradient(135deg, hsl(145 63% 49%) 0%, hsl(145 63% 40%) 100%);
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 14% 17% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(220 14% 17% / 0.1), 0 2px 4px -2px hsl(220 14% 17% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(220 14% 17% / 0.1), 0 4px 6px -4px hsl(220 14% 17% / 0.1);
-    --shadow-card: 0 4px 20px -2px hsl(210 79% 51% / 0.1);
-    
-    /* Sidebar (keep existing) */
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 210 79% 51%;
+    --sidebar-primary: 221 83% 45%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 210 40% 96%;
-    --sidebar-accent-foreground: 220 14% 17%;
+    --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 210 79% 51%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
   }
 
   .dark {
@@ -113,36 +100,20 @@
     --sidebar-border: 217 33% 17%;
     --sidebar-ring: 210 79% 51%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
-  
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground tracking-tight antialiased;
     font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tighter;
   }
 }
 
 @layer utilities {
-  .gradient-hero {
-    background: var(--gradient-hero);
-  }
-  
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
-  
-  .gradient-cta {
-    background: var(--gradient-cta);
-  }
-  
-  .shadow-card {
-    box-shadow: var(--shadow-card);
-  }
-  
   .text-balance {
     text-wrap: balance;
   }

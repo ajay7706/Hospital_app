@@ -1,10 +1,34 @@
 const OTP = require("../models/OTP");
 const EmergencyLog = require("../models/EmergencyLog");
+const axios = require("axios");
 
-// Basic mock function to send OTP via SMS
+// Fast2SMS OTP integration
 const sendSmsOTP = async (phone, otp) => {
-  console.log(`Sending OTP ${otp} to phone ${phone}`);
-  // In a real app, integrate Twilio or similar here
+  try {
+    const apiKey = process.env.FAST2SMS_API_KEY;
+    if (!apiKey) {
+      console.error("FAST2SMS_API_KEY is missing in .env");
+      return;
+    }
+
+    // Fast2SMS OTP API call
+    const response = await axios.get(`https://www.fast2sms.com/dev/bulkV2`, {
+      params: {
+        authorization: apiKey,
+        route: 'otp',
+        variables_values: otp,
+        numbers: phone,
+      }
+    });
+
+    if (response.data.return === true) {
+      console.log(`OTP ${otp} sent to ${phone} via Fast2SMS`);
+    } else {
+      console.error("Fast2SMS Error:", response.data.message);
+    }
+  } catch (error) {
+    console.error("Failed to send SMS via Fast2SMS:", error.message);
+  }
 };
 
 exports.generateOTP = async (req, res) => {
@@ -23,14 +47,17 @@ exports.generateOTP = async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 mins expiry
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     await OTP.create({ phone, otp, expiresAt });
-    await sendSmsOTP(phone, otp);
+    
+    // Send SMS asynchronously
+    sendSmsOTP(phone, otp);
 
     res.json({ msg: "OTP sent successfully" });
   } catch (error) {
-    res.status(500).json({ msg: "Server error", error: error.message });
+    console.error("OTP Generate Error:", error);
+    res.status(500).json({ msg: "Server error during OTP generation", error: error.message });
   }
 };
 
@@ -41,7 +68,7 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ msg: "Phone and OTP are required" });
     }
 
-    const otpRecord = await OTP.findOne({ phone, otp, expiresAt: { $gt: new Date() } });
+    const otpRecord = await OTP.findOne({ phone, otp, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 });
     if (!otpRecord) {
       return res.status(400).json({ msg: "Invalid or expired OTP" });
     }
@@ -72,7 +99,7 @@ exports.requestEmergency = async (req, res) => {
     }
 
     // Ensure OTP was verified recently
-    const recentVerifiedOTP = await OTP.findOne({ phone, verified: true, createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) } });
+    const recentVerifiedOTP = await OTP.findOne({ phone, verified: true, createdAt: { $gt: new Date(Date.now() - 10 * 60 * 1000) } });
     if (!recentVerifiedOTP) {
       return res.status(401).json({ msg: "Please verify phone number with OTP first" });
     }

@@ -159,6 +159,33 @@ const EditProfile = () => {
     init();
   }, [form, navigate]);
 
+  const geocodeAddress = async (fullAddress: string) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        form.setValue('location.lat', parseFloat(lat), { shouldValidate: true });
+        form.setValue('location.lng', parseFloat(lon), { shouldValidate: true });
+        toast({ title: 'Location found!', description: `Map updated to ${fullAddress}` });
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+  };
+
+  useEffect(() => {
+    const address = form.watch('fullAddress.address');
+    const city = form.watch('fullAddress.city');
+    const state = form.watch('fullAddress.state');
+    
+    if (address && city && state) {
+      const fullAddress = `${address}, ${city}, ${state}`;
+      const timer = setTimeout(() => geocodeAddress(fullAddress), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [form.watch('fullAddress.address'), form.watch('fullAddress.city'), form.watch('fullAddress.state')]);
+
   const onSubmit = async (data: EditForm) => {
     setSaving(true);
     try {
@@ -451,9 +478,14 @@ const EditProfile = () => {
                 </div>
               </div>
 
-              <Button type="submit" variant="cta" size="lg" className="w-full gap-2" disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                {saving ? 'Saving...' : 'Save Changes'}
+              <Button 
+                type="submit" 
+                variant="cta"
+                className="w-full" 
+                size="lg" 
+                isLoading={saving}
+              >
+                Save Profile Changes
               </Button>
             </form>
           </Form>

@@ -230,16 +230,9 @@ const Login = () => {
               )}
 
               {/* Submit */}
-              <Button type="submit" variant="cta" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Logging in...
-                  </>
-                ) : (
-                  'Login'
-                )}
-              </Button>
+              <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+              Login
+            </Button>
             </form>
           </Form>
 

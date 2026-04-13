@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -127,6 +127,34 @@ export default function HospitalSetup() {
     }
     setStep(2);
   };
+
+  const geocodeAddress = async (fullAddress: string) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
+      if (!response.ok) throw new Error('Geocoding failed');
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        form2.setValue('location.lat', parseFloat(lat), { shouldValidate: true });
+        form2.setValue('location.lng', parseFloat(lon), { shouldValidate: true });
+        toast({ title: 'Location found!', description: `Map updated to ${fullAddress}` });
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+  };
+
+  useEffect(() => {
+    const address = form2.watch('fullAddress.address');
+    const city = form2.watch('fullAddress.city');
+    const state = form2.watch('fullAddress.state');
+    
+    if (address && city && state) {
+      const fullAddress = `${address}, ${city}, ${state}`;
+      const timer = setTimeout(() => geocodeAddress(fullAddress), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [form2.watch('fullAddress.address'), form2.watch('fullAddress.city'), form2.watch('fullAddress.state')]);
 
   const onSubmit = async (data2: z.infer<typeof step2Schema>) => {
     if (!licenseFile || !idProofFile) {
@@ -422,8 +450,13 @@ export default function HospitalSetup() {
 
                     <div className="flex gap-4 mt-6">
                       <Button type="button" variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Button>
-                      <Button type="submit" className="flex-1" disabled={isLoading}>
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save & Continue'}
+                      <Button 
+                        type="submit" 
+                        className="flex-1" 
+                        size="lg"
+                        isLoading={isLoading}
+                      >
+                        Save & Continue
                       </Button>
                     </div>
                   </form>

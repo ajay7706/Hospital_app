@@ -159,8 +159,10 @@ export default function HospitalDashboard() {
     }
   };
 
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const handleUploadGallery = async () => {
     if (!galleryFiles.length) return;
+    setUploadingGallery(true);
     try {
       const fd = new FormData();
       galleryFiles.forEach((f) => fd.append('gallery', f));
@@ -171,6 +173,8 @@ export default function HospitalDashboard() {
       fetchInitialData();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingGallery(false);
     }
   };
 
@@ -520,7 +524,7 @@ export default function HospitalDashboard() {
                       }
                       setGalleryFiles(files);
                     }} />
-                    <Button onClick={handleUploadGallery}>Upload Images</Button>
+                    <Button onClick={handleUploadGallery} isLoading={uploadingGallery}>Upload Images</Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -545,7 +549,7 @@ export default function HospitalDashboard() {
                     <div className="flex-1 space-y-3">
                       <Input type="file" accept="image/*" onChange={(e) => setNavbarIconFile(e.target.files?.[0] || null)} />
                       <div className="flex gap-3">
-                        <Button onClick={handleUpdateNavbarIcon} disabled={savingNavbarIcon || !navbarIconFile}>Save Navbar Icon</Button>
+                        <Button onClick={handleUpdateNavbarIcon} isLoading={savingNavbarIcon}>Save Navbar Icon</Button>
                         <Button variant="outline" onClick={() => setNavbarIconFile(null)} disabled={!navbarIconFile}>Cancel</Button>
                       </div>
                       <p className="text-sm text-muted-foreground">

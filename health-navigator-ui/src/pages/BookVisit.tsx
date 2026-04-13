@@ -508,16 +508,9 @@ const BookVisit = () => {
                   />
                 </div>
 
-                <Button type="submit" variant="cta" size="lg" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Booking...
-                    </>
-                  ) : (
-                    'Confirm Appointment'
-                  )}
-                </Button>
+                <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+              Confirm Appointment
+            </Button>
               </form>
             </Form>
             )}

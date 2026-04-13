@@ -335,15 +335,8 @@ const SignUp = () => {
               </p>
 
               {/* Submit */}
-              <Button type="submit" variant="cta" size="lg" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
+              <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+                Sign Up
               </Button>
             </form>
           </Form>

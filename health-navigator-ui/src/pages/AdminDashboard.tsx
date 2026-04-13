@@ -95,7 +95,10 @@ const AdminDashboard = () => {
     fetchAdminData();
   }, [activeTab]);
 
-  const handleAction = async (endpoint: string, method: string = 'PATCH', body?: any) => {
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleAction = async (endpoint: string, method: string = 'PATCH', body?: any, actionId?: string) => {
+    if (actionId) setActionLoading(actionId);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -116,6 +119,8 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       toast({ title: 'Error', description: 'Network error', variant: 'destructive' });
+    } finally {
+      if (actionId) setActionLoading(null);
     }
   };
 
@@ -332,15 +337,33 @@ const AdminDashboard = () => {
                           </Button>
                           {h.approvalStatus === 'pending' && (
                             <>
-                              <Button size="sm" variant="outline" className="text-green-600" onClick={() => handleAction(`/api/admin/hospital/${h._id}/approve`)}>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-green-600" 
+                                isLoading={actionLoading === `approve-${h._id}`}
+                                onClick={() => handleAction(`/api/admin/hospital/${h._id}/approve`, 'PATCH', null, `approve-${h._id}`)}
+                              >
                                 Approve
                               </Button>
-                              <Button size="sm" variant="outline" className="text-red-600" onClick={() => handleAction(`/api/admin/hospital/${h._id}/reject`)}>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="text-red-600" 
+                                isLoading={actionLoading === `reject-${h._id}`}
+                                onClick={() => handleAction(`/api/admin/hospital/${h._id}/reject`, 'PATCH', null, `reject-${h._id}`)}
+                              >
                                 Reject
                               </Button>
                             </>
                           )}
-                          <Button size="sm" variant="ghost" className={h.isDeleted ? 'text-green-600' : 'text-red-600'} onClick={() => handleAction(`/api/admin/hospital/${h._id}`, 'DELETE')}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className={h.isDeleted ? 'text-green-600' : 'text-red-600'} 
+                            isLoading={actionLoading === `delete-${h._id}`}
+                            onClick={() => handleAction(`/api/admin/hospital/${h._id}`, 'DELETE', null, `delete-${h._id}`)}
+                          >
                             {h.isDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
                           </Button>
                         </TableCell>
@@ -374,7 +397,13 @@ const AdminDashboard = () => {
                         </TableCell>
                         <TableCell>{u.bookingsCount || 0}</TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" className={u.isBlocked ? 'text-green-600' : 'text-red-600'} onClick={() => handleAction(`/api/admin/user/${u._id}/toggle-block`)}>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className={u.isBlocked ? 'text-green-600' : 'text-red-600'} 
+                            isLoading={actionLoading === `block-${u._id}`}
+                            onClick={() => handleAction(`/api/admin/user/${u._id}/toggle-block`, 'PATCH', null, `block-${u._id}`)}
+                          >
                             {u.isBlocked ? <RotateCcw className="h-4 w-4 mr-2" /> : <Ban className="h-4 w-4 mr-2" />}
                             {u.isBlocked ? 'Unblock' : 'Block'}
                           </Button>
@@ -409,7 +438,13 @@ const AdminDashboard = () => {
                         <TableCell><Badge variant="outline" className="capitalize">{a.status}</Badge></TableCell>
                         <TableCell className="text-right">
                           {a.status !== 'cancelled' && (
-                            <Button size="sm" variant="ghost" className="text-red-600" onClick={() => handleAction(`/api/admin/appointment/${a._id}/cancel`)}>
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="text-red-600" 
+                              isLoading={actionLoading === `cancel-apt-${a._id}`}
+                              onClick={() => handleAction(`/api/admin/appointment/${a._id}/cancel`, 'PATCH', null, `cancel-apt-${a._id}`)}
+                            >
                               <XCircle className="h-4 w-4 mr-2" /> Cancel
                             </Button>
                           )}
@@ -440,7 +475,13 @@ const AdminDashboard = () => {
                       </div>
                       <p className="text-sm text-muted-foreground italic">"{r.comment}"</p>
                     </div>
-                    <Button size="sm" variant="ghost" className="text-red-600" onClick={() => handleAction(`/api/admin/review/${r._id}`, 'DELETE')}>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="text-red-600" 
+                      isLoading={actionLoading === `del-rev-${r._id}`}
+                      onClick={() => handleAction(`/api/admin/review/${r._id}`, 'DELETE', null, `del-rev-${r._id}`)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
