@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Hospital = require("../models/Hospital");
 const User = require("../models/Users");
 const { sendHospitalApprovalEmail, sendHospitalPendingEmail, sendWhatsAppNotification } = require("../config/mailer");
@@ -6,19 +7,45 @@ const { sendHospitalApprovalEmail, sendHospitalPendingEmail, sendWhatsAppNotific
 exports.addHospital = async (req, res) => {
   try {
     console.log("Received addHospital request. Body:", req.body); 
-    console.log("Uploaded File:", req.file); // Log the uploaded file for debugging
+    console.log("Uploaded Files:", req.files); 
 
-    const { specialties, services, ...otherHospitalData } = req.body;
+    const { specialties, services, fullAddress, location, workingDays, appointmentSlots, ...otherHospitalData } = req.body;
+
+    const parsedAddress = typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress;
+    const parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
+    const parsedServices = typeof services === 'string' ? JSON.parse(services) : services;
+    const parsedWorkingDays = typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays;
+    const parsedAppointmentSlots = typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots;
 
     const hospitalData = { 
       ...otherHospitalData, 
       userId: req.user.id,
-      hospitalLogo: req.file ? req.file.path : otherHospitalData.hospitalLogo, // Support logo from file OR body
       specialties: Array.isArray(specialties) ? specialties : (specialties ? specialties.split(',').map(s => s.trim()) : []),
-      services: services || [],
+      services: parsedServices || [],
+      fullAddress: parsedAddress,
+      location: parsedLocation,
+      workingDays: parsedWorkingDays || [],
+      appointmentSlots: parsedAppointmentSlots || {},
       approvalStatus: "pending" 
     };
+
+    if (req.files) {
+      if (req.files.hospitalLogo) hospitalData.hospitalLogo = req.files.hospitalLogo[0].path;
+      if (req.files.navbarIcon) hospitalData.navbarIcon = req.files.navbarIcon[0].path;
+      if (req.files.licenseCertificate) hospitalData.licenseCertificate = req.files.licenseCertificate[0].path;
+      if (req.files.ownerIdProof) hospitalData.ownerIdProof = req.files.ownerIdProof[0].path;
+      if (req.files.gallery) hospitalData.gallery = req.files.gallery.map(file => file.path);
+    }
     
+    // Fallbacks if provided in body instead of files
+    if (!hospitalData.hospitalLogo && req.body.hospitalLogo) hospitalData.hospitalLogo = req.body.hospitalLogo;
+    if (!hospitalData.navbarIcon && req.body.navbarIcon) hospitalData.navbarIcon = req.body.navbarIcon;
+    if (!hospitalData.licenseCertificate && req.body.licenseCertificate) hospitalData.licenseCertificate = req.body.licenseCertificate;
+    if (!hospitalData.ownerIdProof && req.body.ownerIdProof) hospitalData.ownerIdProof = req.body.ownerIdProof;
+    if (!hospitalData.gallery && req.body.gallery) hospitalData.gallery = req.body.gallery;
+
+    if (!hospitalData.navbarIcon) hospitalData.navbarIcon = hospitalData.hospitalLogo;
+
     const hospital = await Hospital.create(hospitalData);
     await User.findByIdAndUpdate(req.user.id, { hospitalAdded: true });
     
@@ -41,16 +68,16 @@ exports.addHospital = async (req, res) => {
       hospital 
     });
   } catch (error) {
-    console.error("Add Hospital Error:", error); // More detailed error logging
+    console.error("Add Hospital Error:", error); 
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
 
-// Get All Hospitals (For Patients - Only Approved)
+// Get All Hospitals (For Patients - Only Approved and Not Deleted)
 exports.getAllHospitals = async (req, res) => {
   try {
     const { search, city, specialty } = req.query;
-    let query = { approvalStatus: "approved" }; // Only show approved hospitals
+    let query = { approvalStatus: "approved", isDeleted: false }; // Only show approved and not deleted hospitals
 
     if (search) {
       query.hospitalName = { $regex: search, $options: "i" };
@@ -109,42 +136,133 @@ exports.getHospitalByUserId = async (req, res) => {
 exports.updateHospitalProfile = async (req, res) => {
   try {
     console.log("Update Hospital Body:", req.body);
-    console.log("Update Hospital File:", req.file);
+    console.log("Update Hospital Files:", req.files);
 
-    const { specialties, services, ...otherHospitalData } = req.body;
+    const { specialties, services, fullAddress, location, workingDays, appointmentSlots, gallery, ...otherHospitalData } = req.body;
 
     let hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
       return res.status(404).json({ msg: "Hospital not found" });
     }
 
+    const parsedAddress = fullAddress ? (typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress) : hospital.fullAddress;
+    const parsedLocation = location ? (typeof location === 'string' ? JSON.parse(location) : location) : hospital.location;
+    const parsedServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : hospital.services;
+    const parsedWorkingDays = workingDays ? (typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays) : hospital.workingDays;
+    const parsedAppointmentSlots = appointmentSlots ? (typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots) : hospital.appointmentSlots;
+
     const updateData = {
       ...otherHospitalData,
-      specialties: Array.isArray(specialties) ? specialties : (specialties ? specialties.split(',').map(s => s.trim()) : []),
-      services: services || [],
+      specialties: specialties ? (Array.isArray(specialties) ? specialties : specialties.split(',').map(s => s.trim())) : hospital.specialties,
+      services: parsedServices,
+      fullAddress: parsedAddress,
+      location: parsedLocation,
+      workingDays: parsedWorkingDays,
+      appointmentSlots: parsedAppointmentSlots,
     };
 
-    // Update logo only if a new file is uploaded
-    if (req.file) {
-      updateData.hospitalLogo = req.file.path;
+    if (req.files) {
+      if (req.files.hospitalLogo) updateData.hospitalLogo = req.files.hospitalLogo[0].path;
+      if (req.files.navbarIcon) updateData.navbarIcon = req.files.navbarIcon[0].path;
+      if (req.files.licenseCertificate) updateData.licenseCertificate = req.files.licenseCertificate[0].path;
+      if (req.files.ownerIdProof) updateData.ownerIdProof = req.files.ownerIdProof[0].path;
+      if (req.files.gallery) {
+        // Append new images to existing gallery, up to max 8
+        const newImages = req.files.gallery.map(file => file.path);
+        const currentGallery = Array.isArray(gallery) ? gallery : (typeof gallery === 'string' ? JSON.parse(gallery) : hospital.gallery);
+        updateData.gallery = [...currentGallery, ...newImages].slice(0, 8);
+      }
+    } else if (gallery) {
+       updateData.gallery = Array.isArray(gallery) ? gallery : JSON.parse(gallery);
+    }
+
+    if (!hospital.navbarIcon && updateData.hospitalLogo && !updateData.navbarIcon) {
+      updateData.navbarIcon = updateData.hospitalLogo;
     }
 
     hospital = await Hospital.findByIdAndUpdate(hospital._id, updateData, { new: true });
     res.json({ msg: "Hospital profile updated", hospital });
   } catch (error) {
+    console.error("Update Hospital Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
 
-// Delete Hospital
+// Delete Hospital (Soft Delete)
 exports.deleteHospital = async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id);
     if (!hospital) {
       return res.status(404).json({ msg: "Hospital not found" });
     }
-    await hospital.remove();
-    res.json({ msg: "Hospital removed" });
+
+    // Check if active appointments exist
+    const activeAppointments = await mongoose.model('Appointment').countDocuments({
+      hospitalId: hospital._id,
+      status: { $in: ["pending", "approved"] }
+    });
+
+    if (activeAppointments > 0) {
+      return res.status(400).json({ msg: "Cannot delete hospital with active appointments" });
+    }
+
+    hospital.isDeleted = !hospital.isDeleted; // Toggle for soft delete/restore
+    await hospital.save();
+
+    res.json({ msg: hospital.isDeleted ? "Hospital soft-deleted" : "Hospital restored", hospital });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Admin: User Management
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ role: { $ne: 'admin' } }).select('-password').lean();
+    
+    // Enrich with booking count
+    const enrichedUsers = await Promise.all(users.map(async (user) => {
+      const bookingsCount = await mongoose.model('Appointment').countDocuments({ patientId: user._id });
+      return { ...user, bookingsCount };
+    }));
+
+    res.json(enrichedUsers);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.toggleBlockUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ msg: "User not found" });
+    
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+    res.json({ msg: user.isBlocked ? "User blocked" : "User unblocked", user });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Admin: Appointment Management
+exports.getAllAppointments = async (req, res) => {
+  try {
+    const appointments = await mongoose.model('Appointment').find().sort({ createdAt: -1 });
+    res.json(appointments);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.cancelAppointmentOverride = async (req, res) => {
+  try {
+    const appointment = await mongoose.model('Appointment').findById(req.params.id);
+    if (!appointment) return res.status(404).json({ msg: "Appointment not found" });
+    
+    appointment.status = "cancelled";
+    await appointment.save();
+    res.json({ msg: "Appointment cancelled by admin override", appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
@@ -160,45 +278,91 @@ exports.getAdminAllHospitals = async (req, res) => {
   }
 };
 
-// Admin Dashboard Stats
+// Admin: Review Management
+exports.getAllReviews = async (req, res) => {
+  try {
+    const reviews = await mongoose.model('Review').find().populate('hospitalId', 'hospitalName');
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.deleteReview = async (req, res) => {
+  try {
+    await mongoose.model('Review').findByIdAndDelete(req.params.id);
+    res.json({ msg: "Review deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Admin Dashboard Stats (Updated)
 exports.getAdminStats = async (req, res) => {
   try {
-    const totalHospitals = await Hospital.countDocuments();
-    const approvedHospitals = await Hospital.countDocuments({ approvalStatus: "approved" });
-    const pendingHospitals = await Hospital.countDocuments({ approvalStatus: "pending" });
-    const totalUsers = await User.countDocuments();
+    const totalHospitals = await Hospital.countDocuments({ isDeleted: false });
+    const pendingHospitals = await Hospital.countDocuments({ approvalStatus: "pending", isDeleted: false });
+    const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
     const totalAppointments = await mongoose.model('Appointment').countDocuments();
     
-    // Daily Stats (Today)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const todayHospitals = await Hospital.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
-    const todayUsers = await User.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
-    const todayAppointments = await mongoose.model('Appointment').countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
+    const todayEmergencies = await mongoose.model('EmergencyLog').countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
 
-    // Newly added hospitals (last 7 days)
+    // Analytics (Weekly Appointment Trends)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const newHospitals = await Hospital.find({ createdAt: { $gte: sevenDaysAgo } }).sort({ createdAt: -1 });
-    
-    // Users who haven't completed hospital setup
-    const incompleteHospitals = await User.countDocuments({ role: "hospital", hospitalAdded: false });
+    const appointmentTrends = await mongoose.model('Appointment').aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Analytics (Weekly Emergency Trends)
+    const emergencyTrends = await mongoose.model('EmergencyLog').aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Recent Activity
+    const recentHospitals = await Hospital.find({ isDeleted: false }).sort({ createdAt: -1 }).limit(5);
+    const recentAppointments = await mongoose.model('Appointment').find().sort({ createdAt: -1 }).limit(5);
+    const recentEmergencies = await mongoose.model('EmergencyLog').find().populate('hospitalId', 'hospitalName').sort({ createdAt: -1 }).limit(5);
+
+    // Analytics: Top Hospitals by Bookings
+    const topHospitals = await mongoose.model('Appointment').aggregate([
+      { $group: { _id: "$hospitalName", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
+
+    // Analytics: Most Active Cities
+    const activeCities = await Hospital.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: "$city", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 }
+    ]);
 
     res.json({
       totalHospitals,
-      approvedHospitals,
       pendingHospitals,
       totalUsers,
       totalAppointments,
-      todayHospitals,
-      todayUsers,
-      todayAppointments,
-      newHospitals,
-      incompleteHospitals
+      todayEmergencies,
+      appointmentTrends,
+      emergencyTrends,
+      recentHospitals,
+      recentAppointments,
+      recentEmergencies,
+      topHospitals,
+      activeCities
     });
   } catch (error) {
+    console.error("Admin Stats Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };

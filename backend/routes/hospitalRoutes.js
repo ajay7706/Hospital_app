@@ -15,8 +15,16 @@ router.get("/all", getAllHospitals);
 router.get("/me", protect, isHospital, getHospitalByUserId);
 router.get("/:id", optionalProtect, getHospitalById);
 
+const cpUpload = upload.fields([
+  { name: 'hospitalLogo', maxCount: 1 },
+  { name: 'navbarIcon', maxCount: 1 },
+  { name: 'licenseCertificate', maxCount: 1 },
+  { name: 'ownerIdProof', maxCount: 1 },
+  { name: 'gallery', maxCount: 8 }
+]);
+
 // Hospital owner routes
-router.post("/add", protect, isHospital, upload.single("hospitalLogo"), addHospital);
-router.put("/update", protect, isHospital, upload.single("hospitalLogo"), updateHospitalProfile);
+router.post("/add", protect, isHospital, cpUpload, addHospital);
+router.put("/update", protect, isHospital, cpUpload, updateHospitalProfile);
 
 module.exports = router;

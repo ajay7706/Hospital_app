@@ -31,7 +31,7 @@ export const FeaturedHospitals = () => {
       try {
         const data = await getHospitals();
         // Ensure data is an array
-        setHospitals(Array.isArray(data) ? data : []);
+        setHospitals(Array.isArray(data) ? (data as unknown as Hospital[]) : []);
       } catch (err) {
         console.error('FeaturedHospitals fetch error:', err);
         setHospitals([]);

@@ -46,6 +46,9 @@ app.use("/api/hospitals", require("./routes/hospitalRoutes"));
 app.use("/api/appointments", require("./routes/appointmentRoutes"));
 app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
+app.use("/api/doctors", require("./routes/doctorRoutes"));
+app.use("/api/branches", require("./routes/branchRoutes"));
+app.use("/api/otp", require("./routes/otpRoutes"));
 
 app.listen(process.env.PORT, () => {
   console.log("Server running...");

@@ -29,6 +29,13 @@ export const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+    const resolveAssetUrl = (url?: string) => {
+      if (!url) return null;
+      if (url.startsWith('http')) return url;
+      return `${API_BASE}/${url}`;
+    };
+
     const stored = localStorage.getItem('user');
     if (stored) {
       try { 
@@ -40,7 +47,7 @@ export const Navbar = () => {
           const profile = localStorage.getItem('hospitalProfile');
           if (profile) {
             const parsedProfile = JSON.parse(profile);
-            setHospitalLogo(parsedProfile.hospitalLogo || null);
+            setHospitalLogo(resolveAssetUrl(parsedProfile.navbarIcon || parsedProfile.hospitalLogo));
           }
         }
       } catch { setUser(null); }
@@ -48,7 +55,7 @@ export const Navbar = () => {
       setUser(null);
       setHospitalLogo(null);
     }
-  }, [location, localStorage.getItem('hospitalProfile')]); // Added hospitalProfile as dependency
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');

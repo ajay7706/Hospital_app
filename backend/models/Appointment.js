@@ -21,12 +21,13 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["pending", "approved", "completed"],
+    enum: ["pending", "approved", "completed", "cancelled"],
     default: "pending",
   },
   patientName: String,
   patientEmail: String,
   phone: String,
+  problem: String,
   hospitalName: String,
   location: String,
   ambulanceRequired: {

@@ -8,6 +8,12 @@ const {
   rejectHospital,
   deleteHospital,
   getAdminStats,
+  toggleBlockUser,
+  getAllUsers,
+  getAllAppointments,
+  cancelAppointmentOverride,
+  getAllReviews,
+  deleteReview,
 } = require("../controllers/hospitalController");
 
 // All routes here are prefixed with /api/admin in app.js
@@ -21,5 +27,17 @@ router.get("/hospital/pending", getPendingHospitals);
 router.patch("/hospital/:id/approve", approveHospital);
 router.patch("/hospital/:id/reject", rejectHospital);
 router.delete("/hospital/:id", deleteHospital);
+
+// User Management
+router.get("/users", getAllUsers);
+router.patch("/user/:id/toggle-block", toggleBlockUser);
+
+// Appointment Management
+router.get("/appointments", getAllAppointments);
+router.patch("/appointment/:id/cancel", cancelAppointmentOverride);
+
+// Review Management
+router.get("/reviews", getAllReviews);
+router.delete("/review/:id", deleteReview);
 
 module.exports = router;

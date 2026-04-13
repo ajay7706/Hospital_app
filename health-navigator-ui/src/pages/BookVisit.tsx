@@ -63,9 +63,14 @@ const BookVisit = () => {
   const hospitalName = searchParams.get('name') || 'CityCare Hospital';
   const hospitalLocation = searchParams.get('location') || 'Downtown, New York';
   const hospitalId = searchParams.get('id');
+  const isEmergency = searchParams.get('emergency') === '1';
+  const returnTo = searchParams.get('returnTo');
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [pendingData, setPendingData] = useState<BookingFormValues | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -101,15 +106,61 @@ const BookVisit = () => {
       gender: '',
       symptoms: '',
       time: '',
+      ambulanceRequired: false,
     },
   });
 
-  const onSubmit = async (data: BookingFormValues) => {
+  useEffect(() => {
+    if (isEmergency) {
+      form.setValue('ambulanceRequired', true);
+    }
+  }, [form, isEmergency]);
+
+  const handleInitialSubmit = async (data: BookingFormValues) => {
+    setIsLoading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const res = await fetch(`${API_BASE}/api/otp/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: data.phone })
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.msg || 'Failed to send OTP');
+      }
+      
+      setPendingData(data);
+      setOtpStep(true);
+      toast({ title: 'OTP Sent', description: `Please check your phone ${data.phone}` });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async () => {
+    if (!otp || !pendingData) return;
     setIsLoading(true);
     try {
       const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
       const token = localStorage.getItem('token');
       
+      // Verify OTP
+      const verifyRes = await fetch(`${API_BASE}/api/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: pendingData.phone, otp })
+      });
+      
+      if (!verifyRes.ok) {
+        const err = await verifyRes.json();
+        throw new Error(err.msg || 'Invalid OTP');
+      }
+
+      // Proceed with booking
       const response = await fetch(`${API_BASE}/api/appointments/book`, {
         method: 'POST',
         headers: {
@@ -120,15 +171,16 @@ const BookVisit = () => {
           hospitalId,
           hospitalName,
           location: hospitalLocation,
-          patientName: data.fullName,
-          patientEmail: data.email,
-          date: format(data.date, 'yyyy-MM-dd'),
-          time: data.time,
-          age: data.age,
-          gender: data.gender,
-          symptoms: data.symptoms,
-          phone: data.phone,
-          ambulanceRequired: data.ambulanceRequired
+          patientName: pendingData.fullName,
+          patientEmail: pendingData.email,
+          date: format(pendingData.date, 'yyyy-MM-dd'),
+          time: pendingData.time,
+          age: pendingData.age,
+          gender: pendingData.gender,
+          symptoms: pendingData.symptoms,
+          problem: pendingData.symptoms,
+          phone: pendingData.phone,
+          ambulanceRequired: pendingData.ambulanceRequired
         }),
       });
 
@@ -140,18 +192,20 @@ const BookVisit = () => {
       setIsSuccess(true);
       toast({
         title: 'Appointment Booked Successfully!',
-        description: `Confirmation PDF sent to ${data.email}`,
+        description: `Confirmation PDF sent to ${pendingData.email}`,
       });
 
-      // Clear search params to prevent re-booking on refresh if needed
-      // or redirect to a dashboard
       setTimeout(() => {
-        navigate('/hospitals'); // Redirect back to hospitals list or dashboard
+        if (returnTo) {
+          navigate(decodeURIComponent(returnTo));
+          return;
+        }
+        navigate('/hospitals');
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       toast({
         title: 'Booking Failed',
-        description: err instanceof Error ? err.message : 'Something went wrong',
+        description: err.message || 'Something went wrong',
         variant: 'destructive',
       });
     } finally {
@@ -227,9 +281,37 @@ const BookVisit = () => {
                 <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
               </div>
             </div>
+            {isEmergency && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+                <Ambulance className="h-5 w-5" />
+                <div>
+                  <p className="text-sm font-semibold">Emergency Booking</p>
+                  <p className="text-xs text-red-700/80">Form submit karne ke baad aapko hospital details page par redirect kiya jayega.</p>
+                </div>
+              </div>
+            )}
 
+            {otpStep ? (
+              <div className="space-y-6">
+                <h3 className="text-xl font-bold">Verify OTP</h3>
+                <p className="text-sm text-muted-foreground">Enter the 6-digit OTP sent to {pendingData?.phone}</p>
+                <Input 
+                  value={otp} 
+                  onChange={e => setOtp(e.target.value)} 
+                  placeholder="000000" 
+                  maxLength={6} 
+                  className="text-center text-2xl tracking-[0.5em]"
+                />
+                <div className="flex gap-4">
+                  <Button variant="outline" className="w-full" onClick={() => setOtpStep(false)}>Back</Button>
+                  <Button className="w-full" onClick={handleOtpSubmit} disabled={isLoading || otp.length !== 6}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Book'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <form onSubmit={form.handleSubmit(handleInitialSubmit)} className="space-y-5">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <FormField
                     control={form.control}
@@ -438,6 +520,7 @@ const BookVisit = () => {
                 </Button>
               </form>
             </Form>
+            )}
           </div>
         </motion.div>
       </main>

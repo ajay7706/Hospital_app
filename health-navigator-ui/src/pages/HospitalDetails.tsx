@@ -1,4 +1,4 @@
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,10 @@ import api from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
 
 // Helper function to get icon based on service title
 const getServiceIcon = (title: string = "") => {
@@ -22,6 +26,7 @@ const getServiceIcon = (title: string = "") => {
 
 const HospitalDetails = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const hospitalId = searchParams.get('id');
   const [hospital, setHospital] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +37,10 @@ const HospitalDetails = () => {
   const [reviewsData, setReviewsData] = useState<{ reviews: any[], averageRating: number, totalReviews: number }>({ reviews: [], averageRating: 0, totalReviews: 0 });
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+
+  // New states for doctors, branches
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
 
   const fetchReviews = async () => {
     if (!hospitalId) return;
@@ -57,6 +66,14 @@ const HospitalDetails = () => {
         if (remote) {
           setHospital(remote);
           fetchReviews();
+          
+          // Fetch Doctors & Branches
+          const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+          Promise.all([
+            fetch(`${API_BASE}/api/doctors/${hospitalId}`).then(res => res.json()).then(setDoctors).catch(() => {}),
+            fetch(`${API_BASE}/api/branches/${hospitalId}`).then(res => res.json()).then(setBranches).catch(() => {})
+          ]);
+
           setLoading(false);
           return;
         }
@@ -77,6 +94,44 @@ const HospitalDetails = () => {
     };
     fetchData();
   }, [hospitalId]);
+
+  useEffect(() => {
+    const shouldStartEmergency = searchParams.get('startEmergency') === '1';
+    if (!shouldStartEmergency) return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    if (!hospital?.id) return;
+
+    const returnTo = `/hospital-details?id=${hospital.id}&emergencyBooked=1`;
+    navigate(
+      `/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}&emergency=1&returnTo=${encodeURIComponent(returnTo)}`,
+      { replace: true }
+    );
+  }, [hospital, navigate, searchParams]);
+
+  useEffect(() => {
+    const booked = searchParams.get('emergencyBooked') === '1';
+    if (!booked) return;
+    toast({ title: 'Booking completed', description: 'Ab Emergency Call dabake number dial kar sakte ho.' });
+    navigate(`/hospital-details?id=${hospitalId}`, { replace: true });
+  }, [hospitalId, navigate, searchParams, toast]);
+
+  const handleEmergencyClick = () => {
+    if (!hospital?.id) return;
+    const token = localStorage.getItem('token');
+    const backToDetails = `/hospital-details?id=${hospital.id}&startEmergency=1`;
+    if (!token) {
+      navigate(`/login?redirect=${encodeURIComponent(backToDetails)}`);
+      return;
+    }
+    navigate(backToDetails);
+  };
+
+  const handleEmergencyCall = () => {
+    const num = hospital?.emergencyContactNumber || hospital?.phone;
+    if (!num) return;
+    window.location.href = `tel:${num}`;
+  };
 
   const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,6 +309,25 @@ const HospitalDetails = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-8 lg:grid-cols-3">
               {/* Left Content */}
               <div className="space-y-6 lg:col-span-2">
+                {/* Gallery Slider */}
+                {hospital.gallery && hospital.gallery.length > 0 && (
+                  <div className="rounded-2xl border border-border overflow-hidden bg-card shadow-sm">
+                    <Swiper
+                      modules={[Autoplay, Pagination]}
+                      pagination={{ clickable: true }}
+                      autoplay={hospital.gallery.length >= 2 ? { delay: 2000, disableOnInteraction: false } : false}
+                      loop={hospital.gallery.length >= 2}
+                      className="h-64"
+                    >
+                      {hospital.gallery.slice(0, 8).map((img: string, i: number) => (
+                        <SwiperSlide key={i}>
+                          <img src={img} alt="Gallery" className="h-64 w-full object-cover" />
+                        </SwiperSlide>
+                      ))}
+                    </Swiper>
+                  </div>
+                )}
+
                 {/* About */}
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h2 className="text-xl font-bold text-foreground">About {hospital.name}</h2>
@@ -262,59 +336,100 @@ const HospitalDetails = () => {
                   </p>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {[
-                    { value: '50+', label: 'Expert Doctors' },
-                    { value: '10K+', label: 'Patients Served' },
-                    { value: '15+', label: 'Departments' },
-                    { value: hospital.emergency24x7 ? '24/7' : 'Scheduled', label: 'Emergency Care' },
-                  ].map((stat, i) => (
-                    <motion.div
-                      key={stat.label}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                      className="rounded-xl border border-border bg-card p-4 text-center shadow-sm"
-                    >
-                      <p className="text-2xl font-bold text-primary">{stat.value}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{stat.label}</p>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Working Hours */}
-                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                  <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-                    <Clock className="h-5 w-5 text-primary" /> Working Hours
-                  </h2>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
-                      <span className="text-sm font-medium text-foreground">
-                        {Array.isArray(hospital.workingDays) ? hospital.workingDays.join(', ') : (hospital.workingDays || 'Monday - Friday')}
-                      </span>
-                      <span className="text-sm text-muted-foreground">{hospital.hours || '08:00 AM - 09:00 PM'}</span>
+                {/* Live Map */}
+                {hospital.geoLocation && hospital.geoLocation.lat && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        <MapPin className="h-5 w-5 text-primary" /> Live Map
+                      </h2>
+                      <Button variant="outline" size="sm" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${hospital.geoLocation.lat},${hospital.geoLocation.lng}`)}>
+                        Get Directions
+                      </Button>
                     </div>
-                    {hospital.emergency24x7 && (
-                      <div className="flex items-center justify-between rounded-lg bg-primary/10 px-4 py-2.5">
-                        <span className="text-sm font-medium text-primary">Emergency</span>
-                        <span className="text-sm text-primary">24 Hours / 7 Days</span>
-                      </div>
-                    )}
-                    {hospital.ambulanceAvailable && (
-                      <div className="flex items-center justify-between rounded-lg bg-red-50 px-4 py-2.5 border border-red-100">
-                        <span className="text-sm font-medium text-red-600 flex items-center gap-2">
-                          <Ambulance className="h-4 w-4" /> Ambulance
-                        </span>
-                        <span className="text-sm text-red-600 font-semibold">Available 24/7</span>
-                      </div>
-                    )}
+                    <div className="h-64 rounded-xl overflow-hidden bg-muted">
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        style={{ border: 0 }} 
+                        loading="lazy" 
+                        allowFullScreen 
+                        src={`https://www.google.com/maps?q=${hospital.geoLocation.lat},${hospital.geoLocation.lng}&hl=es;z=14&output=embed`}
+                      ></iframe>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Branches Section */}
+                {branches && branches.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                      <Building2 className="h-5 w-5 text-primary" /> Branches
+                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {branches.map((branch: any) => (
+                        <div key={branch._id} className="p-4 border rounded-xl flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-semibold">{branch.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1"><MapPin className="h-3 w-3"/> {branch.address}</p>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <Button size="sm" variant="outline" className="flex-1" onClick={() => window.location.href = `tel:${branch.phone}`}>Call</Button>
+                            <Link to={`/book?id=${hospital.id}&branchId=${branch._id}&name=${encodeURIComponent(branch.name)}`} className="flex-1">
+                              <Button size="sm" className="w-full">Book</Button>
+                            </Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Doctors Section */}
+                {doctors && doctors.length > 0 && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                      <Activity className="h-5 w-5 text-primary" /> Doctors
+                    </h2>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {doctors.map((doc: any) => (
+                        <div key={doc._id} className="p-4 border rounded-xl flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xl overflow-hidden">
+                            {doc.image ? <img src={doc.image.startsWith('http') ? doc.image : `${import.meta.env.VITE_API_BASE}/${doc.image}`} alt={doc.name} className="h-full w-full object-cover" /> : doc.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold">Dr. {doc.name}</h3>
+                            <p className="text-sm text-muted-foreground">{doc.specialization} • {doc.experience} yrs exp</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Sidebar */}
               <div className="space-y-6">
+                {/* Emergency Button */}
+                {hospital.emergencyContactNumber && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center shadow-sm">
+                    <h3 className="text-lg font-bold text-red-600 flex items-center justify-center gap-2">
+                      <Ambulance className="h-5 w-5" /> 🚑 Emergency Call
+                    </h3>
+                    <p className="mt-2 text-sm text-red-600/80">
+                      Pehle emergency booking form fill karein, phir call karein.
+                    </p>
+                    <div className="mt-4 space-y-2">
+                      <Button onClick={handleEmergencyClick} className="w-full bg-red-600 hover:bg-red-700 shadow-md">
+                        Emergency Booking
+                      </Button>
+                      <Button onClick={handleEmergencyCall} variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-100">
+                        Call Now ({hospital.emergencyContactNumber})
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Contact Card */}
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
                   <h3 className="mb-4 text-lg font-bold text-foreground">Contact Information</h3>
@@ -325,7 +440,11 @@ const HospitalDetails = () => {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Address</p>
-                        <p className="text-sm font-medium text-foreground">{hospital.address || hospital.location || 'Not Available'}</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {hospital.fullAddress
+                            ? `${hospital.fullAddress.address}, ${hospital.fullAddress.city}, ${hospital.fullAddress.state} - ${hospital.fullAddress.pincode}`
+                            : (hospital.location || 'Not Available')}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -348,6 +467,29 @@ const HospitalDetails = () => {
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Working Hours */}
+                <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                  <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                    <Clock className="h-5 w-5 text-primary" /> Working Hours
+                  </h2>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
+                      <span className="text-sm font-medium text-foreground">
+                        {Array.isArray(hospital.workingDays) ? hospital.workingDays.join(', ') : (hospital.workingDays || 'Monday - Friday')}
+                      </span>
+                      <span className="text-sm text-muted-foreground">{hospital.hours || '08:00 AM - 09:00 PM'}</span>
+                    </div>
+                    {hospital.appointmentSlots?.startTime && hospital.appointmentSlots?.endTime && (
+                      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
+                        <span className="text-sm font-medium text-foreground">Appointment Slots</span>
+                        <span className="text-sm text-muted-foreground">
+                          {hospital.appointmentSlots.startTime} - {hospital.appointmentSlots.endTime}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

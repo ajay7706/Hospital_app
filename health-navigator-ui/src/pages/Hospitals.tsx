@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Star, MapPin, Search, Ambulance } from 'lucide-react';
 import { motion } from 'framer-motion';
-import api, { getHospitals as getApiHospitals } from '@/lib/api'; // Renamed getHospitals to avoid conflict
+import { getHospitals as getApiHospitals } from '@/lib/api'; // Removed unused api import
 import { Badge } from '@/components/ui/badge';
 
 interface Hospital {
@@ -36,7 +36,7 @@ const Hospitals = () => {
       try {
         const remote = await getApiHospitals(); // Using the renamed import
         if (remote && remote.length > 0) {
-          setHospitals(remote);
+          setHospitals(remote as unknown as Hospital[]);
         }
       } catch (err) {
         console.error("Failed to fetch hospitals:", err);
@@ -61,7 +61,7 @@ const Hospitals = () => {
   const filteredHospitals = hospitals.filter((h) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
-    const terms = query.split(/\s+/);
+    const terms = query.split(/\s+/).filter(Boolean);
     const haystack = `${h.name} ${h.location} ${h.specialties.join(' ')}`.toLowerCase(); // Include specialties in search
     return terms.every((term) => haystack.includes(term));
   });

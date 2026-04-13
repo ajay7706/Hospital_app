@@ -10,7 +10,13 @@ const hospitalSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  hospitalLogo: String,
+  hospitalLogo: {
+    type: String,
+    required: true,
+  },
+  navbarIcon: {
+    type: String,
+  },
   adminName: {
     type: String,
     required: true,
@@ -19,43 +25,83 @@ const hospitalSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  address: String,
   contactNumber: {
     type: String,
     required: true,
+    unique: true,
   },
   officialEmail: {
     type: String,
     required: true,
-  },
-  hospitalId: {
-    type: String,
-    required: true,
+    unique: true,
   },
   description: {
     type: String,
     maxlength: 500,
   },
-  specialties: [String], // Array of strings
+  specialties: [String],
   services: [
     {
       title: { type: String, required: true },
       description: { type: String, maxlength: 250 },
     },
-  ], // Array of objects
-  workingDays: [String],
-  openingTime: String,
-  closingTime: String,
-  emergency24x7: Boolean,
+  ],
   ambulanceAvailable: {
     type: Boolean,
     default: false,
   },
+  workingDays: [String],
+  openingTime: String,
+  closingTime: String,
+  appointmentSlots: {
+    startTime: String,
+    endTime: String,
+  },
+  emergency24x7: {
+    type: Boolean,
+    default: false,
+  },
+
+  // Step 2 Fields
+  hospitalLicenseNumber: {
+    type: String,
+    required: true,
+  },
+  licenseCertificate: {
+    type: String, // URL from Cloudinary
+    required: true,
+  },
+  ownerIdProof: {
+    type: String, // URL from Cloudinary
+    required: true,
+  },
+  fullAddress: {
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    pincode: { type: String, required: true },
+  },
+  location: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true },
+  },
+  emergencyContactNumber: {
+    type: String,
+    required: true,
+  },
+  gallery: [{
+    type: String,
+  }], // max 4 images
+
   approvalStatus: {
     type: String,
     enum: ["pending", "approved", "rejected"],
     default: "pending",
   },
-});
+  isDeleted: {
+    type: Boolean,
+    default: false,
+  },
+}, { timestamps: true });
 
 module.exports = mongoose.model("Hospital", hospitalSchema);

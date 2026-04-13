@@ -75,7 +75,7 @@ const HospitalProfile = () => {
   }
 
   const infoItems = [
-    { icon: MapPin, label: 'Address', value: hospital.city || 'Not provided' },
+    { icon: MapPin, label: 'Address', value: hospital.fullAddress ? `${hospital.fullAddress.address}, ${hospital.fullAddress.city}, ${hospital.fullAddress.state} - ${hospital.fullAddress.pincode}` : (hospital.city || 'Not provided') },
     { icon: Mail, label: 'Email', value: hospital.officialEmail || 'Not provided' },
     { icon: Phone, label: 'Phone', value: hospital.contactNumber || 'Not provided' },
     {
@@ -87,8 +87,8 @@ const HospitalProfile = () => {
       icon: Clock,
       label: 'Timing',
       value:
-        hospital.openTime && hospital.closeTime
-          ? `${hospital.openTime} – ${hospital.closeTime}`
+        hospital.openingTime && hospital.closingTime
+          ? `${hospital.openingTime} – ${hospital.closingTime}`
           : 'Not set',
     },
   ];
@@ -132,7 +132,7 @@ const HospitalProfile = () => {
                   <MapPin className="h-3.5 w-3.5" />
                   {hospital.city || 'Location not set'}
                 </p>
-                {hospital.emergencyAvailable && (
+                {hospital.emergency24x7 && (
                   <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
                     <Shield className="h-3 w-3" />
                     24/7 Emergency Available
