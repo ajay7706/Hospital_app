@@ -472,10 +472,14 @@ export default function HospitalSetup() {
           <DialogHeader>
             <DialogTitle>Select Location on Map</DialogTitle>
           </DialogHeader>
-          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border">
+          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border relative">
             <MapContainer
-              center={[form2.getValues('location.lat') || 20.5937, form2.getValues('location.lng') || 78.9629]}
-              zoom={5}
+              key={`${form2.getValues('location.lat')}-${form2.getValues('location.lng')}`}
+              center={[
+                Number(form2.getValues('location.lat')) || 20.5937, 
+                Number(form2.getValues('location.lng')) || 78.9629
+              ]}
+              zoom={13}
               style={{ height: '100%', width: '100%' }}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -485,7 +489,10 @@ export default function HospitalSetup() {
                   form2.setValue('location.lng', Number(lng), { shouldValidate: true });
                 }}
               />
-              <Marker position={[form2.watch('location.lat') || 20.5937, form2.watch('location.lng') || 78.9629]} />
+              <Marker position={[
+                Number(form2.watch('location.lat')) || 20.5937, 
+                Number(form2.watch('location.lng')) || 78.9629
+              ]} />
             </MapContainer>
           </div>
           <div className="flex justify-end gap-3">

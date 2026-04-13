@@ -25,9 +25,17 @@ const sendSmsOTP = async (phone, otp) => {
       console.log(`OTP ${otp} sent to ${phone} via Fast2SMS`);
     } else {
       console.error("Fast2SMS Error:", response.data.message);
+      // Fallback for testing: Print OTP to terminal if Fast2SMS fails or key is missing
+      console.log("---------------------------------------");
+      console.log(`TESTING OTP FOR ${phone}: ${otp}`);
+      console.log("---------------------------------------");
     }
   } catch (error) {
     console.error("Failed to send SMS via Fast2SMS:", error.message);
+    // Fallback for testing: Print OTP to terminal on network error
+    console.log("---------------------------------------");
+    console.log(`TESTING OTP FOR ${phone}: ${otp}`);
+    console.log("---------------------------------------");
   }
 };
 
