@@ -498,8 +498,13 @@ const EditProfile = () => {
           <DialogHeader>
             <DialogTitle>Select Location on Map</DialogTitle>
           </DialogHeader>
-          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border">
-            <MapContainer center={[lat, lng]} zoom={5} style={{ height: '100%', width: '100%' }}>
+          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border relative">
+            <MapContainer 
+              key={`${lat}-${lng}`}
+              center={[Number(lat) || 20.5937, Number(lng) || 78.9629]} 
+              zoom={13} 
+              style={{ height: '100%', width: '100%' }}
+            >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <LocationPicker
                 onPick={(a, b) => {
@@ -507,7 +512,7 @@ const EditProfile = () => {
                   form.setValue('location.lng', Number(b), { shouldValidate: true });
                 }}
               />
-              <Marker position={[lat, lng]} />
+              <Marker position={[Number(lat) || 20.5937, Number(lng) || 78.9629]} />
             </MapContainer>
           </div>
           <div className="flex justify-end gap-3">
