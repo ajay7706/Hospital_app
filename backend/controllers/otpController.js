@@ -2,40 +2,17 @@ const OTP = require("../models/OTP");
 const EmergencyLog = require("../models/EmergencyLog");
 const axios = require("axios");
 
-// Fast2SMS OTP integration
+// DEVELOPMENT MODE OTP system - No external SMS API used
 const sendSmsOTP = async (phone, otp) => {
-  try {
-    const apiKey = process.env.FAST2SMS_API_KEY;
-    if (!apiKey) {
-      console.error("FAST2SMS_API_KEY is missing in .env");
-      return;
-    }
-
-    // Fast2SMS OTP API call
-    const response = await axios.get(`https://www.fast2sms.com/dev/bulkV2`, {
-      params: {
-        authorization: apiKey,
-        route: 'otp',
-        variables_values: otp,
-        numbers: phone,
-      }
-    });
-
-    if (response.data.return === true) {
-      console.log(`OTP ${otp} sent to ${phone} via Fast2SMS`);
-    } else {
-      console.error("Fast2SMS Error:", response.data.message);
-      // Fallback for testing: Print OTP to terminal if Fast2SMS fails or key is missing
-      console.log("---------------------------------------");
-      console.log(`TESTING OTP FOR ${phone}: ${otp}`);
-      console.log("---------------------------------------");
-    }
-  } catch (error) {
-    console.error("Failed to send SMS via Fast2SMS:", error.message);
-    // Fallback for testing: Print OTP to terminal on network error
-    console.log("---------------------------------------");
-    console.log(`TESTING OTP FOR ${phone}: ${otp}`);
-    console.log("---------------------------------------");
+  // Log OTP for development/testing
+  // Visible in local console and Render logs
+  console.log("---------------------------------------");
+  console.log(`DEVELOPMENT OTP for ${phone}: ${otp}`);
+  console.log("---------------------------------------");
+  
+  if (process.env.NODE_ENV !== "production") {
+    // Extra log for non-production environments
+    console.log(`[DEV ONLY] OTP for ${phone}: ${otp}`);
   }
 };
 
@@ -46,23 +23,24 @@ exports.generateOTP = async (req, res) => {
       return res.status(400).json({ msg: "Phone number is required" });
     }
 
-    // Rate limiting: max 3 OTPs per hour per phone
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const recentOTPs = await OTP.countDocuments({ phone, createdAt: { $gt: oneHourAgo } });
+    // Overwrite old OTP if new request comes for the same phone
+    await OTP.deleteMany({ phone });
+
+    // Generate 4 or 6 digit OTP (using 6 digits as per previous implementation but can be 4)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); 
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 mins expiry as requested
+
+    await OTP.create({ 
+      phone, 
+      otp, 
+      expiresAt,
+      attempts: 0 
+    });
     
-    if (recentOTPs >= 3) {
-      return res.status(429).json({ msg: "Maximum OTP limit reached for this hour. Try again later." });
-    }
+    // Log OTP to console/logs
+    await sendSmsOTP(phone, otp);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
-
-    await OTP.create({ phone, otp, expiresAt });
-    
-    // Send SMS asynchronously
-    sendSmsOTP(phone, otp);
-
-    res.json({ msg: "OTP sent successfully" });
+    res.json({ success: true, message: "OTP sent successfully" });
   } catch (error) {
     console.error("OTP Generate Error:", error);
     res.status(500).json({ msg: "Server error during OTP generation", error: error.message });
@@ -76,16 +54,37 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ msg: "Phone and OTP are required" });
     }
 
-    const otpRecord = await OTP.findOne({ phone, otp, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 });
+    const otpRecord = await OTP.findOne({ phone }).sort({ createdAt: -1 });
+    
     if (!otpRecord) {
-      return res.status(400).json({ msg: "Invalid or expired OTP" });
+      return res.status(400).json({ msg: "OTP not found. Please request a new one." });
     }
 
-    otpRecord.verified = true;
-    await otpRecord.save();
+    // Check expiry
+    if (new Date() > otpRecord.expiresAt) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ msg: "OTP expired. Please request a new one." });
+    }
 
-    res.json({ msg: "OTP verified successfully" });
+    // Check attempts
+    if (otpRecord.attempts >= 3) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({ msg: "Too many failed attempts. Please request a new OTP." });
+    }
+
+    // Match OTP
+    if (otpRecord.otp !== otp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      return res.status(400).json({ msg: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.` });
+    }
+
+    // If valid: Delete OTP and return success
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    res.json({ success: true, message: "OTP verified successfully" });
   } catch (error) {
+    console.error("OTP Verify Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };

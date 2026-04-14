@@ -90,12 +90,12 @@ export const Navbar = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden items-center gap-1 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
           {navLinks.map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
                 location.pathname === link.path
                   ? 'text-primary'
                   : 'text-muted-foreground'
@@ -104,12 +104,12 @@ export const Navbar = () => {
               {link.name}
             </Link>
           ))}
-          <form onSubmit={handleSearch} className="ml-2">
+          <form onSubmit={handleSearch} className="ml-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search hospitals..."
-                className="h-9 w-40 pl-8 text-sm lg:w-52"
+                className="h-9 w-40 pl-8 text-sm lg:w-64 focus:w-72 transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -118,7 +118,7 @@ export const Navbar = () => {
         </div>
 
         {/* Auth Buttons / Profile */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

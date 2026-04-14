@@ -71,6 +71,21 @@ const BookVisit = () => {
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
   const [pendingData, setPendingData] = useState<BookingFormValues | null>(null);
+  const [timer, setTimer] = useState(120);
+
+  const startTimer = () => {
+    setTimer(120);
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return interval;
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -133,7 +148,8 @@ const BookVisit = () => {
       
       setPendingData(data);
       setOtpStep(true);
-      toast({ title: 'OTP Sent', description: `Please check your phone ${data.phone}` });
+      startTimer();
+      toast({ title: 'OTP Sent', description: `Development OTP logged in console for ${data.phone}` });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -293,21 +309,38 @@ const BookVisit = () => {
 
             {otpStep ? (
               <div className="space-y-6">
-                <h3 className="text-xl font-bold">Verify OTP</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold">Verify OTP</h3>
+                  <span className={cn("text-sm font-bold", timer < 30 ? "text-destructive" : "text-primary")}>
+                    {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
                 <p className="text-sm text-muted-foreground">Enter the 6-digit OTP sent to {pendingData?.phone}</p>
                 <Input 
                   value={otp} 
-                  onChange={e => setOtp(e.target.value)} 
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} 
                   placeholder="000000" 
                   maxLength={6} 
-                  className="text-center text-2xl tracking-[0.5em]"
+                  className="text-center text-3xl h-14 tracking-[0.5em] font-bold"
+                  disabled={isLoading}
                 />
+                <p className="text-xs text-center text-muted-foreground">
+                  Development OTP logged in console/Render logs
+                </p>
                 <div className="flex gap-4">
-                  <Button variant="outline" className="w-full" onClick={() => setOtpStep(false)}>Back</Button>
-                  <Button className="w-full" onClick={handleOtpSubmit} disabled={isLoading || otp.length !== 6}>
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Verify & Book'}
+                  <Button variant="outline" className="w-full" onClick={() => setOtpStep(false)} disabled={isLoading}>Back</Button>
+                  <Button className="w-full" onClick={handleOtpSubmit} disabled={isLoading || otp.length < 4} isLoading={isLoading}>
+                    Verify & Book
                   </Button>
                 </div>
+                {timer === 0 && (
+                  <button 
+                    onClick={() => handleInitialSubmit(pendingData!)} 
+                    className="w-full text-sm text-primary hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                )}
               </div>
             ) : (
             <Form {...form}>

@@ -40,6 +40,10 @@ const SignUp = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
   const [isLoading, setIsLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [pendingData, setPendingData] = useState<SignUpFormValues | null>(null);
+  const [timer, setTimer] = useState(120);
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -52,59 +56,101 @@ const SignUp = () => {
     },
   });
 
-  const onSubmit = async (data: SignUpFormValues) => {
+  const startTimer = () => {
+    setTimer(120);
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return interval;
+  };
+
+  const onSendOtp = async (data: SignUpFormValues) => {
     setIsLoading(true);
     try {
+      const response = await fetch(`${API_BASE}/api/otp/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: data.phone }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.msg || 'Failed to send OTP');
+      }
+
+      setPendingData(data);
+      setOtpStep(true);
+      startTimer();
+      toast({ title: 'OTP Sent', description: `Development OTP logged in console for ${data.phone}` });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onVerifyOtp = async () => {
+    if (!otp || !pendingData) return;
+    setIsLoading(true);
+    try {
+      // 1. Verify OTP
+      const verifyRes = await fetch(`${API_BASE}/api/otp/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: pendingData.phone, otp }),
+      });
+
+      if (!verifyRes.ok) {
+        const error = await verifyRes.json();
+        throw new Error(error.msg || 'Invalid OTP');
+      }
+
+      // 2. Proceed with Signup
       const response = await fetch(`${API_BASE}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-          password: data.password,
+          name: pendingData.name,
+          email: pendingData.email,
+          phone: pendingData.phone,
+          password: pendingData.password,
           role: selectedRole,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        toast({
-          title: 'Signup failed',
-          description: error.message || 'Something went wrong',
-          variant: 'destructive',
-        });
-        setIsLoading(false);
-        return;
+        throw new Error(error.message || 'Signup failed');
       }
 
       const result = await response.json();
 
-      // store token and user for immediate next steps (hospital setup)
-      if (result.token) {
-        localStorage.setItem('token', result.token);
-      }
-      if (result.user) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-      }
+      if (result.token) localStorage.setItem('token', result.token);
+      if (result.user) localStorage.setItem('user', JSON.stringify(result.user));
 
       toast({
         title: 'Account created successfully!',
-        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Apna Clinic! Redirecting to login...',
+        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Apna Clinic! Redirecting...',
       });
 
       setTimeout(() => {
         navigate(selectedRole === 'hospital' ? '/hospital-setup' : '/login');
       }, 1000);
-    } catch (err) {
-      toast({
-        title: 'Error',
-        description: err instanceof Error ? err.message : 'Failed to create account',
-        variant: 'destructive',
-      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const onSubmit = async (data: SignUpFormValues) => {
+    await onSendOtp(data);
   };
 
   return (
@@ -146,200 +192,251 @@ const SignUp = () => {
           <div className="text-center lg:text-left">
             <h2 className="text-2xl font-bold text-foreground">Create your account</h2>
             <p className="mt-2 text-muted-foreground">
-              Start your journey to better healthcare today
+              {otpStep ? `Verify OTP sent to ${pendingData?.phone}` : 'Start your journey to better healthcare today'}
             </p>
           </div>
 
-          {/* Role Selection */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setSelectedRole('patient')}
-              className={`flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                selectedRole === 'patient'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
-            >
-              <User className="h-5 w-5" />
-              <span className="font-medium">Patient</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedRole('hospital')}
-              className={`flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                selectedRole === 'hospital'
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
-            >
-              <Building2 className="h-5 w-5" />
-              <span className="font-medium">Hospital</span>
-            </button>
-          </div>
+          {otpStep ? (
+            <div className="mt-8 space-y-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Verification Code</span>
+                  <span className={cn("text-xs font-bold", timer < 30 ? "text-destructive" : "text-primary")}>
+                    {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
+                  </span>
+                </div>
+                <Input
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  className="h-14 text-center text-3xl tracking-[0.5em] font-bold"
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-center text-muted-foreground">
+                  Development OTP logged in console/Render logs
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setOtpStep(false)}
+                  disabled={isLoading}
+                >
+                  Back
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={onVerifyOtp}
+                  disabled={isLoading || otp.length < 4}
+                  isLoading={isLoading}
+                >
+                  Verify & Signup
+                </Button>
+              </div>
+              {timer === 0 && (
+                <button 
+                  onClick={() => onSendOtp(pendingData!)} 
+                  className="w-full text-sm text-primary hover:underline"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Role Selection */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('patient')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                    selectedRole === 'patient'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  <User className="h-5 w-5" />
+                  <span className="font-medium">Patient</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('hospital')}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                    selectedRole === 'hospital'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border text-muted-foreground hover:border-primary/50'
+                  }`}
+                >
+                  <Building2 className="h-5 w-5" />
+                  <span className="font-medium">Hospital</span>
+                </button>
+              </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
-              {/* Name */}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {selectedRole === 'patient' ? 'Full Name' : 'Hospital Name'}
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder={
-                            selectedRole === 'patient' ? 'John Doe' : 'City General Hospital'
-                          }
-                          className="h-12 pl-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-4">
+                  {/* Name */}
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          {selectedRole === 'patient' ? 'Full Name' : 'Hospital Name'}
+                        </FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder={
+                                selectedRole === 'patient' ? 'John Doe' : 'City General Hospital'
+                              }
+                              className="h-12 pl-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Email */}
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email address</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type="email"
-                          placeholder="name@example.com"
-                          className="h-12 pl-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Email */}
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email address</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              type="email"
+                              placeholder="name@example.com"
+                              className="h-12 pl-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Phone */}
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="+91 98765 43210"
-                          className="h-12 pl-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Phone */}
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="+91 98765 43210"
+                              className="h-12 pl-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Password */}
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Create a password"
-                          className="h-12 pl-10 pr-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          tabIndex={-1}
-                        >
-                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Password */}
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              type={showPassword ? 'text' : 'password'}
+                              placeholder="Create a password"
+                              className="h-12 pl-10 pr-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              tabIndex={-1}
+                            >
+                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Confirm Password */}
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          placeholder="Confirm your password"
-                          className="h-12 pl-10 pr-10"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                          tabIndex={-1}
-                        >
-                          {showConfirmPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  {/* Confirm Password */}
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              placeholder="Confirm your password"
+                              className="h-12 pl-10 pr-10"
+                              disabled={isLoading}
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-5 w-5" />
+                              ) : (
+                                <Eye className="h-5 w-5" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              {/* Terms */}
-              <p className="text-sm text-muted-foreground">
-                By creating an account, you agree to our{' '}
-                <Link to="/terms" className="text-primary hover:underline">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="text-primary hover:underline">
-                  Privacy Policy
-                </Link>
-              </p>
+                  {/* Terms */}
+                  <p className="text-sm text-muted-foreground">
+                    By creating an account, you agree to our{' '}
+                    <Link to="/terms" className="text-primary hover:underline">
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/privacy" className="text-primary hover:underline">
+                      Privacy Policy
+                    </Link>
+                  </p>
 
-              {/* Submit */}
-              <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
-                Sign Up
-              </Button>
-            </form>
-          </Form>
+                  {/* Submit */}
+                  <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+                    Sign Up
+                  </Button>
+                </form>
+              </Form>
+            </>
+          )}
 
           {/* Divider */}
           <div className="relative my-6">

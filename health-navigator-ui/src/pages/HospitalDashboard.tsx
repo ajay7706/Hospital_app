@@ -510,10 +510,10 @@ export default function HospitalDashboard() {
 
             {activeTab === 'gallery' && (
               <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                   <h3 className="text-xl font-bold">Hospital Gallery</h3>
-                  <div className="flex items-center gap-2">
-                    <Input type="file" accept="image/*" multiple className="w-64" onChange={e => {
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <Input type="file" accept="image/*" multiple className="w-full sm:w-64" onChange={e => {
                       const files = Array.from(e.target.files || []);
                       const currentCount = Array.isArray(hospital?.gallery) ? hospital.gallery.length : 0;
                       const remaining = Math.max(0, 8 - currentCount);
@@ -524,7 +524,7 @@ export default function HospitalDashboard() {
                       }
                       setGalleryFiles(files);
                     }} />
-                    <Button onClick={handleUploadGallery} isLoading={uploadingGallery}>Upload Images</Button>
+                    <Button onClick={handleUploadGallery} isLoading={uploadingGallery} className="whitespace-nowrap">Upload Images</Button>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
