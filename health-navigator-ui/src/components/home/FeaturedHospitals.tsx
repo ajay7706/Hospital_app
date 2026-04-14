@@ -86,9 +86,9 @@ export const FeaturedHospitals = () => {
         </div>
 
         {/* Hospital Cards Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-4">
           {hospitals.length > 0 ? (
-            hospitals.map((hospital, index) => {
+            hospitals.slice(0, 4).map((hospital, index) => {
               const rating = hospital.rating || 0;
               return (
                 <motion.div
@@ -97,9 +97,9 @@ export const FeaturedHospitals = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-card"
+                  className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-card flex flex-col"
                 >
-                  <div className="relative h-44 overflow-hidden">
+                  <div className="relative h-32 sm:h-44 overflow-hidden shrink-0">
                     <img
                       src={hospital.image || '/assets/hospital-1.jpg'}
                       alt={hospital.name || 'Hospital'}
@@ -107,53 +107,55 @@ export const FeaturedHospitals = () => {
                     />
                   </div>
 
-                  <div className="p-4">
-                    <h3 className="font-semibold text-foreground truncate">{hospital.name || 'Hospital Name'}</h3>
+                  <div className="p-3 sm:p-4 flex flex-col flex-1">
+                    <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">{hospital.name || 'Hospital Name'}</h3>
                     
-                    <div className="mt-2 flex items-center gap-1">
+                    <div className="mt-1 sm:mt-2 flex items-center gap-1">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${
+                          className={`h-3 w-3 sm:h-4 sm:w-4 ${
                             i < Math.floor(rating)
                               ? 'fill-amber-400 text-amber-400'
                               : 'text-muted-foreground opacity-30'
                           }`}
                         />
                       ))}
-                      <span className="ml-1 text-sm text-muted-foreground">
+                      <span className="ml-1 text-xs sm:text-sm text-muted-foreground">
                         {rating}
                       </span>
                     </div>
 
-                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1 truncate">
-                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <div className="mt-1 sm:mt-2 flex items-center justify-between text-xs sm:text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1 truncate max-w-[80%]">
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
                         <span className="truncate">{hospital.location || 'Unknown'}</span>
                       </div>
                       {hospital.ambulanceAvailable && (
-                        <Ambulance className="h-5 w-5 text-red-500 flex-shrink-0" />
+                        <Ambulance className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 flex-shrink-0" />
                       )}
                     </div>
 
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {(hospital.specialties || []).slice(0, 3).map((specialty, i) => (
-                        <Badge key={i} variant="secondary" className="text-[10px] px-2 py-0">
+                    <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
+                      {(hospital.specialties || []).slice(0, 2).map((specialty, i) => (
+                        <Badge key={i} variant="secondary" className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0">
                           {specialty}
                         </Badge>
                       ))}
-                      {(hospital.specialties || []).length > 3 && (
-                        <Badge variant="secondary" className="text-[10px] px-2 py-0">
-                          +{(hospital.specialties || []).length - 3} more
+                      {(hospital.specialties || []).length > 2 && (
+                        <Badge variant="secondary" className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0">
+                          +{(hospital.specialties || []).length - 2}
                         </Badge>
                       )}
                     </div>
 
-                    <Link to={`/hospital-details?id=${hospital.id}`}>
-                      <Button variant="default" size="sm" className="mt-4 w-full">
-                        View Details
-                      </Button>
-                    </Link>
+                    <div className="mt-auto pt-3 sm:pt-4">
+                      <Link to={`/hospital-details?id=${hospital.id}`}>
+                        <Button variant="default" size="sm" className="w-full text-xs sm:text-sm h-8 sm:h-9">
+                          View Details
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </motion.div>
               );

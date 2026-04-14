@@ -337,28 +337,45 @@ const HospitalDetails = () => {
                 </div>
 
                 {/* Live Map */}
-                {hospital.geoLocation && hospital.geoLocation.lat && (
-                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-primary" /> Live Map
-                      </h2>
-                      <Button variant="outline" size="sm" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${hospital.geoLocation.lat},${hospital.geoLocation.lng}`)}>
-                        Get Directions
-                      </Button>
+                {(() => {
+                  const hasGeo = hospital.geoLocation && hospital.geoLocation.lat && hospital.geoLocation.lng;
+                  const addressStr = hospital.fullAddress 
+                    ? `${hospital.fullAddress.address}, ${hospital.fullAddress.city}, ${hospital.fullAddress.state} - ${hospital.fullAddress.pincode}`
+                    : (hospital.address || hospital.location);
+                  
+                  if (!hasGeo && !addressStr) return null;
+                  
+                  const mapQuery = hasGeo 
+                    ? `${hospital.geoLocation.lat},${hospital.geoLocation.lng}`
+                    : encodeURIComponent(addressStr);
+                  
+                  const dirQuery = hasGeo
+                    ? `destination=${hospital.geoLocation.lat},${hospital.geoLocation.lng}`
+                    : `destination=${encodeURIComponent(addressStr)}`;
+
+                  return (
+                    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-primary" /> Live Map
+                        </h2>
+                        <Button variant="outline" size="sm" onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&${dirQuery}`)}>
+                          Get Directions
+                        </Button>
+                      </div>
+                      <div className="h-64 rounded-xl overflow-hidden bg-muted">
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          style={{ border: 0 }} 
+                          loading="lazy" 
+                          allowFullScreen 
+                          src={`https://www.google.com/maps?q=${mapQuery}&hl=en;z=14&output=embed`}
+                        ></iframe>
+                      </div>
                     </div>
-                    <div className="h-64 rounded-xl overflow-hidden bg-muted">
-                      <iframe 
-                        width="100%" 
-                        height="100%" 
-                        style={{ border: 0 }} 
-                        loading="lazy" 
-                        allowFullScreen 
-                        src={`https://www.google.com/maps?q=${hospital.geoLocation.lat},${hospital.geoLocation.lng}&hl=es;z=14&output=embed`}
-                      ></iframe>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Branches Section */}
                 {branches && branches.length > 0 && (
