@@ -106,61 +106,56 @@ const Hospitals = () => {
 
         {/* Hospital Cards */}
         {!loading && filteredHospitals.length > 0 && (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {filteredHospitals.map((hospital, index) => (
-              <Link key={hospital.id} to={`/hospital-details?id=${hospital.id}`}>
+              <Link key={hospital.id || index} to={`/hospital-details?id=${hospital.id}`}>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
-                  className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-card cursor-pointer"
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  className="group h-full overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md flex flex-col"
                 >
-                  <div className="relative h-44 overflow-hidden">
+                  <div className="relative h-32 sm:h-48 overflow-hidden shrink-0">
                     <img
-                      src={hospital.image}
+                      src={hospital.image || '/assets/hospital-1.jpg'}
                       alt={hospital.name}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-foreground">{hospital.name}</h3>
-                    <div className="mt-2 flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(hospital.rating)
-                              ? 'fill-amber-400 text-amber-400'
-                              : 'text-muted'
-                          }`}
-                        />
-                      ))}
-                      <span className="ml-1 text-sm text-muted-foreground">{hospital.rating}</span>
+                    <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 text-[10px] sm:text-xs font-bold shadow-sm">
+                      <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
+                      {hospital.rating}
                     </div>
-                    <div className="mt-2 flex items-center justify-between gap-1 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{hospital.location}</span>
+                  </div>
+                  <div className="p-3 sm:p-5 flex flex-col flex-1">
+                    <h3 className="font-bold text-sm sm:text-lg text-foreground group-hover:text-primary transition-colors truncate">
+                      {hospital.name}
+                    </h3>
+                    <div className="mt-1 sm:mt-2 flex items-center justify-between gap-1 text-[10px] sm:text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1 truncate">
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">{hospital.location}</span>
                       </div>
                       {hospital.ambulanceAvailable && (
-                        <Ambulance className="h-5 w-5 text-red-500" />
+                        <Ambulance className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-red-500 flex-shrink-0" />
                       )}
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {hospital.specialties.slice(0, 3).map((specialty, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs">
+                    <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
+                      {hospital.specialties.slice(0, 2).map((specialty, i) => (
+                        <Badge key={i} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">
                           {specialty}
                         </Badge>
                       ))}
-                      {hospital.specialties.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{hospital.specialties.length - 3} more
+                      {hospital.specialties.length > 2 && (
+                        <Badge variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">
+                          +{hospital.specialties.length - 2}
                         </Badge>
                       )}
                     </div>
-                    <Button variant="default" size="sm" className="mt-4 w-full">
-                      View Hospital
-                    </Button>
+                    <div className="mt-auto pt-3 sm:pt-4">
+                      <Button variant="default" size="sm" className="w-full h-8 sm:h-10 text-xs sm:text-sm">
+                        View Hospital
+                      </Button>
+                    </div>
                   </div>
                 </motion.div>
               </Link>

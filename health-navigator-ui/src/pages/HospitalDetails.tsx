@@ -221,13 +221,13 @@ const HospitalDetails = () => {
       <Navbar />
       <main>
         {/* Hero Banner */}
-        <div className="relative h-64 overflow-hidden md:h-80 lg:h-96">
+        <div className="relative min-h-[300px] md:h-80 lg:h-96 overflow-hidden flex flex-col justify-end">
           <img
             src={hospital.image || '/assets/hospital-1.jpg'}
             alt={hospital.name || 'Hospital'}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
           {/* Back Button */}
           <Link
@@ -242,20 +242,20 @@ const HospitalDetails = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="absolute bottom-0 left-0 right-0 p-6 md:p-10"
+            className="relative z-10 p-4 sm:p-6 md:p-10"
           >
-            <div className="container mx-auto flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <div className="mb-2 inline-block rounded-full bg-primary/90 px-3 py-1 text-xs font-semibold text-primary-foreground">
+            <div className="container mx-auto flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-2xl">
+                <div className="mb-2 inline-block rounded-full bg-primary/90 px-3 py-1 text-[10px] sm:text-xs font-semibold text-primary-foreground uppercase tracking-wider">
                   {hospital.specialty || 'General'}
                 </div>
-                <h1 className="text-3xl font-bold text-white md:text-4xl lg:text-5xl">{hospital.name || 'Hospital'}</h1>
-                <div className="mt-2 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl lg:text-5xl">{hospital.name || 'Hospital'}</h1>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`h-5 w-5 ${
+                        className={`h-4 w-4 sm:h-5 sm:w-5 ${
                           i < fullStars
                             ? 'fill-amber-400 text-amber-400'
                             : i === fullStars && hasHalf
@@ -265,18 +265,20 @@ const HospitalDetails = () => {
                       />
                     ))}
                   </div>
-                  <span className="text-lg font-semibold text-white">{rating}</span>
-                  <span className="text-sm text-white/70">({totalReviews} reviews)</span>
+                  <span className="text-base sm:text-lg font-semibold text-white">{rating}</span>
+                  <span className="text-xs sm:text-sm text-white/70">({totalReviews} reviews)</span>
                 </div>
-                <div className="mt-1 flex items-center gap-1 text-sm text-white/80">
-                  <MapPin className="h-4 w-4" /> {hospital.location || 'Unknown'}
+                <div className="mt-2 flex items-center gap-1.5 text-xs sm:text-sm text-white/80">
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> {hospital.location || 'Unknown'}
                 </div>
               </div>
-              <Link to={`/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
-                <Button variant="cta" size="xl" className="shadow-xl">
-                  Book Visit Now
-                </Button>
-              </Link>
+              <div className="shrink-0">
+                <Link to={`/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
+                  <Button variant="cta" size="lg" className="w-full sm:w-auto shadow-xl h-12 sm:h-14 px-8 text-base sm:text-lg font-bold">
+                    Book Visit Now
+                  </Button>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>

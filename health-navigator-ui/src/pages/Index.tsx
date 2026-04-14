@@ -57,7 +57,7 @@ const Index = () => {
               </Link>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-8">
               {featuredHospitals.map((h, i) => (
                 <motion.div
                   key={h.id || h._id}
@@ -67,38 +67,36 @@ const Index = () => {
                   transition={{ delay: i * 0.1 }}
                 >
                   <Link to={`/hospital-details?id=${h.id || h._id}`}>
-                    <Card className="group overflow-hidden border-border bg-card hover:shadow-xl transition-all duration-300">
-                      <div className="relative h-48 overflow-hidden">
+                    <Card className="group overflow-hidden border-border bg-card hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                      <div className="relative h-32 sm:h-48 overflow-hidden shrink-0">
                         <img 
                           src={getHospitalImage(h)} 
                           alt={h.name || h.hospitalName} 
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
-                        <div className="absolute top-4 right-4 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 text-xs font-bold shadow-sm">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 text-[10px] sm:text-xs font-bold shadow-sm">
+                          <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
                           {h.rating || "4.5"}
                         </div>
                       </div>
-                      <CardHeader className="p-5 pb-2">
-                        <div className="text-xs font-bold text-primary uppercase mb-1">{h.specialty || "General"}</div>
-                        <CardTitle className="text-xl group-hover:text-primary transition-colors truncate">{h.name || h.hospitalName}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-5 pt-0">
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
-                          <MapPin className="h-3.5 w-3.5" /> {h.location || h.city}
+                      <div className="p-3 sm:p-5 flex flex-col flex-1">
+                        <div className="text-[10px] sm:text-xs font-bold text-primary uppercase mb-0.5 sm:mb-1">{h.specialty || "General"}</div>
+                        <h3 className="text-sm sm:text-xl font-bold group-hover:text-primary transition-colors truncate">{h.name || h.hospitalName}</h3>
+                        <div className="flex items-center gap-1 text-[10px] sm:text-sm text-muted-foreground mt-1 mb-2 sm:mb-4">
+                          <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {h.location || h.city}
                         </div>
-                        <div className="flex items-center justify-between pt-4 border-t border-border">
-                          <div className="flex -space-x-2">
+                        <div className="mt-auto flex items-center justify-between pt-2 sm:pt-4 border-t border-border">
+                          <div className="flex -space-x-1.5 sm:-space-x-2">
                             {[1, 2, 3].map(i => (
-                              <div key={i} className="w-7 h-7 rounded-full border-2 border-card bg-muted flex items-center justify-center overflow-hidden">
+                              <div key={i} className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-card bg-muted flex items-center justify-center overflow-hidden">
                                 <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="avatar" />
                               </div>
                             ))}
-                            <div className="w-7 h-7 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[10px] font-bold">+12</div>
+                            <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[8px] sm:text-[10px] font-bold">+12</div>
                           </div>
-                          <div className="text-xs font-medium text-muted-foreground">120+ Patients</div>
+                          <div className="text-[8px] sm:text-xs font-medium text-muted-foreground truncate ml-1">120+ Patients</div>
                         </div>
-                      </CardContent>
+                      </div>
                     </Card>
                   </Link>
                 </motion.div>
