@@ -305,10 +305,10 @@ const HospitalDetails = () => {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6 sm:py-8">
           {/* Overview Tab */}
           {activeTab === 'overview' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-8 lg:grid-cols-3">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 gap-6 lg:gap-8 lg:grid-cols-3">
               {/* Left Content */}
               <div className="space-y-6 lg:col-span-2">
                 {/* Gallery Slider */}
@@ -319,11 +319,11 @@ const HospitalDetails = () => {
                       pagination={{ clickable: true }}
                       autoplay={hospital.gallery.length >= 2 ? { delay: 2000, disableOnInteraction: false } : false}
                       loop={hospital.gallery.length >= 2}
-                      className="h-64"
+                      className="h-48 sm:h-64"
                     >
                       {hospital.gallery.slice(0, 8).map((img: string, i: number) => (
                         <SwiperSlide key={i}>
-                          <img src={img} alt="Gallery" className="h-64 w-full object-cover" />
+                          <img src={img} alt="Gallery" className="h-48 sm:h-64 w-full object-cover" />
                         </SwiperSlide>
                       ))}
                     </Swiper>
