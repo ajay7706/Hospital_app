@@ -32,6 +32,10 @@ const serviceSchema = z.object({
   description: z.string().max(250, 'Max 250 characters').optional(),
 });
 
+const specialtySchema = z.object({
+  value: z.string().min(1, 'Required'),
+});
+
 const editSchema = z.object({
   hospitalName: z.string().min(2, 'Required'),
   adminName: z.string().min(2, 'Required'),
@@ -49,7 +53,7 @@ const editSchema = z.object({
     lng: z.number(),
   }),
   description: z.string().max(500, 'Max 500 characters').optional(),
-  specialties: z.array(z.string().min(1, 'Required')).optional(),
+  specialties: z.array(specialtySchema).optional(),
   services: z.array(serviceSchema).optional(),
   ambulanceAvailable: z.boolean().default(false),
   emergency24x7: z.boolean().default(false),
@@ -104,7 +108,7 @@ const EditProfile = () => {
   });
 
   const servicesArray = useFieldArray<EditForm, 'services'>({ control: form.control, name: 'services' });
-  const specialtiesArray = useFieldArray({ control: form.control, name: 'specialties' }) as any;
+  const specialtiesArray = useFieldArray<EditForm, 'specialties'>({ control: form.control, name: 'specialties' });
 
   useEffect(() => {
     const init = async () => {
@@ -141,7 +145,7 @@ const EditProfile = () => {
           fullAddress: data.fullAddress || { address: '', city: '', state: '', pincode: '' },
           location: data.location || { lat: 20.5937, lng: 78.9629 },
           description: data.description || '',
-          specialties: Array.isArray(data.specialties) ? data.specialties : [],
+          specialties: Array.isArray(data.specialties) ? data.specialties.map((s: any) => ({ value: typeof s === 'string' ? s : (s.value || '') })) : [],
           services: Array.isArray(data.services) ? data.services : [],
           ambulanceAvailable: Boolean(data.ambulanceAvailable),
           emergency24x7: Boolean(data.emergency24x7),
@@ -208,7 +212,7 @@ const EditProfile = () => {
       fd.append('location', JSON.stringify(data.location));
       fd.append('appointmentSlots', JSON.stringify(data.appointmentSlots));
       fd.append('services', JSON.stringify(data.services || []));
-      fd.append('specialties', (data.specialties || []).join(','));
+      fd.append('specialties', (data.specialties || []).map(s => s.value).join(','));
 
       if (hospitalLogoFile) fd.append('hospitalLogo', hospitalLogoFile);
       if (navbarIconFile) fd.append('navbarIcon', navbarIconFile);
@@ -355,7 +359,7 @@ const EditProfile = () => {
                 <h2 className="text-lg font-semibold">Specialties</h2>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-muted-foreground">Editable list</p>
-                  <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => specialtiesArray.append('')}>
+                  <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => specialtiesArray.append({ value: '' })}>
                     <Plus className="h-4 w-4" /> Add Specialty
                   </Button>
                 </div>
@@ -365,7 +369,7 @@ const EditProfile = () => {
                   <div className="grid gap-3 sm:grid-cols-2">
                     {specialtiesArray.fields.map((f, index) => (
                       <div key={f.id} className="flex items-center gap-2">
-                        <FormField control={form.control} name={`specialties.${index}`} render={({ field }) => (
+                        <FormField control={form.control} name={`specialties.${index}.value`} render={({ field }) => (
                           <FormItem className="flex-1">
                             <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
