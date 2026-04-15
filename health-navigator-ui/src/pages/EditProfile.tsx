@@ -103,8 +103,8 @@ const EditProfile = () => {
     },
   });
 
-  const servicesArray = useFieldArray({ control: form.control, name: 'services' });
-  const specialtiesArray = useFieldArray({ control: form.control, name: 'specialties' });
+  const servicesArray = useFieldArray<EditForm, 'services'>({ control: form.control, name: 'services' });
+  const specialtiesArray = useFieldArray<EditForm, 'specialties'>({ control: form.control, name: 'specialties' });
 
   useEffect(() => {
     const init = async () => {
@@ -501,7 +501,7 @@ const EditProfile = () => {
           <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border relative">
             <MapContainer 
               key={`${lat}-${lng}`}
-              center={[Number(lat) || 20.5937, Number(lng) || 78.9629]} 
+              center={[Number(lat) || 20.5937, Number(lng) || 78.9629] as [number, number]} 
               zoom={13} 
               style={{ height: '100%', width: '100%' }}
             >
