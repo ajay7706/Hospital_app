@@ -87,7 +87,7 @@ const Login = () => {
         } else if (result.user?.role === 'branch') {
           navigate('/branch-dashboard');
         } else if (result.user?.role === 'patient') {
-          navigate('/patient-dashboard');
+          navigate('/');
         } else {
           navigate('/');
         }
