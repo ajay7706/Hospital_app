@@ -36,6 +36,7 @@ function toLocal(h: BackendHospital, index: number) {
   if (h.hospitalLogo) image = resolveAssetUrl(h.hospitalLogo) || image;
 
   return {
+    _id: h._id,
     id: h._id,
     name: h.hospitalName,
     image,
