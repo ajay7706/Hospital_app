@@ -441,10 +441,28 @@ export default function HospitalDashboard() {
                           </td>
                           <td className="py-4 text-right space-x-2">
                             {apt.status === 'pending' && (
-                              <Button size="sm" onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')}>Approve</Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')}
+                                disabled={!!apt.branchId} // Main hospital cannot approve branch appointments
+                                title={!!apt.branchId ? "Only branch can approve this" : ""}
+                              >
+                                Approve
+                              </Button>
                             )}
                             {apt.status === 'approved' && (
-                              <Button size="sm" onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')} variant="outline">Complete</Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')} 
+                                variant="outline"
+                                disabled={!!apt.branchId} // Main hospital cannot complete branch appointments
+                                title={!!apt.branchId ? "Only branch can complete this" : ""}
+                              >
+                                Complete
+                              </Button>
+                            )}
+                            {!!apt.branchId && (
+                              <span className="text-[10px] text-muted-foreground block mt-1">Manage from Branch Panel</span>
                             )}
                           </td>
                         </tr>
@@ -475,8 +493,24 @@ export default function HospitalDashboard() {
                       <div className="flex gap-3 w-full md:w-auto">
                         {em.status === 'pending' ? (
                           <>
-                            <Button className="flex-1 md:flex-none" onClick={() => handleStatusUpdate(em._id, 'accepted', 'emergency')}>Accept</Button>
-                            <Button variant="outline" className="flex-1 md:flex-none" onClick={() => handleStatusUpdate(em._id, 'rejected', 'emergency')}>Reject</Button>
+                            <Button 
+                              className="flex-1 md:flex-none" 
+                              onClick={() => handleStatusUpdate(em._id, 'accepted', 'emergency')}
+                              disabled={!!em.branchId}
+                            >
+                              Accept
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="flex-1 md:flex-none" 
+                              onClick={() => handleStatusUpdate(em._id, 'rejected', 'emergency')}
+                              disabled={!!em.branchId}
+                            >
+                              Reject
+                            </Button>
+                            {!!em.branchId && (
+                              <span className="text-[10px] text-muted-foreground block mt-1">Branch Alert (View Only)</span>
+                            )}
                           </>
                         ) : (
                           <Badge className={em.status === 'accepted' ? 'bg-success/10 text-success text-sm py-1' : 'bg-destructive/15 text-destructive text-sm py-1'}>

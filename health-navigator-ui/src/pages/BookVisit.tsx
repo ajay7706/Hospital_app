@@ -180,34 +180,39 @@ const BookVisit = () => {
         throw new Error(err.msg || 'Invalid OTP');
       }
 
-      // Proceed with booking
-      const response = await fetch(`${API_BASE}/api/appointments/book`, {
+      // Proceed with booking or emergency log
+      const bookingUrl = isEmergency ? `${API_BASE}/api/otp/emergency` : `${API_BASE}/api/appointments/book`;
+      const bookingBody = isEmergency 
+        ? { phone: pendingData.phone, hospitalId, branchId }
+        : {
+            hospitalId,
+            branchId,
+            hospitalName,
+            location: hospitalLocation,
+            patientName: pendingData.fullName,
+            patientEmail: pendingData.email,
+            date: format(pendingData.date, 'yyyy-MM-dd'),
+            time: pendingData.time,
+            age: pendingData.age,
+            gender: pendingData.gender,
+            symptoms: pendingData.symptoms,
+            problem: pendingData.symptoms,
+            phone: pendingData.phone,
+            ambulanceRequired: pendingData.ambulanceRequired
+          };
+
+      const response = await fetch(bookingUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          hospitalId,
-          branchId,
-          hospitalName,
-          location: hospitalLocation,
-          patientName: pendingData.fullName,
-          patientEmail: pendingData.email,
-          date: format(pendingData.date, 'yyyy-MM-dd'),
-          time: pendingData.time,
-          age: pendingData.age,
-          gender: pendingData.gender,
-          symptoms: pendingData.symptoms,
-          problem: pendingData.symptoms,
-          phone: pendingData.phone,
-          ambulanceRequired: pendingData.ambulanceRequired
-        }),
+        body: JSON.stringify(bookingBody),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.msg || 'Failed to book appointment');
+        throw new Error(error.msg || 'Failed to process request');
       }
 
       setIsSuccess(true);

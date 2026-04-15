@@ -113,11 +113,19 @@ const HospitalDetails = () => {
     if (!token) return;
     if (!hospital?._id) return;
 
+    const branchId = searchParams.get('branchId');
+    const branchName = searchParams.get('branchName');
+
+    let bookUrl = `/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}&emergency=1`;
+    
+    if (branchId) {
+      bookUrl += `&branchId=${branchId}&branchName=${encodeURIComponent(branchName || '')}`;
+    }
+
     const returnTo = `/hospital-details?id=${hospital._id}&emergencyBooked=1`;
-    navigate(
-      `/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}&emergency=1&returnTo=${encodeURIComponent(returnTo)}`,
-      { replace: true }
-    );
+    bookUrl += `&returnTo=${encodeURIComponent(returnTo)}`;
+    
+    navigate(bookUrl, { replace: true });
   }, [hospital, navigate, searchParams]);
 
   useEffect(() => {
@@ -127,10 +135,15 @@ const HospitalDetails = () => {
     navigate(`/hospital-details?id=${hospitalId}`, { replace: true });
   }, [hospitalId, navigate, searchParams, toast]);
 
-  const handleEmergencyClick = () => {
+  const handleEmergencyClick = (branchId?: string, branchName?: string) => {
     if (!hospital?._id) return;
     const token = localStorage.getItem('token');
-    const backToDetails = `/hospital-details?id=${hospital._id}&startEmergency=1`;
+    
+    let backToDetails = `/hospital-details?id=${hospital._id}&startEmergency=1`;
+    if (branchId) {
+      backToDetails += `&branchId=${branchId}&branchName=${encodeURIComponent(branchName || '')}`;
+    }
+
     if (!token) {
       navigate(`/login?redirect=${encodeURIComponent(backToDetails)}`);
       return;
@@ -432,20 +445,30 @@ const HospitalDetails = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="mt-auto flex gap-2">
+                            <div className="mt-auto grid grid-cols-2 gap-2">
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="flex-1 h-9 text-xs font-semibold" 
+                                className="h-9 text-[10px] font-bold" 
                                 onClick={() => navigate(`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&branchPhone=${encodeURIComponent(branch.phone || '')}&hospitalName=${encodeURIComponent(hospital.name || '')}&autoCall=1`)}
                               >
-                                <Phone className="mr-1.5 h-3 w-3" /> Call
+                                <Phone className="mr-1 h-3 w-3" /> Call
                               </Button>
-                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="flex-1">
-                                <Button size="sm" className="w-full h-9 text-xs font-semibold">
-                                  Book
+                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="">
+                                <Button size="sm" className="w-full h-9 text-[10px] font-bold">
+                                  Book Visit
                                 </Button>
                               </Link>
+                              {(branch.emergency24x7 || branch.ambulanceAvailable) && (
+                                <Button 
+                                  size="sm" 
+                                  variant="destructive" 
+                                  className="col-span-2 h-9 text-[10px] font-bold bg-red-600 hover:bg-red-700"
+                                  onClick={() => handleEmergencyClick(branch._id, branch.branchName)}
+                                >
+                                  <Ambulance className="mr-1 h-3 w-3" /> Emergency Booking
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </div>
