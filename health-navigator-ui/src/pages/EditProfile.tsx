@@ -104,8 +104,7 @@ const EditProfile = () => {
   });
 
   const servicesArray = useFieldArray<EditForm, 'services'>({ control: form.control, name: 'services' });
-  // @ts-ignore
-  const specialtiesArray = useFieldArray({ control: form.control, name: 'specialties' });
+  const specialtiesArray = useFieldArray({ control: form.control, name: 'specialties' }) as any;
 
   useEffect(() => {
     const init = async () => {
