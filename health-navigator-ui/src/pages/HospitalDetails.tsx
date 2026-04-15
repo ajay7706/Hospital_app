@@ -512,7 +512,7 @@ const HospitalDetails = () => {
                       Pehle emergency booking form fill karein, phir call karein.
                     </p>
                     <div className="mt-4 space-y-2">
-                      <Button onClick={handleEmergencyClick} className="w-full bg-red-600 hover:bg-red-700 shadow-md">
+                      <Button onClick={() => handleEmergencyClick()} className="w-full bg-red-600 hover:bg-red-700 shadow-md">
                         Emergency Booking
                       </Button>
                       <Button onClick={handleEmergencyCall} variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-100">
