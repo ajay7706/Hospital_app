@@ -6,7 +6,11 @@ const branchSchema = new mongoose.Schema({
     ref: "Hospital",
     required: true,
   },
-  name: {
+  branchName: {
+    type: String,
+    required: true,
+  },
+  city: {
     type: String,
     required: true,
   },
