@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import { getHospitals as getApiHospitals } from '@/lib/api'; // Removed unused api import
 import { Badge } from '@/components/ui/badge';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
 interface Hospital {
   id: string;
   name: string;
