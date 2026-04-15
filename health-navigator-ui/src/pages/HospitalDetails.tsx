@@ -96,7 +96,18 @@ const HospitalDetails = () => {
       try {
         const hospitals = getAllHospitals();
         const found = hospitals.find((h) => h.id.toString() === hospitalId);
-        setHospital(found || null);
+        if (found) {
+          setHospital({
+            ...found,
+            _id: found.id,
+            name: found.name,
+            location: found.location,
+            hospitalName: found.name,
+            city: found.location
+          });
+        } else {
+          setHospital(null);
+        }
       } catch (err) {
         console.error('Local store access failed', err);
         setHospital(null);
@@ -437,11 +448,11 @@ const HospitalDetails = () => {
                                 size="sm" 
                                 variant="outline" 
                                 className="flex-1 h-9 text-xs font-semibold" 
-                                onClick={() => navigate(`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&branchPhone=${encodeURIComponent(branch.phone || '')}&hospitalName=${encodeURIComponent(hospital.name)}&autoCall=1`)}
+                                onClick={() => navigate(`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&branchPhone=${encodeURIComponent(branch.phone || '')}&hospitalName=${encodeURIComponent(hospital.name || '')}&autoCall=1`)}
                               >
                                 <Phone className="mr-1.5 h-3 w-3" /> Call
                               </Button>
-                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name)}`} className="flex-1">
+                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="flex-1">
                                 <Button size="sm" className="w-full h-9 text-xs font-semibold">
                                   Book
                                 </Button>
