@@ -11,6 +11,10 @@ const appointmentSchema = new mongoose.Schema({
     ref: "Hospital",
     required: true,
   },
+  branchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Branch",
+  },
   date: {
     type: String, // Storing as string for simplicity with time
     required: true,

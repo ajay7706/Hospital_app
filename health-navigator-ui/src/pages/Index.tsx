@@ -80,11 +80,23 @@ const Index = () => {
                         </div>
                       </div>
                       <div className="p-3 sm:p-5 flex flex-col flex-1">
-                        <div className="text-[10px] sm:text-xs font-bold text-primary uppercase mb-0.5 sm:mb-1">{h.specialty || "General"}</div>
+                        <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                          <div className="text-[10px] sm:text-xs font-bold text-primary uppercase">{h.specialty || "General"}</div>
+                          {h.ambulanceAvailable && (
+                            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Ambulance</div>
+                          )}
+                        </div>
                         <h3 className="text-sm sm:text-xl font-bold group-hover:text-primary transition-colors truncate">{h.name || h.hospitalName}</h3>
-                        <div className="flex items-center gap-1 text-[10px] sm:text-sm text-muted-foreground mt-1 mb-2 sm:mb-4">
+                        <div className="flex items-center gap-1 text-[10px] sm:text-sm text-muted-foreground mt-1 mb-1 sm:mb-2">
                           <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> {h.location || h.city}
                         </div>
+                        {h.branchCount > 0 && (
+                          <div className="mb-2 sm:mb-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+                              {h.branchCount} Branches Available
+                            </span>
+                          </div>
+                        )}
                         <div className="mt-auto flex items-center justify-between pt-2 sm:pt-4 border-t border-border">
                           <div className="flex -space-x-1.5 sm:-space-x-2">
                             {[1, 2, 3].map(i => (

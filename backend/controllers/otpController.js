@@ -126,7 +126,16 @@ exports.requestEmergency = async (req, res) => {
 
 exports.getEmergencyRequests = async (req, res) => {
   try {
-    const logs = await EmergencyLog.find({ hospitalId: req.params.hospitalId }).sort({ createdAt: -1 });
+    let filter = {};
+    if (req.user.role === 'branch') {
+      filter.branchId = req.user.branchId;
+    } else if (req.user.role === 'hospital') {
+      // If hospital admin, can see by hospitalId or branch
+      const hospitalId = req.params.hospitalId || req.user.hospitalId;
+      if (hospitalId) filter.hospitalId = hospitalId;
+    }
+
+    const logs = await EmergencyLog.find(filter).sort({ createdAt: -1 });
     res.json(logs);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });

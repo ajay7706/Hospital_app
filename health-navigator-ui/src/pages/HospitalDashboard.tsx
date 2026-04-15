@@ -35,17 +35,20 @@ export default function HospitalDashboard() {
   const [doctors, setDoctors] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [emergencies, setEmergencies] = useState<any[]>([]);
+  const [branchStaff, setBranchStaff] = useState<any[]>([]);
+  const [selectedBranchFilter, setSelectedBranchFilter] = useState('all');
 
   // Forms States
   const [doctorForm, setDoctorForm] = useState({ name: '', specialization: '', experience: '', image: null as File | null });
-  const [branchForm, setBranchForm] = useState({ name: '', address: '', phone: '', image: null as File | null });
+  const [branchForm, setBranchForm] = useState({ branchName: '', address: '', city: '', phone: '', image: null as File | null });
+  const [staffForm, setStaffForm] = useState({ name: '', email: '', password: '', branchId: '' });
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
   const [savingNavbarIcon, setSavingNavbarIcon] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, [selectedBranchFilter]);
 
   const readErrorMessage = async (res: Response) => {
     const contentType = res.headers.get('content-type') || '';
@@ -79,7 +82,11 @@ export default function HospitalDashboard() {
       setHospital(hData);
 
       // Get Appointments
-      const aRes = await fetch(`${API_BASE}/api/appointments/hospital`, { headers: { 'Authorization': `Bearer ${token}` } });
+      const aUrl = selectedBranchFilter === 'all' 
+        ? `${API_BASE}/api/appointments/hospital` 
+        : `${API_BASE}/api/appointments/hospital?branchId=${selectedBranchFilter}`;
+      
+      const aRes = await fetch(aUrl, { headers: { 'Authorization': `Bearer ${token}` } });
       if (aRes.ok) {
         const aData = await aRes.json();
         setAppointments(Array.isArray(aData.appointments) ? aData.appointments : []);
@@ -138,7 +145,26 @@ export default function HospitalDashboard() {
       const res = await fetch(`${API_BASE}/api/branches/add`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Branch added successfully' });
-      setBranchForm({ name: '', address: '', phone: '', image: null });
+      setBranchForm({ branchName: '', address: '', city: '', phone: '', image: null });
+      fetchInitialData();
+    } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+  };
+
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/auth/create-branch-staff`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify(staffForm)
+      });
+      if (!res.ok) throw new Error(await readErrorMessage(res));
+      toast({ title: 'Branch staff created successfully' });
+      setStaffForm({ name: '', email: '', password: '', branchId: '' });
       fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
   };
@@ -365,12 +391,28 @@ export default function HospitalDashboard() {
 
             {activeTab === 'appointments' && (
               <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
-                <h3 className="text-xl font-bold mb-6">Appointment Requests</h3>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <h3 className="text-xl font-bold">Appointment Requests</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Filter by Branch:</span>
+                    <select 
+                      value={selectedBranchFilter} 
+                      onChange={(e) => setSelectedBranchFilter(e.target.value)}
+                      className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      <option value="all">All Branches</option>
+                      {branches.map(b => (
+                        <option key={b._id} value={b._id}>{b.branchName}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-border text-muted-foreground text-sm">
                         <th className="pb-4 font-medium">Patient</th>
+                        <th className="pb-4 font-medium">Branch</th>
                         <th className="pb-4 font-medium">Contact</th>
                         <th className="pb-4 font-medium">Date & Time</th>
                         <th className="pb-4 font-medium">Status</th>
@@ -381,6 +423,7 @@ export default function HospitalDashboard() {
                       {appointments.map((apt: any) => (
                         <tr key={apt._id} className="text-sm">
                           <td className="py-4 font-medium">{apt.patientName}</td>
+                          <td className="py-4 text-muted-foreground">{apt.branchId?.branchName || 'Main Hospital'}</td>
                           <td className="py-4 text-muted-foreground">{apt.phone}</td>
                           <td className="py-4 text-muted-foreground">{apt.date} at {apt.time}</td>
                           <td className="py-4">
@@ -398,7 +441,7 @@ export default function HospitalDashboard() {
                           </td>
                         </tr>
                       ))}
-                      {appointments.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">No appointments found.</td></tr>}
+                      {appointments.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No appointments found.</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -477,33 +520,83 @@ export default function HospitalDashboard() {
 
             {activeTab === 'branches' && (
               <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-xl font-bold mb-6">Manage Branches</h3>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {branches.map(branch => (
-                      <div key={branch._id} className="p-4 bg-background/60 border border-border rounded-xl">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-semibold">{branch.name}</h4>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteBranch(branch._id)}><Trash2 className="h-4 w-4"/></Button>
+                <div className="lg:col-span-2 space-y-8">
+                  <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xl font-bold mb-6">Manage Branches</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {branches.map(branch => (
+                        <div key={branch._id} className="p-4 bg-background/60 border border-border rounded-xl">
+                          <div className="flex justify-between items-start mb-3">
+                            <h4 className="font-semibold">{branch.branchName}</h4>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteBranch(branch._id)}><Trash2 className="h-4 w-4"/></Button>
+                          </div>
+                          <div className="h-32 w-full rounded-lg overflow-hidden mb-3 bg-muted">
+                            <img src={branch.image || '/assets/hospital-1.jpg'} className="h-full w-full object-cover" alt="branch" />
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="h-3 w-3"/> {branch.address}, {branch.city}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3"/> {branch.phone}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="h-3 w-3"/> {branch.address}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3"/> {branch.phone}</p>
-                      </div>
-                    ))}
-                    {branches.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No branches added yet.</p>}
+                      ))}
+                      {branches.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No branches added yet.</p>}
+                    </div>
+                  </div>
+
+                  <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xl font-bold mb-6">Branch Staff</h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {branchStaff.map(staff => (
+                        <div key={staff._id} className="p-4 bg-background/60 border border-border rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                              {staff.name?.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{staff.name}</p>
+                              <p className="text-xs text-muted-foreground">{staff.email}</p>
+                              <Badge className="text-[10px] mt-1">{staff.branchId?.branchName || 'Unknown Branch'}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      {branchStaff.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No branch staff created yet.</p>}
+                    </div>
                   </div>
                 </div>
-                <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 h-fit shadow-sm">
-                  <h3 className="text-xl font-bold mb-6">Add New Branch</h3>
-                  <form onSubmit={handleAddBranch} className="space-y-4">
-                    <Input placeholder="Branch Name" value={branchForm.name} onChange={e => setBranchForm({...branchForm, name: e.target.value})} required />
-                    <Input placeholder="Address" value={branchForm.address} onChange={e => setBranchForm({...branchForm, address: e.target.value})} required />
-                    <Input placeholder="Phone Number" value={branchForm.phone} onChange={e => setBranchForm({...branchForm, phone: e.target.value})} required />
-                    <Input type="file" accept="image/*" onChange={e => setBranchForm({...branchForm, image: e.target.files?.[0] || null})} required/>
-                    <Button type="submit" className="w-full" disabled={branches.length >= 4}>
-                      {branches.length >= 4 ? 'Max Branches Reached' : 'Add Branch'}
-                    </Button>
-                  </form>
+
+                <div className="space-y-8">
+                  <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 h-fit shadow-sm">
+                    <h3 className="text-xl font-bold mb-6">Add New Branch</h3>
+                    <form onSubmit={handleAddBranch} className="space-y-4">
+                      <Input placeholder="Branch Name" value={branchForm.branchName} onChange={e => setBranchForm({...branchForm, branchName: e.target.value})} required />
+                      <Input placeholder="City (e.g. Lucknow, Kanpur)" value={branchForm.city} onChange={e => setBranchForm({...branchForm, city: e.target.value})} required />
+                      <Input placeholder="Address" value={branchForm.address} onChange={e => setBranchForm({...branchForm, address: e.target.value})} required />
+                      <Input placeholder="Phone Number" value={branchForm.phone} onChange={e => setBranchForm({...branchForm, phone: e.target.value})} required />
+                      <Input type="file" accept="image/*" onChange={e => setBranchForm({...branchForm, image: e.target.files?.[0] || null})} required/>
+                      <Button type="submit" className="w-full" disabled={branches.length >= 4}>
+                        {branches.length >= 4 ? 'Max Branches Reached' : 'Add Branch'}
+                      </Button>
+                    </form>
+                  </div>
+
+                  <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 h-fit shadow-sm">
+                    <h3 className="text-xl font-bold mb-6">Create Branch Staff</h3>
+                    <form onSubmit={handleAddStaff} className="space-y-4">
+                      <Input placeholder="Staff Name" value={staffForm.name} onChange={e => setStaffForm({...staffForm, name: e.target.value})} required />
+                      <Input type="email" placeholder="Staff Email" value={staffForm.email} onChange={e => setStaffForm({...staffForm, email: e.target.value})} required />
+                      <Input type="password" placeholder="Password" value={staffForm.password} onChange={e => setStaffForm({...staffForm, password: e.target.value})} required />
+                      <Select value={staffForm.branchId} onValueChange={val => setStaffForm({...staffForm, branchId: val})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map(b => (
+                            <SelectItem key={b._id} value={b._id}>{b.branchName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button type="submit" className="w-full" disabled={branches.length === 0}>Create Staff Account</Button>
+                    </form>
+                  </div>
                 </div>
               </div>
             )}

@@ -386,17 +386,39 @@ const HospitalDetails = () => {
                       <Building2 className="h-5 w-5 text-primary" /> Branches
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {branches.map((branch: any) => (
-                        <div key={branch._id} className="p-4 border rounded-xl flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-semibold">{branch.name}</h3>
-                            <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1"><MapPin className="h-3 w-3"/> {branch.address}</p>
+                      {branches.slice(0, 4).map((branch: any) => (
+                        <div key={branch._id} className="group overflow-hidden border rounded-2xl bg-card transition-all hover:shadow-md flex flex-col">
+                          <div className="relative h-32 overflow-hidden bg-muted">
+                            <img 
+                              src={branch.image || '/assets/hospital-1.jpg'} 
+                              alt={branch.branchName} 
+                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/assets/hospital-1.jpg';
+                              }}
+                            />
                           </div>
-                          <div className="flex gap-2 mt-2">
-                            <Button size="sm" variant="outline" className="flex-1" onClick={() => window.location.href = `tel:${branch.phone}`}>Call</Button>
-                            <Link to={`/book?id=${hospital.id}&branchId=${branch._id}&name=${encodeURIComponent(branch.name)}`} className="flex-1">
-                              <Button size="sm" className="w-full">Book</Button>
-                            </Link>
+                          <div className="p-4 flex flex-col flex-1">
+                            <h3 className="font-bold text-base truncate">{branch.branchName}</h3>
+                            <p className="text-xs text-muted-foreground mt-1 mb-3 flex items-start gap-1 min-h-[32px]">
+                              <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-primary" /> 
+                              <span className="line-clamp-2">{branch.address}, {branch.city}</span>
+                            </p>
+                            <div className="mt-auto flex gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 h-9 text-xs font-semibold" 
+                                onClick={() => navigate(`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&branchPhone=${encodeURIComponent(branch.phone || '')}&hospitalName=${encodeURIComponent(hospital.name)}&autoCall=1`)}
+                              >
+                                <Phone className="mr-1.5 h-3 w-3" /> Call
+                              </Button>
+                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name)}`} className="flex-1">
+                                <Button size="sm" className="w-full h-9 text-xs font-semibold">
+                                  Book
+                                </Button>
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       ))}

@@ -84,6 +84,10 @@ const Login = () => {
           } else {
             navigate('/hospital-setup');
           }
+        } else if (result.user?.role === 'branch') {
+          navigate('/branch-dashboard');
+        } else if (result.user?.role === 'patient') {
+          navigate('/patient-dashboard');
         } else {
           navigate('/');
         }

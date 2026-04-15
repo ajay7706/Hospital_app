@@ -89,8 +89,15 @@ exports.getAllHospitals = async (req, res) => {
       query.specialties = { $in: [specialty] };
     }
 
-    const hospitals = await Hospital.find(query);
-    res.json(hospitals);
+    const hospitals = await Hospital.find(query).lean();
+    
+    // Enrich with branch count
+    const enrichedHospitals = await Promise.all(hospitals.map(async (h) => {
+      const branchCount = await mongoose.model('Branch').countDocuments({ hospitalId: h._id });
+      return { ...h, branchCount };
+    }));
+
+    res.json(enrichedHospitals);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

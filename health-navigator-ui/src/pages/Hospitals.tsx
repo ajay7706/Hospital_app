@@ -17,6 +17,7 @@ interface Hospital {
   address: string;
   rating: number;
   specialties: string[];
+  branchCount: number;
   services: { title: string; description?: string }[];
   workingDays: string[];
   hours: string;
@@ -127,19 +128,26 @@ const Hospitals = () => {
                     </div>
                   </div>
                   <div className="p-3 sm:p-5 flex flex-col flex-1">
-                    <h3 className="font-bold text-sm sm:text-lg text-foreground group-hover:text-primary transition-colors truncate">
-                      {hospital.name}
-                    </h3>
-                    <div className="mt-1 sm:mt-2 flex items-center justify-between gap-1 text-[10px] sm:text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1 truncate">
-                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                        <span className="truncate">{hospital.location}</span>
+                      <h3 className="font-bold text-sm sm:text-lg text-foreground group-hover:text-primary transition-colors truncate">
+                        {hospital.name}
+                      </h3>
+                      <div className="mt-1 sm:mt-2 flex items-center justify-between gap-1 text-[10px] sm:text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1 truncate">
+                          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                          <span className="truncate">{hospital.location}</span>
+                        </div>
+                        {hospital.ambulanceAvailable && (
+                          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Ambulance</div>
+                        )}
                       </div>
-                      {hospital.ambulanceAvailable && (
-                        <Ambulance className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-red-500 flex-shrink-0" />
+                      {hospital.branchCount > 0 && (
+                        <div className="mt-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                            {hospital.branchCount} Branches Available
+                          </span>
+                        </div>
                       )}
-                    </div>
-                    <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
+                      <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
                       {hospital.specialties.slice(0, 2).map((specialty, i) => (
                         <Badge key={i} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">
                           {specialty}

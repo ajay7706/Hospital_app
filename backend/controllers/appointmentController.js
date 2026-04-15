@@ -6,7 +6,7 @@ const { sendAppointmentEmail, sendWhatsAppNotification } = require("../config/ma
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
   try {
-    const { hospitalId, date, time, patientName, patientEmail, location, hospitalName, phone, ambulanceRequired } = req.body;
+    const { hospitalId, branchId, date, time, patientName, patientEmail, location, hospitalName, phone, ambulanceRequired, problem } = req.body;
     
     // Check if hospital exists and is approved
     const hospital = await Hospital.findById(hospitalId);
@@ -19,6 +19,7 @@ exports.bookAppointment = async (req, res) => {
 
     const appointment = await Appointment.create({
       hospitalId,
+      branchId: branchId || null,
       patientId: req.user.id,
       date,
       time,
@@ -27,6 +28,7 @@ exports.bookAppointment = async (req, res) => {
       phone,
       hospitalName,
       location,
+      problem: problem || "",
       status: "pending",
       ambulanceRequired: ambulanceRequired || false
     });
@@ -55,14 +57,31 @@ exports.bookAppointment = async (req, res) => {
   }
 };
 
-// Get Appointments for a Hospital
+// Get Appointments (With role-based filtering)
 exports.getHospitalAppointments = async (req, res) => {
   try {
-    const hospital = await Hospital.findOne({ userId: req.user.id });
-    if (!hospital) {
-      return res.status(404).json({ msg: "Hospital profile not found" });
+    let filter = {};
+    
+    if (req.user.role === "hospital") {
+      const hospital = await Hospital.findOne({ userId: req.user.id });
+      if (!hospital) {
+        return res.status(404).json({ msg: "Hospital profile not found" });
+      }
+      filter.hospitalId = hospital._id;
+    } else if (req.user.role === "branch") {
+      filter.branchId = req.user.branchId;
+    } else {
+      return res.status(403).json({ msg: "Access denied" });
     }
-    const appointments = await Appointment.find({ hospitalId: hospital._id }).sort({ createdAt: -1 });
+
+    // Optional branch filter from query (for hospital admin)
+    if (req.query.branchId) {
+      filter.branchId = req.query.branchId;
+    }
+
+    const appointments = await Appointment.find(filter)
+      .populate("branchId", "branchName location city")
+      .sort({ createdAt: -1 });
     
     // Calculate statistics
     const today = new Date().toISOString().split('T')[0];

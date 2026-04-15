@@ -60,9 +60,13 @@ const timeSlots = [
 const BookVisit = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const hospitalName = searchParams.get('name') || 'CityCare Hospital';
-  const hospitalLocation = searchParams.get('location') || 'Downtown, New York';
+  const hospitalName = searchParams.get('hospitalName') || searchParams.get('name') || 'CityCare Hospital';
+  const hospitalLocation = searchParams.get('branchAddress') || searchParams.get('location') || 'Downtown, New York';
   const hospitalId = searchParams.get('id');
+  const branchId = searchParams.get('branchId');
+  const branchName = searchParams.get('branchName');
+  const autoCall = searchParams.get('autoCall') === '1';
+  const branchPhone = searchParams.get('branchPhone');
   const isEmergency = searchParams.get('emergency') === '1';
   const returnTo = searchParams.get('returnTo');
 
@@ -185,6 +189,7 @@ const BookVisit = () => {
         },
         body: JSON.stringify({
           hospitalId,
+          branchId,
           hospitalName,
           location: hospitalLocation,
           patientName: pendingData.fullName,
@@ -208,8 +213,12 @@ const BookVisit = () => {
       setIsSuccess(true);
       toast({
         title: 'Appointment Booked Successfully!',
-        description: `Confirmation PDF sent to ${pendingData.email}`,
+        description: autoCall ? 'Verification successful. Opening dialer...' : `Confirmation PDF sent to ${pendingData.email}`,
       });
+
+      if (autoCall && branchPhone) {
+        window.location.href = `tel:${branchPhone}`;
+      }
 
       setTimeout(() => {
         if (returnTo) {
@@ -217,7 +226,7 @@ const BookVisit = () => {
           return;
         }
         navigate('/hospitals');
-      }, 3000);
+      }, autoCall ? 1000 : 3000);
     } catch (err: any) {
       toast({
         title: 'Booking Failed',
