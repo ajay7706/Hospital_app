@@ -26,6 +26,17 @@ const branchSchema = new mongoose.Schema({
     type: String, // Used in card
     required: true,
   },
+  specialties: {
+    type: String, // Comma separated list for now
+  },
+  ambulanceAvailable: {
+    type: Boolean,
+    default: false,
+  },
+  emergency24x7: {
+    type: Boolean,
+    default: false,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Branch", branchSchema);

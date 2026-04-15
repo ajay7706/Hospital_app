@@ -88,7 +88,8 @@ exports.getAllHospitals = async (req, res) => {
         $or: [
           { branchName: searchRegex },
           { city: searchRegex },
-          { address: searchRegex }
+          { address: searchRegex },
+          { specialties: searchRegex }
         ]
       }).select('hospitalId');
       
@@ -115,15 +116,27 @@ exports.getAllHospitals = async (req, res) => {
     }
 
     if (specialty) {
-      query.specialties = { $in: [new RegExp(specialty, "i")] };
+      const specRegex = new RegExp(specialty, "i");
+      const branchesWithSpec = await mongoose.model('Branch').find({ specialties: specRegex }).select('hospitalId');
+      const hospitalIdsWithSpec = branchesWithSpec.map(b => b.hospitalId);
+
+      query.$or = [
+        ...(query.$or || []),
+        { specialties: { $in: [specRegex] } },
+        { _id: { $in: hospitalIdsWithSpec } }
+      ];
     }
 
     const hospitals = await Hospital.find(query).lean();
     
-    // Enrich with branch count
+    // Enrich with branch data for search filters
     const enrichedHospitals = await Promise.all(hospitals.map(async (h) => {
-      const branchCount = await mongoose.model('Branch').countDocuments({ hospitalId: h._id });
-      return { ...h, branchCount };
+      const branches = await mongoose.model('Branch').find({ hospitalId: h._id }).select('city specialties');
+      const branchCount = branches.length;
+      const branchCities = branches.map(b => b.city);
+      const branchSpecialties = branches.map(b => b.specialties && typeof b.specialties === 'string' ? b.specialties.split(',').map(s => s.trim()) : []).flat();
+      
+      return { ...h, branchCount, branchCities, branchSpecialties };
     }));
 
     res.json(enrichedHospitals);

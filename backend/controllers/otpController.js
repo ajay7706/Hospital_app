@@ -79,8 +79,11 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ msg: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.` });
     }
 
-    // If valid: Delete OTP and return success
-    await OTP.deleteOne({ _id: otpRecord._id });
+    // If valid: Mark as verified instead of deleting immediately
+    // Emergency request needs to check if phone was verified
+    otpRecord.verified = true;
+    otpRecord.otp = ""; // Clear OTP for security
+    await otpRecord.save();
 
     res.json({ success: true, message: "OTP verified successfully" });
   } catch (error) {

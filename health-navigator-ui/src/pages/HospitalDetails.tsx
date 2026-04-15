@@ -400,10 +400,27 @@ const HospitalDetails = () => {
                           </div>
                           <div className="p-4 flex flex-col flex-1">
                             <h3 className="font-bold text-base truncate">{branch.branchName}</h3>
-                            <p className="text-xs text-muted-foreground mt-1 mb-3 flex items-start gap-1 min-h-[32px]">
+                            <p className="text-xs text-muted-foreground mt-0.5 mb-1 flex items-start gap-1">
                               <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-primary" /> 
-                              <span className="line-clamp-2">{branch.address}, {branch.city}</span>
+                              <span className="truncate">{branch.city}</span>
                             </p>
+                            {branch.specialties && (
+                              <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-tight mb-2 truncate">
+                                {branch.specialties}
+                              </p>
+                            )}
+                            <div className="flex gap-2 mb-3">
+                              {branch.ambulanceAvailable && (
+                                <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm" title="Ambulance Available">
+                                  <Ambulance className="h-4 w-4" />
+                                </div>
+                              )}
+                              {branch.emergency24x7 && (
+                                <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm" title="24/7 Emergency">
+                                  <Activity className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
                             <div className="mt-auto flex gap-2">
                               <Button 
                                 size="sm" 
@@ -517,12 +534,29 @@ const HospitalDetails = () => {
                     <Clock className="h-5 w-5 text-primary" /> Working Hours
                   </h2>
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
-                      <span className="text-sm font-medium text-foreground">
-                        {Array.isArray(hospital.workingDays) ? hospital.workingDays.join(', ') : (hospital.workingDays || 'Monday - Friday')}
-                      </span>
-                      <span className="text-sm text-muted-foreground">{hospital.hours || '08:00 AM - 09:00 PM'}</span>
-                    </div>
+                    {Array.isArray(hospital.workingDays) ? (
+                      hospital.workingDays.map((day: string, idx: number) => (
+                        <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2 border border-border/50">
+                          <span className="text-sm font-medium text-foreground">{day}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {hospital.openingTime && hospital.closingTime 
+                              ? `${hospital.openingTime} - ${hospital.closingTime}` 
+                              : (hospital.hours || '08:00 AM - 09:00 PM')}
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
+                        <span className="text-sm font-medium text-foreground">
+                          {hospital.workingDays || 'Monday - Friday'}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {hospital.openingTime && hospital.closingTime 
+                            ? `${hospital.openingTime} - ${hospital.closingTime}` 
+                            : (hospital.hours || '08:00 AM - 09:00 PM')}
+                        </span>
+                      </div>
+                    )}
                     {hospital.appointmentSlots?.startTime && hospital.appointmentSlots?.endTime && (
                       <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
                         <span className="text-sm font-medium text-foreground">Appointment Slots</span>

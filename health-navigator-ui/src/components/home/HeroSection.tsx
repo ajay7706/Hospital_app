@@ -18,12 +18,17 @@ export const HeroSection = () => {
       try {
         const hospitals = await api.getHospitals();
         if (hospitals && hospitals.length > 0) {
-          // Extract unique locations and specialties from database
-          const uniqueLocs = Array.from(new Set(hospitals.map(h => h.location))).filter(Boolean);
-          const uniqueSpecs = Array.from(new Set(hospitals.map(h => h.specialty))).filter(Boolean);
+          // Extract unique locations and specialties from database (Hospitals + Branches)
+          const hospitalLocs = hospitals.map(h => h.location || h.city);
+          const branchLocs = hospitals.flatMap(h => h.branchCities || []);
+          const uniqueLocs = Array.from(new Set([...hospitalLocs, ...branchLocs])).filter(Boolean);
           
-          setLocations(uniqueLocs);
-          setSpecialties(uniqueSpecs);
+          const hospitalSpecs = hospitals.flatMap(h => Array.isArray(h.specialties) ? h.specialties : (h.specialties ? h.specialties.split(',') : []));
+          const branchSpecs = hospitals.flatMap(h => h.branchSpecialties || []);
+          const uniqueSpecs = Array.from(new Set([...hospitalSpecs, ...branchSpecs])).filter(Boolean);
+          
+          setLocations(uniqueLocs as string[]);
+          setSpecialties(uniqueSpecs as string[]);
         }
       } catch (err) {
         console.error('Failed to fetch hero filter data:', err);

@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -47,7 +48,7 @@ export default function HospitalDashboard() {
 
   // Forms States
   const [doctorForm, setDoctorForm] = useState({ name: '', specialization: '', experience: '', image: null as File | null });
-  const [branchForm, setBranchForm] = useState({ branchName: '', address: '', city: '', phone: '', image: null as File | null });
+  const [branchForm, setBranchForm] = useState({ branchName: '', address: '', city: '', phone: '', specialties: '', ambulanceAvailable: false, emergency24x7: false, image: null as File | null });
   const [staffForm, setStaffForm] = useState({ name: '', email: '', password: '', branchId: '' });
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
@@ -152,7 +153,7 @@ export default function HospitalDashboard() {
       const res = await fetch(`${API_BASE}/api/branches/add`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Branch added successfully' });
-      setBranchForm({ branchName: '', address: '', city: '', phone: '', image: null });
+      setBranchForm({ branchName: '', address: '', city: '', phone: '', specialties: '', ambulanceAvailable: false, emergency24x7: false, image: null });
       fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
   };
@@ -542,6 +543,21 @@ export default function HospitalDashboard() {
                           </div>
                           <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="h-3 w-3"/> {branch.address}, {branch.city}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3"/> {branch.phone}</p>
+                          {branch.specialties && (
+                            <p className="text-[10px] text-primary font-medium mt-1 truncate">{branch.specialties}</p>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            {branch.ambulanceAvailable && (
+                              <div className="h-6 w-6 rounded bg-red-100 flex items-center justify-center text-red-600" title="Ambulance Available">
+                                <Ambulance className="h-4 w-4" />
+                              </div>
+                            )}
+                            {branch.emergency24x7 && (
+                              <div className="h-6 w-6 rounded bg-amber-100 flex items-center justify-center text-amber-600" title="24/7 Emergency">
+                                <Activity className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                       {branches.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No branches added yet.</p>}
@@ -578,6 +594,23 @@ export default function HospitalDashboard() {
                       <Input placeholder="City (e.g. Lucknow, Kanpur)" value={branchForm.city} onChange={e => setBranchForm({...branchForm, city: e.target.value})} required />
                       <Input placeholder="Address" value={branchForm.address} onChange={e => setBranchForm({...branchForm, address: e.target.value})} required />
                       <Input placeholder="Phone Number" value={branchForm.phone} onChange={e => setBranchForm({...branchForm, phone: e.target.value})} required />
+                      <Input placeholder="Specialties (e.g. Heart, Eye)" value={branchForm.specialties} onChange={e => setBranchForm({...branchForm, specialties: e.target.value})} />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center space-x-2 border border-border p-2 rounded-lg">
+                          <Checkbox id="amb" checked={branchForm.ambulanceAvailable} onCheckedChange={(val) => setBranchForm({...branchForm, ambulanceAvailable: !!val})} />
+                          <label htmlFor="amb" className="text-xs cursor-pointer flex items-center gap-1">
+                            <Ambulance className="h-3 w-3 text-red-500" /> Ambulance
+                          </label>
+                        </div>
+                        <div className="flex items-center space-x-2 border border-border p-2 rounded-lg">
+                          <Checkbox id="emerg" checked={branchForm.emergency24x7} onCheckedChange={(val) => setBranchForm({...branchForm, emergency24x7: !!val})} />
+                          <label htmlFor="emerg" className="text-xs cursor-pointer flex items-center gap-1">
+                            <Activity className="h-3 w-3 text-amber-500" /> Emergency
+                          </label>
+                        </div>
+                      </div>
+
                       <Input type="file" accept="image/*" onChange={e => setBranchForm({...branchForm, image: e.target.files?.[0] || null})} required/>
                       <Button type="submit" className="w-full" disabled={branches.length >= 4}>
                         {branches.length >= 4 ? 'Max Branches Reached' : 'Add Branch'}
