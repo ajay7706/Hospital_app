@@ -81,8 +81,10 @@ exports.verifyOTP = async (req, res) => {
 
     // If valid: Mark as verified instead of deleting immediately
     // Emergency request needs to check if phone was verified
+    console.log(`Verifying OTP for ${phone}. Record ID: ${otpRecord._id}`);
     otpRecord.verified = true;
     await otpRecord.save();
+    console.log(`OTP verified successfully for ${phone}`);
 
     res.json({ success: true, message: "OTP verified successfully" });
   } catch (error) {

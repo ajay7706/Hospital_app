@@ -64,7 +64,18 @@ const HospitalDetails = () => {
       try {
         const remote = await api.getHospitalById(hospitalId);
         if (remote) {
-          setHospital(remote);
+          // Map backend fields to frontend interface (Hospital app uses hospitalName, city, etc.)
+          const mappedHospital = {
+            ...remote,
+            id: remote._id,
+            _id: remote._id,
+            name: remote.hospitalName,
+            hospitalName: remote.hospitalName,
+            location: remote.city,
+            city: remote.city,
+            image: remote.hospitalLogo || remote.image
+          };
+          setHospital(mappedHospital);
           fetchReviews();
           
           // Fetch Doctors & Branches
