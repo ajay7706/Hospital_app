@@ -112,6 +112,10 @@ export default function HospitalDashboard() {
       // Get Emergencies
       const eRes = await fetch(`${API_BASE}/api/otp/emergency/${hData._id}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (eRes.ok) setEmergencies(await eRes.json());
+      
+      // Get Branch Staff
+      const sRes = await fetch(`${API_BASE}/api/auth/branch-staff`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (sRes.ok) setBranchStaff(await sRes.json());
 
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -485,9 +489,14 @@ export default function HospitalDashboard() {
                           <Ambulance className="h-6 w-6" />
                         </div>
                         <div>
-                          <p className="font-semibold text-lg">Emergency Request</p>
-                          <p className="text-sm text-destructive font-medium">Phone: {em.phone}</p>
-                          <p className="text-xs text-muted-foreground mt-1">Requested: {new Date(em.createdAt).toLocaleString()}</p>
+                          <p className="font-bold text-lg leading-none mb-1">Emergency Request</p>
+                          <div className="flex items-center gap-2 mb-2">
+                             <Badge variant="outline" className={`text-[10px] ${em.branchId ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                               {em.branchId ? (branches.find(b => b._id === em.branchId)?.branchName || 'Branch Alert') : 'MAIN HOSPITAL'}
+                             </Badge>
+                             <span className="text-sm font-bold text-foreground">{em.phone}</span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">Requested: {new Date(em.createdAt).toLocaleString()}</p>
                         </div>
                       </div>
                       <div className="flex gap-3 w-full md:w-auto">
@@ -599,23 +608,39 @@ export default function HospitalDashboard() {
                   </div>
 
                   <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 shadow-sm">
-                    <h3 className="text-xl font-bold mb-6">Branch Staff</h3>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold">Branch Staff Accounts</h3>
+                      <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                        {branchStaff.length} Staff Members
+                      </Badge>
+                    </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {branchStaff.map(staff => (
-                        <div key={staff._id} className="p-4 bg-background/60 border border-border rounded-xl flex items-center justify-between">
+                        <div key={staff._id} className="p-4 bg-background/60 border border-border rounded-xl flex items-center justify-between group hover:shadow-md transition-all">
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20 group-hover:scale-110 transition-transform">
                               {staff.name?.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-semibold text-sm">{staff.name}</p>
-                              <p className="text-xs text-muted-foreground">{staff.email}</p>
-                              <Badge className="text-[10px] mt-1">{staff.branchId?.branchName || 'Unknown Branch'}</Badge>
+                              <p className="font-bold text-sm text-foreground">{staff.name}</p>
+                              <p className="text-[10px] text-muted-foreground leading-tight mb-1">{staff.email}</p>
+                              <div className="flex items-center gap-1">
+                                <Building2 className="h-2 w-2 text-primary" />
+                                <span className="text-[9px] font-bold text-primary uppercase tracking-wider">
+                                  {staff.branchId?.branchName || 'Main Hospital Staff'}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          <div className="h-2 w-2 rounded-full bg-success animate-pulse" title="Active Account" />
                         </div>
                       ))}
-                      {branchStaff.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No branch staff created yet.</p>}
+                      {branchStaff.length === 0 && (
+                        <div className="col-span-2 py-10 text-center flex flex-col items-center gap-2">
+                          <Users className="h-8 w-8 text-muted-foreground opacity-30" />
+                          <p className="text-muted-foreground text-sm italic">No branch staff created yet.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -101,6 +101,8 @@ exports.signup = async (req, res) => {
         email: user.email,
         role: user.role,
         hospitalAdded: user.hospitalAdded,
+        hospitalId: user.hospitalId,
+        branchId: user.branchId
       },
       msg: "Signup successful",
     });
@@ -131,7 +133,7 @@ exports.createBranchStaff = async (req, res) => {
       password: hashedPassword,
       role: "branch",
       branchId,
-      hospitalId: req.user.hospitalId || req.body.hospitalId // hospitalId from token or body
+      hospitalId: (await Hospital.findOne({ userId: req.user.id }))?._id || req.body.hospitalId
     });
 
     res.status(201).json({ msg: "Branch staff created successfully", staffId: staff._id });
@@ -139,6 +141,26 @@ exports.createBranchStaff = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: err.message });
   }
 };
+
+// GET BRANCH STAFF (For Hospital Admin)
+exports.getBranchStaff = async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ userId: req.user.id });
+    if (!hospital) return res.status(404).json({ msg: "Hospital profile not found" });
+
+    const staff = await User.find({ 
+      hospitalId: hospital._id, 
+      role: "branch" 
+    })
+    .populate("branchId", "branchName city")
+    .select("-password");
+
+    res.json(staff);
+  } catch (err) {
+    res.status(500).json({ msg: "Server error", error: err.message });
+  }
+};
+
 
 // LOGIN
 exports.login = async (req, res) => {
@@ -188,7 +210,7 @@ exports.login = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, branchId: user.branchId, hospitalId: user.hospitalId },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -201,6 +223,8 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
         hospitalAdded: user.hospitalAdded,
+        hospitalId: user.hospitalId,
+        branchId: user.branchId
       },
       msg: "Login successful",
     });

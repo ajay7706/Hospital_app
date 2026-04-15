@@ -114,7 +114,7 @@ exports.updateAppointmentStatus = async (req, res) => {
       }
     } else if (req.user.role === "branch") {
       // Branch can ONLY approve if it belongs to them
-      if (appointment.branchId?.toString() !== req.user.branchId) {
+      if (!appointment.branchId || appointment.branchId.toString() !== req.user.branchId?.toString()) {
         return res.status(403).json({ msg: "You can only manage appointments for your own branch." });
       }
     }

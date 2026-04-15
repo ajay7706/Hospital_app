@@ -102,7 +102,9 @@ exports.updateEmergencyStatus = async (req, res) => {
     if (req.user.role === "hospital") {
       if (log.branchId) return res.status(403).json({ msg: "Main hospital can only view branch emergency requests." });
     } else if (req.user.role === "branch") {
-      if (log.branchId?.toString() !== req.user.branchId) return res.status(403).json({ msg: "Access denied." });
+      if (!log.branchId || log.branchId.toString() !== req.user.branchId?.toString()) {
+        return res.status(403).json({ msg: "Access denied: You can only manage your own branch emergencies." });
+      }
     }
 
     log.status = status;
