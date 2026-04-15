@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar, Mail, Lock, Eye, EyeOff, User, Building2, Loader2, Phone, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 import {

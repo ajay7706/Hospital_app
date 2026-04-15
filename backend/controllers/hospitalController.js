@@ -77,16 +77,45 @@ exports.addHospital = async (req, res) => {
 exports.getAllHospitals = async (req, res) => {
   try {
     const { search, city, specialty } = req.query;
-    let query = { approvalStatus: "approved", isDeleted: false }; // Only show approved and not deleted hospitals
+    let query = { approvalStatus: "approved", isDeleted: false };
 
+    // Advanced search logic
     if (search) {
-      query.hospitalName = { $regex: search, $options: "i" };
+      const searchRegex = new RegExp(search, "i");
+      
+      // Get all branches that match the search city/name to include their hospitals
+      const matchingBranches = await mongoose.model('Branch').find({
+        $or: [
+          { branchName: searchRegex },
+          { city: searchRegex },
+          { address: searchRegex }
+        ]
+      }).select('hospitalId');
+      
+      const branchHospitalIds = matchingBranches.map(b => b.hospitalId);
+
+      query.$or = [
+        { hospitalName: searchRegex },
+        { city: searchRegex },
+        { location: searchRegex },
+        { specialties: { $in: [searchRegex] } },
+        { _id: { $in: branchHospitalIds } }
+      ];
     }
+
     if (city) {
-      query.city = city;
+      const cityRegex = new RegExp(city, "i");
+      const branchesInCity = await mongoose.model('Branch').find({ city: cityRegex }).select('hospitalId');
+      const hospitalIdsInCity = branchesInCity.map(b => b.hospitalId);
+      
+      query.$or = [
+        { city: cityRegex },
+        { _id: { $in: hospitalIdsInCity } }
+      ];
     }
+
     if (specialty) {
-      query.specialties = { $in: [specialty] };
+      query.specialties = { $in: [new RegExp(specialty, "i")] };
     }
 
     const hospitals = await Hospital.find(query).lean();
