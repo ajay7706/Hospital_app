@@ -6,7 +6,8 @@ const { protect, isHospital, isHospitalOrBranch } = require("../middlewares/auth
 router.post("/generate", generateOTP);
 router.post("/verify", verifyOTP);
 router.post("/emergency", requestEmergency);
-router.get("/emergency/:hospitalId?", protect, isHospitalOrBranch, getEmergencyRequests);
+router.get("/emergency", protect, isHospitalOrBranch, getEmergencyRequests);
+router.get("/emergency/:hospitalId", protect, isHospitalOrBranch, getEmergencyRequests);
 router.put("/emergency/:id", protect, isHospitalOrBranch, updateEmergencyStatus);
 
 module.exports = router;
