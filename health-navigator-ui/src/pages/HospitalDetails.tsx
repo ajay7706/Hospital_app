@@ -100,11 +100,11 @@ const HospitalDetails = () => {
     if (!shouldStartEmergency) return;
     const token = localStorage.getItem('token');
     if (!token) return;
-    if (!hospital?.id) return;
+    if (!hospital?._id) return;
 
-    const returnTo = `/hospital-details?id=${hospital.id}&emergencyBooked=1`;
+    const returnTo = `/hospital-details?id=${hospital._id}&emergencyBooked=1`;
     navigate(
-      `/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}&emergency=1&returnTo=${encodeURIComponent(returnTo)}`,
+      `/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}&emergency=1&returnTo=${encodeURIComponent(returnTo)}`,
       { replace: true }
     );
   }, [hospital, navigate, searchParams]);
@@ -117,9 +117,9 @@ const HospitalDetails = () => {
   }, [hospitalId, navigate, searchParams, toast]);
 
   const handleEmergencyClick = () => {
-    if (!hospital?.id) return;
+    if (!hospital?._id) return;
     const token = localStorage.getItem('token');
-    const backToDetails = `/hospital-details?id=${hospital.id}&startEmergency=1`;
+    const backToDetails = `/hospital-details?id=${hospital._id}&startEmergency=1`;
     if (!token) {
       navigate(`/login?redirect=${encodeURIComponent(backToDetails)}`);
       return;
@@ -273,7 +273,7 @@ const HospitalDetails = () => {
                 </div>
               </div>
               <div className="shrink-0">
-                <Link to={`/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
+                <Link to={`/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
                   <Button variant="cta" size="lg" className="w-full sm:w-auto shadow-xl h-12 sm:h-14 px-8 text-base sm:text-lg font-bold">
                     Book Visit Now
                   </Button>
@@ -574,7 +574,7 @@ const HospitalDetails = () => {
                   <p className="mt-2 text-sm text-muted-foreground">
                     Book your appointment now and get expert care from our specialists.
                   </p>
-                  <Link to={`/book?id=${hospital.id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
+                  <Link to={`/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
                     <Button variant="cta" size="lg" className="mt-4 w-full shadow-md">
                       Book Appointment
                     </Button>
