@@ -47,6 +47,7 @@ const hospitalSchema = new mongoose.Schema({
     },
   ],
   ambulanceAvailable: {
+    type: Boolean,
     default: false,
   },
   dailyCapacity: {
