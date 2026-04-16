@@ -23,7 +23,7 @@ export const HeroSection = () => {
           const branchLocs = hospitals.flatMap(h => h.branchCities || []);
           const uniqueLocs = Array.from(new Set([...hospitalLocs, ...branchLocs])).filter(Boolean);
           
-          const hospitalSpecs = hospitals.flatMap(h => Array.isArray(h.specialties) ? h.specialties : (h.specialties ? h.specialties.split(',') : []));
+          const hospitalSpecs = hospitals.flatMap(h => Array.isArray(h.specialties) ? h.specialties : []);
           const branchSpecs = hospitals.flatMap(h => h.branchSpecialties || []);
           const uniqueSpecs = Array.from(new Set([...hospitalSpecs, ...branchSpecs])).filter(Boolean);
           

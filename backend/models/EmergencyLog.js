@@ -9,6 +9,11 @@ const emergencyLogSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Hospital",
   },
+  branchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Branch",
+    default: null
+  },
   ipAddress: {
     type: String,
   },

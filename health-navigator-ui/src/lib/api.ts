@@ -23,6 +23,8 @@ export interface BackendHospital {
   fullAddress?: { address: string; city: string; state: string; pincode: string };
   location?: { lat: number; lng: number };
   gallery?: string[];
+  branchCities?: string[];
+  branchSpecialties?: string[];
 }
 
 function toLocal(h: BackendHospital, index: number) {
@@ -63,6 +65,8 @@ function toLocal(h: BackendHospital, index: number) {
     emergency24x7: h.emergency24x7 || false,
     ambulanceAvailable: h.ambulanceAvailable || false,
     gallery: Array.isArray(h.gallery) ? h.gallery.map(resolveAssetUrl).filter(Boolean) : [],
+    branchCities: h.branchCities || [],
+    branchSpecialties: h.branchSpecialties || [],
   };
 }
 

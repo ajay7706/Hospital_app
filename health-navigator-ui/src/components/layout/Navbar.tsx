@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Menu, X, Plus, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck } from 'lucide-react';
+import { Menu, X, Stethoscope, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
@@ -77,14 +77,14 @@ export const Navbar = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-            <Plus className="h-6 w-6" strokeWidth={3} />
+            <Stethoscope className="h-6 w-6" strokeWidth={3} />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-black leading-none tracking-tight text-foreground">
               Apna<span className="text-primary">Clinic</span>
             </span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
-              Healthcare
+              HealthCare
             </span>
           </div>
         </Link>

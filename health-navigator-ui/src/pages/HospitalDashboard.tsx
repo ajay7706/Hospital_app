@@ -54,6 +54,14 @@ export default function HospitalDashboard() {
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
   const [savingNavbarIcon, setSavingNavbarIcon] = useState(false);
 
+  // Individual Action Loading States
+  const [processingDoctor, setProcessingDoctor] = useState(false);
+  const [processingBranch, setProcessingBranch] = useState(false);
+  const [processingStaff, setProcessingStaff] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [deletingDoctor, setDeletingDoctor] = useState<string | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState<string | null>(null);
+
   useEffect(() => {
     fetchInitialData();
   }, [selectedBranchFilter]);
@@ -89,32 +97,27 @@ export default function HospitalDashboard() {
       const hData = await hRes.json();
       setHospital(hData);
 
-      // Get Appointments
+      // Fetch other data in parallel for speed
       const aUrl = selectedBranchFilter === 'all' 
         ? `${API_BASE}/api/appointments/hospital` 
         : `${API_BASE}/api/appointments/hospital?branchId=${selectedBranchFilter}`;
-      
-      const aRes = await fetch(aUrl, { headers: { 'Authorization': `Bearer ${token}` } });
+
+      const [aRes, dRes, bRes, eRes, sRes] = await Promise.all([
+        fetch(aUrl, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/doctors/${hData._id}`),
+        fetch(`${API_BASE}/api/branches/${hData._id}`),
+        fetch(`${API_BASE}/api/otp/emergency`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/auth/branch-staff`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
       if (aRes.ok) {
         const aData = await aRes.json();
         setAppointments(Array.isArray(aData.appointments) ? aData.appointments : []);
         setStats(aData.stats);
       }
-
-      // Get Doctors
-      const dRes = await fetch(`${API_BASE}/api/doctors/${hData._id}`);
       if (dRes.ok) setDoctors(await dRes.json());
-
-      // Get Branches
-      const bRes = await fetch(`${API_BASE}/api/branches/${hData._id}`);
       if (bRes.ok) setBranches(await bRes.json());
-
-      // Get Emergencies
-      const eRes = await fetch(`${API_BASE}/api/otp/emergency/${hData._id}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (eRes.ok) setEmergencies(await eRes.json());
-      
-      // Get Branch Staff
-      const sRes = await fetch(`${API_BASE}/api/auth/branch-staff`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (sRes.ok) setBranchStaff(await sRes.json());
 
     } catch (err: any) {
@@ -126,6 +129,7 @@ export default function HospitalDashboard() {
 
   const handleAddDoctor = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProcessingDoctor(true);
     try {
       const token = localStorage.getItem('token');
       const fd = new FormData();
@@ -136,20 +140,24 @@ export default function HospitalDashboard() {
       setDoctorForm({ name: '', specialization: '', experience: '', image: null });
       fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+    finally { setProcessingDoctor(false); }
   };
 
   const handleDeleteDoctor = async (id: string) => {
+    setDeletingDoctor(id);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/doctors/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Doctor removed' });
-      fetchInitialData();
+      await fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+    finally { setDeletingDoctor(null); }
   };
 
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProcessingBranch(true);
     try {
       const token = localStorage.getItem('token');
       const fd = new FormData();
@@ -160,10 +168,12 @@ export default function HospitalDashboard() {
       setBranchForm({ branchName: '', address: '', city: '', phone: '', specialties: '', ambulanceAvailable: false, emergency24x7: false, image: null });
       fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+    finally { setProcessingBranch(false); }
   };
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
+    setProcessingStaff(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/auth/create-branch-staff`, {
@@ -179,6 +189,7 @@ export default function HospitalDashboard() {
       setStaffForm({ name: '', email: '', password: '', branchId: '' });
       fetchInitialData();
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+    finally { setProcessingStaff(false); }
   };
 
   const formDataAppendObj = (fd: FormData, obj: any) => {
@@ -186,14 +197,17 @@ export default function HospitalDashboard() {
   };
 
   const handleDeleteBranch = async (id: string) => {
+    setDeletingBranch(id);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/branches/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Branch removed' });
-      fetchInitialData();
+      await fetchInitialData();
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeletingBranch(null);
     }
   };
 
@@ -242,6 +256,7 @@ export default function HospitalDashboard() {
   };
 
   const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency') => {
+    setUpdatingStatus(id);
     try {
       const token = localStorage.getItem('token');
       const url = type === 'appointment' 
@@ -255,11 +270,13 @@ export default function HospitalDashboard() {
       });
       if (res.ok) {
         toast({ title: `Marked as ${status}` });
-        fetchInitialData();
+        // Automatically update without refresh
+        await fetchInitialData();
         return;
       }
       toast({ title: 'Error', description: await readErrorMessage(res), variant: 'destructive' });
     } catch (err) { console.error(err); }
+    finally { setUpdatingStatus(null); }
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
@@ -449,6 +466,7 @@ export default function HospitalDashboard() {
                                 size="sm" 
                                 onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')}
                                 disabled={!!apt.branchId} // Main hospital cannot approve branch appointments
+                                isLoading={updatingStatus === apt._id}
                                 title={!!apt.branchId ? "Only branch can approve this" : ""}
                               >
                                 Approve
@@ -460,6 +478,7 @@ export default function HospitalDashboard() {
                                 onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')} 
                                 variant="outline"
                                 disabled={!!apt.branchId} // Main hospital cannot complete branch appointments
+                                isLoading={updatingStatus === apt._id}
                                 title={!!apt.branchId ? "Only branch can complete this" : ""}
                               >
                                 Complete
@@ -506,6 +525,7 @@ export default function HospitalDashboard() {
                               className="flex-1 md:flex-none" 
                               onClick={() => handleStatusUpdate(em._id, 'accepted', 'emergency')}
                               disabled={!!em.branchId}
+                              isLoading={updatingStatus === em._id}
                             >
                               Accept
                             </Button>
@@ -514,6 +534,7 @@ export default function HospitalDashboard() {
                               className="flex-1 md:flex-none" 
                               onClick={() => handleStatusUpdate(em._id, 'rejected', 'emergency')}
                               disabled={!!em.branchId}
+                              isLoading={updatingStatus === em._id}
                             >
                               Reject
                             </Button>
@@ -550,7 +571,7 @@ export default function HospitalDashboard() {
                             <p className="text-xs text-primary">{doc.specialization}</p>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteDoctor(doc._id)}><Trash2 className="h-4 w-4"/></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteDoctor(doc._id)} isLoading={deletingDoctor === doc._id}><Trash2 className="h-4 w-4"/></Button>
                       </div>
                     ))}
                     {doctors.length === 0 && <p className="text-muted-foreground py-4 col-span-2">No doctors added yet.</p>}
@@ -563,7 +584,7 @@ export default function HospitalDashboard() {
                     <Input placeholder="Specialization" value={doctorForm.specialization} onChange={e => setDoctorForm({...doctorForm, specialization: e.target.value})} required />
                     <Input type="number" placeholder="Experience (Years)" value={doctorForm.experience} onChange={e => setDoctorForm({...doctorForm, experience: e.target.value})} required />
                     <Input type="file" accept="image/*" onChange={e => setDoctorForm({...doctorForm, image: e.target.files?.[0] || null})} />
-                    <Button type="submit" className="w-full">Add Doctor</Button>
+                    <Button type="submit" className="w-full" isLoading={processingDoctor}>Add Doctor</Button>
                   </form>
                 </div>
               </div>
@@ -579,7 +600,7 @@ export default function HospitalDashboard() {
                         <div key={branch._id} className="p-4 bg-background/60 border border-border rounded-xl">
                           <div className="flex justify-between items-start mb-3">
                             <h4 className="font-semibold">{branch.branchName}</h4>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteBranch(branch._id)}><Trash2 className="h-4 w-4"/></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteBranch(branch._id)} isLoading={deletingBranch === branch._id}><Trash2 className="h-4 w-4"/></Button>
                           </div>
                           <div className="h-32 w-full rounded-lg overflow-hidden mb-3 bg-muted">
                             <img src={branch.image || '/assets/hospital-1.jpg'} className="h-full w-full object-cover" alt="branch" />
@@ -671,7 +692,7 @@ export default function HospitalDashboard() {
                       </div>
 
                       <Input type="file" accept="image/*" onChange={e => setBranchForm({...branchForm, image: e.target.files?.[0] || null})} required/>
-                      <Button type="submit" className="w-full" disabled={branches.length >= 4}>
+                      <Button type="submit" className="w-full" disabled={branches.length >= 4} isLoading={processingBranch}>
                         {branches.length >= 4 ? 'Max Branches Reached' : 'Add Branch'}
                       </Button>
                     </form>
@@ -693,7 +714,7 @@ export default function HospitalDashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Button type="submit" className="w-full" disabled={branches.length === 0}>Create Staff Account</Button>
+                      <Button type="submit" className="w-full" disabled={branches.length === 0} isLoading={processingStaff}>Create Staff Account</Button>
                     </form>
                   </div>
                 </div>

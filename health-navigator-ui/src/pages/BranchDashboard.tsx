@@ -35,6 +35,7 @@ export default function BranchDashboard() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [emergencies, setEmergencies] = useState<any[]>([]);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -60,25 +61,20 @@ export default function BranchDashboard() {
     try {
       const token = localStorage.getItem('token');
       
-      // Get Appointments (Already filtered by branchId in backend for 'branch' role)
-      const aRes = await fetch(`${API_BASE}/api/appointments/hospital`, { 
-        headers: { 'Authorization': `Bearer ${token}` } 
-      });
+      const [aRes, eRes] = await Promise.all([
+        fetch(`${API_BASE}/api/appointments/hospital`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/otp/emergency`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+
       if (aRes.ok) {
         const aData = await aRes.json();
         setAppointments(Array.isArray(aData.appointments) ? aData.appointments : []);
         setStats(aData.stats);
       }
-
-      // Get Emergencies (Backend needs to support branchId filtering for emergencies too)
-      const eRes = await fetch(`${API_BASE}/api/otp/emergency`, { 
-        headers: { 'Authorization': `Bearer ${token}` } 
-      });
       if (eRes.ok) {
         const eData = await eRes.json();
         setEmergencies(Array.isArray(eData) ? eData : []);
       }
-
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -87,6 +83,7 @@ export default function BranchDashboard() {
   };
 
   const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency') => {
+    setUpdatingStatus(id);
     try {
       const token = localStorage.getItem('token');
       const url = type === 'appointment' 
@@ -101,11 +98,12 @@ export default function BranchDashboard() {
       
       if (res.ok) {
         toast({ title: `Marked as ${status}` });
-        fetchBranchData();
+        await fetchBranchData();
         return;
       }
       toast({ title: 'Error', description: await readErrorMessage(res), variant: 'destructive' });
     } catch (err) { console.error(err); }
+    finally { setUpdatingStatus(null); }
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>;
@@ -221,7 +219,7 @@ export default function BranchDashboard() {
                               <Ambulance className="h-5 w-5 text-red-600" />
                               <span className="font-bold text-red-700">{em.phone}</span>
                             </div>
-                            <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(em._id, 'accepted', 'emergency')}>Accept</Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleStatusUpdate(em._id, 'accepted', 'emergency')} isLoading={updatingStatus === em._id}>Accept</Button>
                           </div>
                         ))}
                         {emergencies.filter(e => e.status === 'pending').length === 0 && (
@@ -262,10 +260,10 @@ export default function BranchDashboard() {
                           </td>
                           <td className="py-4 text-right space-x-2">
                             {apt.status === 'pending' && (
-                              <Button size="sm" onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')}>Approve</Button>
+                              <Button size="sm" onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')} isLoading={updatingStatus === apt._id}>Approve</Button>
                             )}
                             {apt.status === 'approved' && (
-                              <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')}>Complete</Button>
+                              <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')} isLoading={updatingStatus === apt._id}>Complete</Button>
                             )}
                           </td>
                         </tr>
