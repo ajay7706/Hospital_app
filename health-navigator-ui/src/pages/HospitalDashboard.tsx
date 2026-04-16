@@ -5,7 +5,6 @@ import {
   Calendar, Users, Phone, Building2, Ambulance, User,
   Settings, Image as ImageIcon, Activity, ArrowRight,
   Search, Trash2, MapPin, AlertOctagon, Loader2,
-  ShieldCheck, Users2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
