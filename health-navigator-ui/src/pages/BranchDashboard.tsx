@@ -321,7 +321,7 @@ export default function BranchDashboard() {
                                 ? <><AlertOctagon className="h-4 w-4 text-red-500" /><span className="text-red-600 font-semibold text-xs">Emergency</span></>
                                 : <span className="text-xs text-muted-foreground">Normal</span>
                               }
-                              {apt.ambulanceRequired && <Ambulance className="h-3.5 w-3.5 text-orange-500 ml-1" title="Ambulance requested" />}
+                              {apt.ambulanceRequired && <Ambulance className="h-3.5 w-3.5 text-orange-500 ml-1" aria-label="Ambulance requested" />}
                             </div>
                           </td>
                           <td className="py-3.5">
