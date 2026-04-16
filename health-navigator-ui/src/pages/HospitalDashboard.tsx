@@ -5,6 +5,7 @@ import {
   Calendar, Users, Phone, Building2, Ambulance, User,
   Settings, Image as ImageIcon, Activity, ArrowRight,
   Search, Trash2, MapPin, AlertOctagon, Loader2,
+  ShieldCheck, Users2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -29,6 +30,21 @@ const getStatusColor = (status: string) => {
     default:                   return 'bg-gray-100 text-gray-600 border-gray-200';
   }
 };
+
+const StatCard = ({ title, value, icon: Icon, trend, color = 'text-primary' }: {
+  title: string; value: number; icon: any; trend: string; color?: string;
+}) => (
+  <div className="bg-card/70 backdrop-blur border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
+    <div>
+      <p className="text-sm text-muted-foreground">{title}</p>
+      <h3 className="text-3xl font-bold mt-1">{value}</h3>
+      <p className="text-xs text-muted-foreground mt-1">{trend}</p>
+    </div>
+    <div className={`h-12 w-12 rounded-xl bg-muted/50 flex items-center justify-center ${color}`}>
+      <Icon className="h-6 w-6" />
+    </div>
+  </div>
+);
 
 export default function HospitalDashboard() {
   const { toast } = useToast();
