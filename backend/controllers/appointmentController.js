@@ -2,6 +2,7 @@ const Appointment = require("../models/Appointment");
 const Hospital = require("../models/Hospital");
 const User = require("../models/Users");
 const { sendAppointmentEmail, sendWhatsAppNotification } = require("../config/mailer");
+const Branch = require("../models/Branch");
 
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
@@ -37,11 +38,19 @@ exports.bookAppointment = async (req, res) => {
     const pendingMsg = `Hello ${patientName}, your appointment at ${hospitalName} for ${date} is currently PENDING approval. We will notify you once confirmed.`;
     
     try {
-      await sendAppointmentEmail(patientEmail, {
+      // Fetch support details for the PDF/WhatsApp
+      const branch = branchId ? await Branch.findById(branchId) : null;
+      
+      const notificationDetails = {
         ...appointment.toObject(),
         status: "pending",
-        msg: pendingMsg
-      }, false);
+        msg: pendingMsg,
+        supportEmail: hospital.officialEmail,
+        supportPhone: branch ? branch.phone : hospital.contactNumber,
+        branchDetails: branch
+      };
+
+      await sendAppointmentEmail(patientEmail, notificationDetails, false);
       
       if (phone) {
         await sendWhatsAppNotification(phone, pendingMsg);
@@ -123,19 +132,32 @@ exports.updateAppointmentStatus = async (req, res) => {
     await appointment.save();
 
     // Trigger notifications
-    if (status === "approved") {
-      const approvalMsg = `Your appointment at ${appointment.hospitalName} has been APPROVED for ${appointment.date} at ${appointment.time}.`;
-      try {
-        await sendAppointmentEmail(appointment.patientEmail, { ...appointment.toObject(), status: "approved" }, true);
-        if (appointment.phone) await sendWhatsAppNotification(appointment.phone, approvalMsg);
-      } catch (err) {}
-    } else if (status === "completed") {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const completionMsg = `Visit to ${appointment.hospitalName} completed. Rate us: ${frontendUrl}/hospital-details?id=${appointment.hospitalId}`;
-      try {
-        await sendAppointmentEmail(appointment.patientEmail, { ...appointment.toObject(), status: "completed" }, false);
-        if (appointment.phone) await sendWhatsAppNotification(appointment.phone, completionMsg);
-      } catch (err) {}
+    if (status === "approved" || status === "completed") {
+      const hospital = await Hospital.findById(appointment.hospitalId);
+      const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
+      
+      const notificationDetails = {
+        ...appointment.toObject(),
+        status: status,
+        supportEmail: hospital?.officialEmail,
+        supportPhone: branch ? branch.phone : hospital?.contactNumber,
+        branchDetails: branch
+      };
+
+      if (status === "approved") {
+        const approvalMsg = `Your appointment at ${appointment.hospitalName} ${branch ? `(${branch.branchName} Branch)` : ''} has been APPROVED for ${appointment.date} at ${appointment.time}. Support: ${notificationDetails.supportPhone}`;
+        try {
+          await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true);
+          if (appointment.phone) await sendWhatsAppNotification(appointment.phone, approvalMsg);
+        } catch (err) {}
+      } else {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const completionMsg = `Visit to ${appointment.hospitalName} completed. Rate us: ${frontendUrl}/hospital-details?id=${appointment.hospitalId}`;
+        try {
+          await sendAppointmentEmail(appointment.patientEmail, notificationDetails, false);
+          if (appointment.phone) await sendWhatsAppNotification(appointment.phone, completionMsg);
+        } catch (err) {}
+      }
     }
 
     res.json({ msg: `Status updated to ${status}`, appointment });

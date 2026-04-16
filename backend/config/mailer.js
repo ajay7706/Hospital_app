@@ -6,72 +6,97 @@ const { PassThrough } = require("stream");
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const createProfessionalPDF = (doc, details) => {
-  // --- Header with Blue Background ---
-  doc.rect(0, 0, 612, 100).fill("#2563eb");
+  // Page Border
+  doc.rect(20, 20, 572, 752).stroke("#e5e7eb");
+
+  // --- Header with Deep Blue Background ---
+  doc.rect(20, 20, 572, 100).fill("#1e3a8a");
   
-  // --- Logo Placeholder (White Plus) ---
-  doc.fillColor("#ffffff")
-     .rect(50, 30, 40, 40).fill()
-     .fillColor("#2563eb")
-     .fontSize(30).text("+", 61, 33);
+  // --- Logo Placeholder (White Circle with Brand initials) ---
+  doc.fillColor("#ffffff").circle(60, 70, 30).fill();
+  doc.fillColor("#1e3a8a").fontSize(25).text("AC", 42, 58, { bold: true });
 
   // --- Brand Name ---
   doc.fillColor("#ffffff")
-     .fontSize(22)
-     .text("Apna Clinic", 100, 35, { bold: true })
+     .fontSize(24)
+     .text("Apna Clinic", 110, 45, { bold: true })
      .fontSize(10)
-     .text("Healthcare", 100, 60);
+     .text("HEALTHCARE", 111, 75, { characterSpacing: 2 });
   
   // --- Header Badge ---
-  doc.rect(400, 40, 180, 30).fill("#1e40af");
+  doc.rect(400, 45, 172, 50, 5).fill("#2563eb");
   doc.fillColor("#ffffff")
-     .fontSize(10)
-     .text("APPOINTMENT CONFIRMATION", 410, 50, { align: "center", width: 160 });
+     .fontSize(8)
+     .text("RECEIPT NO: " + (details._id?.toString().slice(-8).toUpperCase() || "T-001"), 410, 55)
+     .fontSize(12)
+     .text("APPOINTMENT RECEIPT", 410, 70, { bold: true });
 
-  // --- Section 1: Basic Information ---
-  doc.fillColor("#2563eb")
-     .fontSize(16)
-     .text("Patient Basic Information", 50, 120, { bold: true });
-  doc.moveTo(50, 140).lineTo(562, 140).stroke("#e5e7eb");
+  // --- Section 1: Patient Information ---
+  doc.fillColor("#1e3a8a")
+     .fontSize(14)
+     .text("PATIENT INFORMATION", 50, 150, { bold: true });
+  doc.moveTo(50, 170).lineTo(562, 170).strokeWidth(1).stroke("#1e3a8a");
 
-  // --- Information Box ---
-  doc.roundedRect(50, 160, 512, 180, 10).stroke("#e5e7eb");
+  // Information Grid
+  const leftCol = 60;
+  const rightCol = 320;
+  let y = 190;
+
+  const drawRow = (label, value, xPos, yPos) => {
+    doc.fillColor("#6b7280").fontSize(9).text(label, xPos, yPos);
+    doc.fillColor("#111827").fontSize(11).text(value || "N/A", xPos, yPos + 15, { bold: true });
+  };
+
+  drawRow("PATIENT NAME", details.patientName, leftCol, y);
+  drawRow("APPOINTMENT DATE", details.date, rightCol, y);
   
-  const leftX = 70;
-  const rightX = 300;
-  let currentY = 180;
+  y += 50;
+  drawRow("CONTACT NUMBER", details.phone, leftCol, y);
+  drawRow("APPOINTMENT TIME", details.time, rightCol, y);
 
-  doc.fillColor("#374151").fontSize(10).text("Patient Name:", leftX, currentY);
-  doc.fillColor("#1e3a8a").fontSize(11).text(details.patientName, leftX + 80, currentY, { bold: true });
+  y += 50;
+  drawRow("EMAIL ADDRESS", details.patientEmail, leftCol, y);
+  drawRow("PROBLEM / SYMPTOMS", details.problem && details.problem !== "undefined" ? details.problem : "General Consultation", rightCol, y);
+
+  // --- Section 2: Hospital / Branch Details ---
+  y += 60;
+  doc.fillColor("#1e3a8a")
+     .fontSize(14)
+     .text("HOSPITAL & PROVIDER DETAILS", 50, y, { bold: true });
+  doc.moveTo(50, y + 20).lineTo(562, y + 20).stroke("#1e3a8a");
   
-  currentY += 30;
-  doc.fillColor("#374151").fontSize(10).text("Contact No:", leftX, currentY);
-  doc.fillColor("#1e3a8a").text(details.phone || "N/A", leftX + 80, currentY);
-
-  currentY += 30;
-  doc.fillColor("#374151").fontSize(10).text("Email:", leftX, currentY);
-  doc.fillColor("#1e3a8a").text(details.patientEmail || "N/A", leftX + 80, currentY);
-
-  currentY += 30;
-  doc.fillColor("#374151").fontSize(10).text("Date:", leftX, currentY);
-  doc.fillColor("#1e3a8a").text(details.date, leftX + 80, currentY);
-
-  currentY += 30;
-  doc.fillColor("#374151").fontSize(10).text("Time:", leftX, currentY);
-  doc.fillColor("#1e3a8a").text(details.time, leftX + 80, currentY);
-
-  // --- Hospital Info ---
-  doc.fillColor("#374151").fontSize(10).text("Hospital:", rightX, 180);
-  doc.fillColor("#1e3a8a").fontSize(11).text(details.hospitalName, rightX + 60, 180, { bold: true });
+  y += 40;
+  doc.roundedRect(50, y, 512, 100, 8).fill("#f8fafc");
+  doc.fillColor("#1e3a8a").fontSize(12).text(details.hospitalName, 70, y + 20, { bold: true });
   
-  doc.fillColor("#374151").fontSize(10).text("Location:", rightX, 210);
-  doc.fillColor("#1e3a8a").fontSize(10).text(details.location, rightX + 60, 210, { width: 180 });
+  if (details.branchDetails) {
+    doc.fillColor("#ef4444").fontSize(9).text("BRANCH OFFICE", 70, y + 38, { bold: true });
+    doc.fillColor("#374151").fontSize(10).text(details.branchDetails.address, 70, y + 50, { width: 470 });
+  } else {
+    doc.fillColor("#374151").fontSize(10).text(details.location || "N/A", 70, y + 40, { width: 470 });
+  }
+
+  // --- Section 3: Support Information ---
+  y += 130;
+  doc.roundedRect(50, y, 512, 85, 5).dash(5, { space: 2 }).stroke("#cbd5e1").undash();
+  doc.fillColor("#475569").fontSize(10).text("For Support & Queries:", 70, y + 20, { bold: true });
+  
+  doc.fillColor("#1e3a8a").fontSize(10)
+     .text(`Email: ${details.supportEmail || "support@apnaclinic.com"}`, 70, y + 40)
+     .text(`Contact: ${details.supportPhone || "+91 9876543210"}`, 300, y + 40);
+
+  // --- Terms & Instructions ---
+  y += 100;
+  doc.fillColor("#9ca3af").fontSize(8)
+     .text("Notes:", 50, y)
+     .text("1. Please arrive at least 15 minutes before your scheduled time.", 50, y + 15)
+     .text("2. Carry a valid photo ID and previous medical records if any.", 50, y + 28)
+     .text("3. Cancellations should be made at least 2 hours in advance.", 50, y + 41);
 
   // --- Footer ---
-  doc.rect(0, 750, 612, 42).fill("#1e3a8a");
-  doc.fillColor("#ffffff").fontSize(10)
-     .text(`Contact Us: +91 9876543210 | info@apnaclinic.com`, 0, 765, { align: "center", width: 612 });
-  doc.fontSize(8).text("www.apnaclinic.com", 0, 780, { align: "center", width: 612 });
+  doc.rect(20, 742, 572, 30).fill("#1e3a8a");
+  doc.fillColor("#ffffff").fontSize(9)
+     .text("Generated by Apna Clinic HealthCare Ecosystem - Secure Medical Records", 20, 753, { align: "center", width: 572 });
 };
 
 const twilio = require("twilio");
@@ -83,7 +108,7 @@ const twilioClient = twilio(
 
 const sendWhatsAppNotification = async (phone, message) => {
   try {
-    const textMessage = message || "Notification from Apna Clinic";
+    const textMessage = message || "Notification from Apna Clinic HealthCare";
 
     const formattedPhone = phone.startsWith("whatsapp:") 
       ? phone 
@@ -131,7 +156,7 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = t
       to: patientEmail,
       from: process.env.SENDGRID_SENDER_EMAIL,
       subject: `Appointment Update: ${bookingDetails.status.toUpperCase()} - ${bookingDetails.hospitalName}`,
-      text: bookingDetails.msg || `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nThank you for using BookVisit!`,
+      text: bookingDetails.msg || `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nThank you for using Apna Clinic HealthCare!`,
       attachments: attachments,
     };
 
