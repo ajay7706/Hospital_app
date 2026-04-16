@@ -1,11 +1,11 @@
 const dotenv = require("dotenv");
 dotenv.config();
-const express = require("express");
-const cors = require("cors");
 const connectDB = require("./config/db");
+const { initCronJobs } = require('./services/cronService');
 
 const app = express();
 connectDB();
+initCronJobs();
 
 const allowedOrigins = [
   "http://localhost:5173",

@@ -37,6 +37,12 @@ const branchSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  branchCapacity: {
+    type: Number,
+    min: 30,
+    max: 300,
+    default: 50,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Branch", branchSchema);

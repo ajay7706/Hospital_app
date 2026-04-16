@@ -7,61 +7,157 @@ const Branch = require("../models/Branch");
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
   try {
-    const { hospitalId, branchId, date, time, patientName, patientEmail, location, hospitalName, phone, ambulanceRequired, problem } = req.body;
+    const { hospitalId, branchId, date, time, patientName, patientEmail, location, hospitalName, phone, ambulanceRequired, problem, type } = req.body;
     
-    // Check if hospital exists and is approved
+    // 1. Check for basic requirements
     const hospital = await Hospital.findById(hospitalId);
-    if (!hospital) {
-      return res.status(404).json({ msg: "Hospital not found" });
-    }
+    if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
     if (hospital.approvalStatus !== "approved") {
-      return res.status(403).json({ msg: "This hospital is not yet approved and cannot accept appointments." });
+      return res.status(403).json({ msg: "Hospital is not approved yet." });
     }
 
+    // 2. USER RESTRICTION: One active booking per user
+    const activeBooking = await Appointment.findOne({
+      patientId: req.user.id,
+      status: { $in: ["Waiting", "Confirmed", "Rescheduled", "pending", "approved"] }
+    });
+    if (activeBooking) {
+      return res.status(400).json({ msg: "You already have an active appointment." });
+    }
+
+    // 3. SEPARATE QUEUE SYSTEM: Check capacity
+    let maxQueue = 0;
+    if (branchId) {
+      const branch = await Branch.findById(branchId);
+      if (!branch) return res.status(404).json({ msg: "Branch not found" });
+      maxQueue = (branch.branchCapacity || 50) * 1.5;
+    } else {
+      maxQueue = (hospital.dailyCapacity || 100) * 1.5;
+    }
+
+    const bookingCount = await Appointment.countDocuments({
+      hospitalId,
+      branchId: branchId || null,
+      date
+    });
+
+    if (type !== "Emergency" && bookingCount >= maxQueue) {
+      return res.status(400).json({ msg: branchId ? "Slot full for this branch on selected date." : "Slot full for hospital on selected date." });
+    }
+
+    // 4. Create Appointment with Token
     const appointment = await Appointment.create({
       hospitalId,
       branchId: branchId || null,
       patientId: req.user.id,
-      date,
-      time,
+      date: type === "Emergency" ? new Date().toISOString().split('T')[0] : date,
+      time: type === "Emergency" ? new Date().toLocaleTimeString() : time,
       patientName,
       patientEmail,
       phone,
       hospitalName,
       location,
       problem: problem || "",
-      status: "pending",
+      status: "Waiting",
+      type: type || "Normal",
+      tokenNumber: type === "Emergency" ? 0 : bookingCount + 1,
       ambulanceRequired: ambulanceRequired || false
     });
 
-    // Send confirmation message
-    const pendingMsg = `Hello ${patientName}, your appointment at ${hospitalName} for ${date} is currently PENDING approval. We will notify you once confirmed.`;
-    
+    // 5. Notifications
     try {
-      // Fetch support details for the PDF/WhatsApp
       const branch = branchId ? await Branch.findById(branchId) : null;
-      
       const notificationDetails = {
         ...appointment.toObject(),
-        status: "pending",
-        msg: pendingMsg,
         supportEmail: hospital.officialEmail,
         supportPhone: branch ? branch.phone : hospital.contactNumber,
         branchDetails: branch
       };
-
-      await sendAppointmentEmail(patientEmail, notificationDetails, false);
       
-      if (phone) {
-        await sendWhatsAppNotification(phone, pendingMsg);
-      }
-    } catch (mailErr) {
-      console.error("Notification Error (Pending):", mailErr);
-    }
+      const msg = `Hello ${patientName}, your appointment at ${hospitalName} is booked. Your Token: ${appointment.tokenNumber}. Status: WAITING.`;
+      
+      await sendAppointmentEmail(patientEmail, notificationDetails, false);
+      if (phone) await sendWhatsAppNotification(phone, msg);
+    } catch (err) { console.error("Notification Error:", err); }
 
     res.status(201).json({ msg: "Appointment booked successfully", appointment });
   } catch (error) {
-    console.error("Booking error:", error);
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Update Appointment Status (With Permission Checks)
+exports.updateAppointmentStatus = async (req, res) => {
+  try {
+    const { status, nextDate } = req.body;
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) return res.status(404).json({ msg: "Appointment not found" });
+
+    // PERMISSION CHECK
+    if (req.user.role === "hospital") {
+      if (appointment.branchId) return res.status(403).json({ msg: "Main hospital can only view branch appointments." });
+    } else if (req.user.role === "branch") {
+      if (!appointment.branchId || appointment.branchId.toString() !== req.user.branchId?.toString()) {
+        return res.status(403).json({ msg: "Access denied to this branch data." });
+      }
+    }
+
+    // SMART LOGIC: Move to Next Day
+    if (status === "Rescheduled") {
+      const targetDate = nextDate || new Date(new Date(appointment.date).getTime() + 86400000).toISOString().split('T')[0];
+      
+      // Check target day capacity
+      let maxQueue = 0;
+      if (appointment.branchId) {
+        const branch = await Branch.findById(appointment.branchId);
+        maxQueue = (branch.branchCapacity || 50) * 1.5;
+      } else {
+        const hospital = await Hospital.findById(appointment.hospitalId);
+        maxQueue = (hospital.dailyCapacity || 100) * 1.5;
+      }
+
+      const nextDayCount = await Appointment.countDocuments({
+        hospitalId: appointment.hospitalId,
+        branchId: appointment.branchId || null,
+        date: targetDate
+      });
+
+      if (nextDayCount >= maxQueue) {
+        return res.status(400).json({ msg: "Next day slot is already full." });
+      }
+
+      appointment.date = targetDate;
+      appointment.status = "Rescheduled";
+      appointment.tokenNumber = nextDayCount + 1;
+    } else {
+      appointment.status = status;
+    }
+
+    await appointment.save();
+
+    // Trigger PDF & WhatsApp on Confirm/Reschedule
+    if (["Confirmed", "Rescheduled"].includes(appointment.status)) {
+      const hospital = await Hospital.findById(appointment.hospitalId);
+      const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
+      
+      const notificationDetails = {
+        ...appointment.toObject(),
+        supportEmail: hospital?.officialEmail,
+        supportPhone: branch ? branch.phone : hospital?.contactNumber,
+        branchDetails: branch
+      };
+
+      const branchName = branch ? `(${branch.branchName} Branch)` : '';
+      const updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Date: ${appointment.date}, Token: ${appointment.tokenNumber}.`;
+
+      try {
+        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true);
+        if (appointment.phone) await sendWhatsAppNotification(appointment.phone, updateMsg);
+      } catch (err) {}
+    }
+
+    res.json({ msg: `Status updated to ${status}`, appointment });
+  } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
@@ -83,7 +179,7 @@ exports.getHospitalAppointments = async (req, res) => {
     }
 
     const appointments = await Appointment.find(filter)
-      .populate("branchId", "branchName city location")
+      .populate("branchId", "branchName city location phone")
       .sort({ createdAt: -1 });
     
     // Calculate statistics
@@ -94,73 +190,13 @@ exports.getHospitalAppointments = async (req, res) => {
       total: appointments.length,
       today: appointments.filter(a => a.date === today).length,
       yesterday: appointments.filter(a => a.date === yesterday).length,
-      pending: appointments.filter(a => a.status?.toLowerCase() === 'pending').length,
-      approved: appointments.filter(a => a.status?.toLowerCase() === 'approved').length,
-      completed: appointments.filter(a => a.status?.toLowerCase() === 'completed').length
+      waiting: appointments.filter(a => a.status === 'Waiting').length,
+      confirmed: appointments.filter(a => a.status === 'Confirmed').length,
+      rescheduled: appointments.filter(a => a.status === 'Rescheduled').length,
+      emergency: appointments.filter(a => a.type === 'Emergency').length
     };
 
     res.json({ appointments, stats });
-  } catch (error) {
-    res.status(500).json({ msg: "Server error", error: error.message });
-  }
-};
-
-// Update Appointment Status (With Permission Checks)
-exports.updateAppointmentStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-    const appointment = await Appointment.findById(req.params.id);
-    
-    if (!appointment) {
-      return res.status(404).json({ msg: "Appointment not found" });
-    }
-
-    // PERMISSION CHECK
-    if (req.user.role === "hospital") {
-      // Main hospital can ONLY approve if there is NO branchId
-      if (appointment.branchId) {
-        return res.status(403).json({ msg: "Main hospital can only view branch appointments, not approve/complete them." });
-      }
-    } else if (req.user.role === "branch") {
-      // Branch can ONLY approve if it belongs to them
-      if (!appointment.branchId || appointment.branchId.toString() !== req.user.branchId?.toString()) {
-        return res.status(403).json({ msg: "You can only manage appointments for your own branch." });
-      }
-    }
-
-    appointment.status = status;
-    await appointment.save();
-
-    // Trigger notifications
-    if (status === "approved" || status === "completed") {
-      const hospital = await Hospital.findById(appointment.hospitalId);
-      const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
-      
-      const notificationDetails = {
-        ...appointment.toObject(),
-        status: status,
-        supportEmail: hospital?.officialEmail,
-        supportPhone: branch ? branch.phone : hospital?.contactNumber,
-        branchDetails: branch
-      };
-
-      if (status === "approved") {
-        const approvalMsg = `Your appointment at ${appointment.hospitalName} ${branch ? `(${branch.branchName} Branch)` : ''} has been APPROVED for ${appointment.date} at ${appointment.time}. Support: ${notificationDetails.supportPhone}`;
-        try {
-          await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true);
-          if (appointment.phone) await sendWhatsAppNotification(appointment.phone, approvalMsg);
-        } catch (err) {}
-      } else {
-        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-        const completionMsg = `Visit to ${appointment.hospitalName} completed. Rate us: ${frontendUrl}/hospital-details?id=${appointment.hospitalId}`;
-        try {
-          await sendAppointmentEmail(appointment.patientEmail, notificationDetails, false);
-          if (appointment.phone) await sendWhatsAppNotification(appointment.phone, completionMsg);
-        } catch (err) {}
-      }
-    }
-
-    res.json({ msg: `Status updated to ${status}`, appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

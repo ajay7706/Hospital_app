@@ -2,34 +2,34 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
-  Calendar,
-  Users,
-  Phone,
-  Building2,
-  Ambulance,
-  User,
-  Settings,
-  Image as ImageIcon,
-  Activity,
-  ArrowRight,
-  Search,
-  Trash2,
-  MapPin,
+  Calendar, Users, Phone, Building2, Ambulance, User,
+  Settings, Image as ImageIcon, Activity, ArrowRight,
+  Search, Trash2, MapPin, AlertOctagon, Loader2,
+  ShieldCheck, Users2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'Confirmed':          return 'bg-green-100 text-green-700 border-green-200';
+    case 'Waiting':            return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    case 'Rescheduled':        return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'Not Selected':
+    case 'Not Selected Today': return 'bg-red-100 text-red-700 border-red-200';
+    case 'Completed':          return 'bg-gray-100 text-gray-700 border-gray-200';
+    default:                   return 'bg-gray-100 text-gray-600 border-gray-200';
+  }
+};
 
 export default function HospitalDashboard() {
   const { toast } = useToast();
@@ -351,24 +351,12 @@ export default function HospitalDashboard() {
             
             {activeTab === 'dashboard' && (
               <>
-                {/* Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {[
-                    { label: 'Total Appointments', value: stats?.total || 0, icon: Calendar },
-                    { label: 'Emergency Requests', value: emergencies.length, icon: Ambulance },
-                    { label: 'Total Doctors', value: doctors.length, icon: User },
-                    { label: 'Total Branches', value: branches.length, icon: Building2 },
-                  ].map((s, i) => (
-                    <div key={i} className="bg-card/70 backdrop-blur border border-border rounded-2xl p-6 flex items-center justify-between shadow-sm">
-                      <div>
-                        <p className="text-muted-foreground text-sm">{s.label}</p>
-                        <h3 className="text-3xl font-bold mt-1">{s.value}</h3>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-primary/10 text-primary border border-primary/20">
-                        <s.icon className="h-6 w-6" />
-                      </div>
-                    </div>
-                  ))}
+                {/* Stats Grid */}
+                <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard title="Total Appointments" value={stats?.total || 0} icon={Calendar} trend="+12% from last month" />
+                  <StatCard title="Pending Queue" value={stats?.waiting || 0} icon={Users2} trend="Awaiting approval" color="text-yellow-600" />
+                  <StatCard title="Confirmed Today" value={stats?.confirmed || 0} icon={ShieldCheck} trend="Active today" color="text-green-600" />
+                  <StatCard title="Emergency cases" value={stats?.emergency || 0} icon={AlertOctagon} trend="High priority" color="text-red-600" />
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-8">
@@ -386,11 +374,14 @@ export default function HospitalDashboard() {
                               {apt.patientName?.charAt(0) || 'P'}
                             </div>
                             <div>
-                              <p className="font-semibold">{apt.patientName}</p>
-                              <p className="text-xs text-muted-foreground">{apt.date} • {apt.time}</p>
+                              <div className="flex items-center gap-1">
+                                <span className="font-semibold text-sm">{apt.patientName}</span>
+                                {apt.type === 'Emergency' && <AlertOctagon className="h-3.5 w-3.5 text-red-500" />}
+                              </div>
+                              <span className="text-xs text-muted-foreground">Token #{apt.tokenNumber || '—'} • {apt.time}</span>
                             </div>
                           </div>
-                          <Badge className={apt.status === 'approved' ? 'bg-primary/10 text-primary' : apt.status === 'completed' ? 'bg-success/10 text-success' : 'bg-amber-500/20 text-amber-600'}>
+                          <Badge variant="outline" className={cn(getStatusColor(apt.status))}>
                             {apt.status}
                           </Badge>
                         </div>
@@ -437,60 +428,55 @@ export default function HospitalDashboard() {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                  <table className="w-full text-left border-collapse text-sm">
                     <thead>
-                      <tr className="border-b border-border text-muted-foreground text-sm">
-                        <th className="pb-4 font-medium">Patient</th>
-                        <th className="pb-4 font-medium">Branch</th>
-                        <th className="pb-4 font-medium">Contact</th>
-                        <th className="pb-4 font-medium">Date & Time</th>
-                        <th className="pb-4 font-medium">Status</th>
-                        <th className="pb-4 font-medium text-right">Actions</th>
+                      <tr className="border-b border-border text-muted-foreground">
+                        <th className="pb-3 font-medium">Patient</th>
+                        <th className="pb-3 font-medium">Branch</th>
+                        <th className="pb-3 font-medium">Date & Token</th>
+                        <th className="pb-3 font-medium">Type</th>
+                        <th className="pb-3 font-medium">Status</th>
+                        <th className="pb-3 font-medium text-right">Note</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {appointments.map((apt: any) => (
-                        <tr key={apt._id} className="text-sm">
-                          <td className="py-4 font-medium">{apt.patientName}</td>
-                          <td className="py-4 text-muted-foreground">{apt.branchId?.branchName || 'Main Hospital'}</td>
-                          <td className="py-4 text-muted-foreground">{apt.phone}</td>
-                          <td className="py-4 text-muted-foreground">{apt.date} at {apt.time}</td>
-                          <td className="py-4">
-                            <Badge className={apt.status === 'approved' ? 'bg-primary/10 text-primary' : apt.status === 'completed' ? 'bg-success/10 text-success' : 'bg-amber-500/20 text-amber-600'}>
+                        <tr key={apt._id} className={`hover:bg-muted/20 transition-colors ${apt.type === 'Emergency' ? 'bg-red-50/30' : ''}`}>
+                          <td className="py-3">
+                            <p className="font-semibold">{apt.patientName}</p>
+                            <p className="text-xs text-muted-foreground">{apt.phone}</p>
+                          </td>
+                          <td className="py-3 text-muted-foreground">
+                            {apt.branchId?.branchName || <span className="text-primary text-xs font-medium">Main Hospital</span>}
+                          </td>
+                          <td className="py-3">
+                            <p>{apt.date}</p>
+                            <p className="text-xs text-muted-foreground font-mono">Token #{apt.tokenNumber || '—'}</p>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex items-center gap-1">
+                              {apt.type === 'Emergency'
+                                ? <><AlertOctagon className="h-3.5 w-3.5 text-red-500" /><span className="text-red-600 text-xs font-semibold">Emergency</span></>
+                                : <span className="text-xs text-muted-foreground">Normal</span>}
+                              {apt.ambulanceRequired && <Ambulance className="h-3 w-3 text-orange-500 ml-1" />}
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <Badge variant="outline" className={cn(getStatusColor(apt.status))}>
                               {apt.status}
                             </Badge>
                           </td>
-                          <td className="py-4 text-right space-x-2">
-                            {apt.status === 'pending' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleStatusUpdate(apt._id, 'approved', 'appointment')}
-                                disabled={!!apt.branchId} // Main hospital cannot approve branch appointments
-                                isLoading={updatingStatus === apt._id}
-                                title={!!apt.branchId ? "Only branch can approve this" : ""}
-                              >
-                                Approve
-                              </Button>
-                            )}
-                            {apt.status === 'approved' && (
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleStatusUpdate(apt._id, 'completed', 'appointment')} 
-                                variant="outline"
-                                disabled={!!apt.branchId} // Main hospital cannot complete branch appointments
-                                isLoading={updatingStatus === apt._id}
-                                title={!!apt.branchId ? "Only branch can complete this" : ""}
-                              >
-                                Complete
-                              </Button>
-                            )}
-                            {!!apt.branchId && (
-                              <span className="text-[10px] text-muted-foreground block mt-1">Manage from Branch Panel</span>
-                            )}
+                          <td className="py-3 text-right">
+                            {apt.branchId
+                              ? <span className="text-[10px] text-muted-foreground">Branch manages this</span>
+                              : updatingStatus === apt._id
+                                ? <Loader2 className="h-4 w-4 animate-spin ml-auto" />
+                                : <span className="text-[10px] text-green-600">Hospital booking</span>
+                            }
                           </td>
                         </tr>
                       ))}
-                      {appointments.length === 0 && <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No appointments found.</td></tr>}
+                      {appointments.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No appointments found.</td></tr>}
                     </tbody>
                   </table>
                 </div>

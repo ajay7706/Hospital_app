@@ -47,8 +47,13 @@ const hospitalSchema = new mongoose.Schema({
     },
   ],
   ambulanceAvailable: {
-    type: Boolean,
     default: false,
+  },
+  dailyCapacity: {
+    type: Number,
+    min: 50,
+    max: 300,
+    default: 100,
   },
   workingDays: [String],
   openingTime: String,
@@ -101,6 +106,12 @@ const hospitalSchema = new mongoose.Schema({
   isDeleted: {
     type: Boolean,
     default: false,
+  },
+  branchCapacity: {
+    type: Number,
+    min: 30,
+    max: 300,
+    default: 50,
   },
 }, { timestamps: true });
 
