@@ -38,6 +38,7 @@ export default function BranchDashboard() {
   // Per-row loading states
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<string | null>(null);
+  const [doctors, setDoctors] = useState<any[]>([]);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -56,9 +57,10 @@ export default function BranchDashboard() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const [aRes, eRes] = await Promise.all([
+      const [aRes, eRes, dRes] = await Promise.all([
         fetch(`${API_BASE}/api/appointments/hospital`, { headers }),
         fetch(`${API_BASE}/api/otp/emergency`, { headers }),
+        fetch(`${API_BASE}/api/doctors/branch/list`, { headers }) // Endpoint for branch-specific doctors
       ]);
       if (aRes.ok) {
         const aData = await aRes.json();
@@ -69,12 +71,16 @@ export default function BranchDashboard() {
         const eData = await eRes.json();
         setEmergencies(Array.isArray(eData) ? eData : []);
       }
+      if (dRes.ok) {
+        const dData = await dRes.json();
+        setDoctors(Array.isArray(dData) ? dData : []);
+      }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally { setLoading(false); }
   };
 
-  const handleAppointmentAction = async (id: string, status: string, nextDate?: string) => {
+  const handleAppointmentAction = async (id: string, status: string, nextDate?: string, doctorId?: string) => {
     setUpdatingId(id);
     setActionType(status);
     try {
@@ -84,7 +90,7 @@ export default function BranchDashboard() {
       const res = await fetch(`${API_BASE}/api/appointments/update/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, doctorId }),
       });
       if (!res.ok) {
         const msg = await readError(res);
@@ -294,10 +300,10 @@ export default function BranchDashboard() {
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
                         <th className="pb-3 font-medium">Patient</th>
+                        <th className="pb-3 font-medium">Problem</th>
                         <th className="pb-3 font-medium">Date & Time</th>
-                        <th className="pb-3 font-medium">Token</th>
-                        <th className="pb-3 font-medium">Type</th>
-                        <th className="pb-3 font-medium">Status</th>
+                        <th className="pb-3 font-medium text-center">Token</th>
+                        <th className="pb-3 font-medium">Status / Doctor</th>
                         <th className="pb-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
@@ -309,25 +315,25 @@ export default function BranchDashboard() {
                             <p className="text-xs text-muted-foreground">{apt.phone}</p>
                           </td>
                           <td className="py-3.5">
+                            <p className="text-xs max-w-[120px] truncate" title={apt.problem}>{apt.problem || '—'}</p>
+                          </td>
+                          <td className="py-3.5">
                             <p>{apt.date}</p>
                             <p className="text-xs text-muted-foreground">{apt.time}</p>
                           </td>
-                          <td className="py-3.5 font-mono font-bold text-primary">
+                          <td className="py-3.5 font-mono font-bold text-primary text-center">
                             #{apt.tokenNumber || '—'}
-                          </td>
-                          <td className="py-3.5">
-                            <div className="flex items-center gap-1.5">
-                              {apt.type === 'Emergency'
-                                ? <><AlertOctagon className="h-4 w-4 text-red-500" /><span className="text-red-600 font-semibold text-xs">Emergency</span></>
-                                : <span className="text-xs text-muted-foreground">Normal</span>
-                              }
-                              {apt.ambulanceRequired && <Ambulance className="h-3.5 w-3.5 text-orange-500 ml-1" aria-label="Ambulance requested" />}
+                            <div className="flex justify-center mt-1">
+                               <Badge variant="secondary" className="text-[9px] h-3 px-1">{apt.type}</Badge>
                             </div>
                           </td>
                           <td className="py-3.5">
-                            <Badge variant="outline" className={getStatusColor(apt.status)}>
+                            <Badge variant="outline" className={cn(getStatusColor(apt.status), "mb-1")}>
                               {apt.status}
                             </Badge>
+                            {apt.assignedDoctorName && (
+                              <p className="text-[10px] text-primary font-bold">Dr. {apt.assignedDoctorName}</p>
+                            )}
                           </td>
                           <td className="py-3.5">
                             <div className="flex items-center justify-end gap-2 flex-wrap">
@@ -335,14 +341,29 @@ export default function BranchDashboard() {
                               {(apt.status === "Waiting" || apt.status === "Rescheduled") && (
                                 <>
                                   {/* Approve Button */}
-                                  <Button size="sm"
-                                    disabled={anyLoading(apt._id)}
-                                    onClick={() => handleAppointmentAction(apt._id, 'Confirmed')}
-                                    className="h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700">
-                                    {isLoading(apt._id, 'Confirmed')
-                                      ? <Loader2 className="h-3 w-3 animate-spin" />
-                                      : <><CheckCircle2 className="h-3 w-3 mr-1" />Approve</>}
-                                  </Button>
+                                  <div className="flex flex-col gap-1 items-end">
+                                    <select 
+                                      id={`doc-select-branch-${apt._id}`}
+                                      className="h-7 text-[10px] border rounded bg-background px-1 w-full"
+                                      defaultValue=""
+                                    >
+                                      <option value="">Select Doctor</option>
+                                      {doctors.map(d => (
+                                        <option key={d._id} value={d._id}>{d.name} ({d.specialization})</option>
+                                      ))}
+                                    </select>
+                                    <Button size="sm"
+                                      disabled={anyLoading(apt._id)}
+                                      onClick={() => {
+                                        const select = document.getElementById(`doc-select-branch-${apt._id}`) as HTMLSelectElement;
+                                        handleAppointmentAction(apt._id, 'Confirmed', undefined, select.value);
+                                      }}
+                                      className="h-7 w-full text-[10px] bg-green-600 hover:bg-green-700 font-bold">
+                                      {isLoading(apt._id, 'Confirmed')
+                                        ? <Loader2 className="h-3 w-3 animate-spin" />
+                                        : <><CheckCircle2 className="h-3 w-3 mr-1" />Approve & Assign</>}
+                                    </Button>
+                                  </div>
                                   
                                   {/* Move to Next Day */}
                                   <Button size="sm" variant="outline"

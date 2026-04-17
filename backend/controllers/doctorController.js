@@ -94,3 +94,14 @@ exports.deleteDoctor = async (req, res) => {
   }
 };
 
+exports.getBranchDoctors = async (req, res) => {
+  try {
+    const { branchId, hospitalId } = req.user;
+    const query = branchId ? { branchId } : { hospitalId, branchId: null };
+    const doctors = await Doctor.find(query);
+    res.json(doctors);
+  } catch (error) {
+    res.status(500).json({ msg: "Server Error", error: error.message });
+  }
+};
+
