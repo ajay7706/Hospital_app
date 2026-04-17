@@ -208,6 +208,11 @@ export default function DoctorDashboard() {
                                  </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground mt-1 underline decoration-primary/20">{apt.phone}</p>
+                              {apt.problem && (
+                                <p className="text-xs text-primary font-medium mt-2 bg-primary/5 p-2 rounded-lg border border-primary/10">
+                                  <span className="font-bold uppercase tracking-tighter mr-1 opacity-70">Problem:</span> {apt.problem}
+                                </p>
+                              )}
                               <div className="flex items-center gap-4 mt-3">
                                  <span className="text-xs bg-muted px-2 py-1 rounded-md font-medium text-muted-foreground">Age: {apt.age || '—'}</span>
                                  <span className="text-xs bg-muted px-2 py-1 rounded-md font-medium text-muted-foreground">Gender: {apt.gender || '—'}</span>

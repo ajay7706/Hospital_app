@@ -170,6 +170,15 @@ exports.updateAppointmentStatus = async (req, res) => {
             return res.status(400).json({ msg: "Daily approval limit reached for this date." });
         }
         appointment.status = "Confirmed";
+        
+        // Handle Doctor Assignment if provided
+        if (req.body.doctorId) {
+          const doctor = await Doctor.findById(req.body.doctorId);
+          if (doctor) {
+            appointment.assignedDoctorId = doctor._id;
+            appointment.assignedDoctorName = doctor.name;
+          }
+        }
     } 
     // SMART LOGIC: Move to Next Day (Rescheduled)
     else if (status === "Rescheduled") {

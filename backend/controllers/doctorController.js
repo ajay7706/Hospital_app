@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 
 exports.addDoctor = async (req, res) => {
   try {
-    const { name, email, password, specialization, experience } = req.body;
+    const { name, email, password, specialization, experience, branchId } = req.body;
     
     const hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
@@ -23,13 +23,15 @@ exports.addDoctor = async (req, res) => {
       email,
       password: hashedPassword,
       role: 'doctor',
-      hospitalId: hospital._id
+      hospitalId: hospital._id,
+      branchId: branchId || null
     });
     
     // 2. Create Doctor Profile
     const newDoctor = await Doctor.create({
       userId: user._id,
       hospitalId: hospital._id,
+      branchId: branchId || null,
       name,
       email,
       specialization,
@@ -48,15 +50,12 @@ exports.getDoctorAppointments = async (req, res) => {
     const doctor = await Doctor.findOne({ userId: req.user.id });
     if (!doctor) return res.status(404).json({ msg: "Doctor profile not found" });
 
-    // Show all appointments for this hospital/branch for now 
-    // or filter by assignedDoctorId if we use that.
-    // The prompt says "Assigned appointments only".
+    // Show ONLY assigned appointments for this specific doctor
     const filter = { 
-      hospitalId: doctor.hospitalId,
-      // Optional: status: { $ne: "cancelled" }
+      assignedDoctorId: doctor._id
     };
     
-    const appointments = await Appointment.find(filter).sort({ tokenNumber: 1 });
+    const appointments = await Appointment.find(filter).sort({ createdAt: -1 });
     res.json(appointments);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });

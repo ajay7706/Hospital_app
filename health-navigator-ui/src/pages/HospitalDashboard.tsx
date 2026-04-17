@@ -281,7 +281,7 @@ export default function HospitalDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency') => {
+  const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency', doctorId?: string) => {
     setUpdatingStatus(id);
     try {
       const token = localStorage.getItem('token');
@@ -292,7 +292,7 @@ export default function HospitalDashboard() {
       const res = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, doctorId })
       });
       if (res.ok) {
         const data = await res.json();
@@ -464,10 +464,10 @@ export default function HospitalDashboard() {
                     <thead>
                       <tr className="border-b border-border text-muted-foreground">
                         <th className="pb-3 font-medium">Patient</th>
+                        <th className="pb-3 font-medium">Problem</th>
                         <th className="pb-3 font-medium">Branch</th>
                         <th className="pb-3 font-medium">Date & Token</th>
-                        <th className="pb-3 font-medium">Type</th>
-                        <th className="pb-3 font-medium">Status</th>
+                        <th className="pb-3 font-medium">Status / Doctor</th>
                         <th className="pb-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
@@ -478,39 +478,56 @@ export default function HospitalDashboard() {
                             <p className="font-semibold">{apt.patientName}</p>
                             <p className="text-xs text-muted-foreground">{apt.phone}</p>
                           </td>
+                          <td className="py-3">
+                            <p className="text-xs max-w-[120px] truncate" title={apt.problem}>{apt.problem || '—'}</p>
+                          </td>
                           <td className="py-3 text-muted-foreground">
                             {apt.branchId?.branchName || <span className="text-primary text-xs font-medium">Main Hospital</span>}
                           </td>
                           <td className="py-3">
-                            <p>{apt.date}</p>
+                            <p className>{apt.date}</p>
                             <p className="text-xs text-muted-foreground font-mono">Token #{apt.tokenNumber || '—'}</p>
+                            <Badge variant="secondary" className="text-[9px] mt-1 h-4">{apt.type}</Badge>
                           </td>
                           <td className="py-3">
-                            <div className="flex items-center gap-1">
-                              {apt.type === 'Emergency'
-                                ? <><AlertOctagon className="h-3.5 w-3.5 text-red-500" /><span className="text-red-600 text-xs font-semibold">Emergency</span></>
-                                : <span className="text-xs text-muted-foreground">Normal</span>}
-                              {apt.ambulanceRequired && <Ambulance className="h-3 w-3 text-orange-500 ml-1" />}
-                            </div>
-                          </td>
-                          <td className="py-3">
-                            <Badge variant="outline" className={cn(getStatusColor(apt.status))}>
+                            <Badge variant="outline" className={cn(getStatusColor(apt.status), "mb-1")}>
                               {apt.status}
                             </Badge>
+                            {apt.assignedDoctorName && (
+                              <p className="text-[10px] text-primary font-bold">Dr. {apt.assignedDoctorName}</p>
+                            )}
                           </td>
                           <td className="py-3 text-right">
                             <div className="flex items-center justify-end gap-2 px-1">
                               {apt.status === "Waiting" || apt.status === "Rescheduled" ? (
                                 <>
-                                  <Button 
-                                    size="sm"
-                                    onClick={() => handleStatusUpdate(apt._id, 'Confirmed', 'appointment')}
-                                    disabled={updatingStatus === apt._id}
-                                    className="h-8 px-2 bg-green-600 hover:bg-green-700 text-xs"
-                                  >
-                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
-                                    Approve
-                                  </Button>
+                                  <div className="flex flex-col gap-1 items-end">
+                                    <select 
+                                      id={`doc-select-${apt._id}`}
+                                      className="h-8 text-[10px] border rounded bg-background px-1"
+                                      defaultValue=""
+                                    >
+                                      <option value="">Select Doctor</option>
+                                      {doctors
+                                        .filter(d => (!apt.branchId && !d.branchId) || (apt.branchId?._id === String(d.branchId)))
+                                        .map(d => (
+                                          <option key={d._id} value={d._id}>{d.name} ({d.specialization})</option>
+                                        ))
+                                      }
+                                    </select>
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => {
+                                        const select = document.getElementById(`doc-select-${apt._id}`) as HTMLSelectElement;
+                                        handleStatusUpdate(apt._id, 'Confirmed', 'appointment', select.value);
+                                      }}
+                                      disabled={updatingStatus === apt._id}
+                                      className="h-8 w-full bg-green-600 hover:bg-green-700 text-[10px] font-bold"
+                                    >
+                                      {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+                                      Approve & Assign
+                                    </Button>
+                                  </div>
                                   <Button 
                                     variant="outline"
                                     size="sm"

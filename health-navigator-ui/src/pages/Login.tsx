@@ -76,18 +76,18 @@ const Login = () => {
           return;
         }
 
-        if (result.role === 'admin' || result.user?.role === 'admin') {
-          navigate('/admin-dashboard');
-        } else if (result.user?.role === 'hospital') {
-          if (result.user?.hospitalAdded) {
+        if (result.user?.role === 'admin' || result.user?.role === 'hospital') {
+          if (result.user?.hospitalAdded || result.user?.role === 'admin') {
             navigate('/hospital-dashboard');
           } else {
             navigate('/hospital-setup');
           }
         } else if (result.user?.role === 'branch') {
           navigate('/branch-dashboard');
+        } else if (result.user?.role === 'doctor') {
+          navigate('/doctor-dashboard');
         } else if (result.user?.role === 'patient') {
-          navigate('/');
+          navigate('/patient-dashboard');
         } else {
           navigate('/');
         }
