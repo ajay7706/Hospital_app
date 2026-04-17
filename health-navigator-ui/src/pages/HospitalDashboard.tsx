@@ -485,7 +485,7 @@ export default function HospitalDashboard() {
                             {apt.branchId?.branchName || <span className="text-primary text-xs font-medium">Main Hospital</span>}
                           </td>
                           <td className="py-3">
-                            <p className>{apt.date}</p>
+                            <p>{apt.date}</p>
                             <p className="text-xs text-muted-foreground font-mono">Token #{apt.tokenNumber || '—'}</p>
                             <Badge variant="secondary" className="text-[9px] mt-1 h-4">{apt.type}</Badge>
                           </td>
