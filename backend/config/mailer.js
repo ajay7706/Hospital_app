@@ -35,7 +35,7 @@ const createProfessionalPDF = (doc, details) => {
   doc.fillColor("#1e3a8a")
      .fontSize(14)
      .text("PATIENT INFORMATION", 50, 150, { bold: true });
-  doc.moveTo(50, 170).lineTo(562, 170).lineWidth(1).stroke("#1e3a8a");
+  doc.strokeColor("#1e3a8a").lineWidth(1).moveTo(50, 170).lineTo(562, 170).stroke();
 
   // Information Grid
   const leftCol = 60;
