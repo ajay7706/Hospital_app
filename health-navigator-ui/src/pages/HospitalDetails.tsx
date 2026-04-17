@@ -13,8 +13,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
-
-// Helper function to get icon based on service title
+ 
+// Service icon helper function
 const getServiceIcon = (title: string = "") => {
   const lowerTitle = title.toLowerCase();
   if (lowerTitle.includes('emergency')) return Ambulance;
@@ -433,6 +433,16 @@ const HospitalDetails = () => {
                                 {branch.specialties}
                               </p>
                             )}
+                            <div className="flex gap-2 mb-3">
+                              {branch.ambulanceAvailable && (
+                                <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm" title="Ambulance Available">
+                                  <Ambulance className="h-4 w-4" />
+                                </div>
+                              )}
+                              {branch.emergency24x7 && (
+                                <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm" title="24/7 Emergency">
+                                  <Activity className="h-4 w-4" />
+                                </div>
                               )}
                             </div>
                             
@@ -470,8 +480,7 @@ const HospitalDetails = () => {
                               )}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 )}
