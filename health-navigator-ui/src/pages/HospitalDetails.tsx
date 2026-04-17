@@ -410,7 +410,8 @@ const HospitalDetails = () => {
                       <Building2 className="h-5 w-5 text-primary" /> Branches
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {branches.slice(0, 4).map((branch: any) => (
+                      {branches.slice(0, 4).map((branch: any) => {
+                        return (
                         <div key={branch._id} className="group overflow-hidden border rounded-2xl bg-card transition-all hover:shadow-md flex flex-col">
                           <div className="relative h-32 overflow-hidden bg-muted">
                             <img 
@@ -480,7 +481,8 @@ const HospitalDetails = () => {
                               )}
                             </div>
                           </div>
-                        ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -492,7 +494,8 @@ const HospitalDetails = () => {
                       <Activity className="h-5 w-5 text-primary" /> Doctors
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      {doctors.map((doc: any) => (
+                      {doctors.map((doc: any) => {
+                        return (
                         <div key={doc._id} className="p-4 border rounded-xl flex items-center gap-4">
                           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xl overflow-hidden">
                             {doc.image ? <img src={doc.image.startsWith('http') ? doc.image : `${import.meta.env.VITE_API_BASE}/${doc.image}`} alt={doc.name} className="h-full w-full object-cover" /> : doc.name.charAt(0)}
@@ -502,7 +505,8 @@ const HospitalDetails = () => {
                             <p className="text-sm text-muted-foreground">{doc.specialization} • {doc.experience} yrs exp</p>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

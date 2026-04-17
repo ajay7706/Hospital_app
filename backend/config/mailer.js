@@ -7,107 +7,120 @@ const QRCode = require('qrcode');
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const createProfessionalPDF = (doc, details, qrDataURL) => {
-  // Page Border
-  doc.strokeColor("#e5e7eb").rect(20, 20, 572, 752).stroke();
+  // Page Configuration
+  const pageWidth = 572;
+  const pageHeight = 752;
+  const margin = 20;
 
   // --- Header with Deep Blue Background ---
-  doc.fillColor("#1e3a8a").rect(20, 20, 572, 100).fill();
+  doc.fillColor("#1e3a8a").rect(margin, margin, pageWidth, 90).fill();
   
-  // --- Logo Placeholder (White Circle with Brand initials) ---
-  doc.fillColor("#ffffff").circle(60, 70, 30).fill();
-  doc.fillColor("#1e3a8a").fontSize(25).text("AC", 42, 58, { bold: true });
+  // --- Logo Section (White Circle with Brand initials) ---
+  doc.fillColor("#ffffff").circle(65, 65, 30).fill();
+  doc.fillColor("#1e3a8a").fontSize(22).text("AC", 52, 55, { bold: true });
 
   // --- Brand Name ---
   doc.fillColor("#ffffff")
-     .fontSize(24)
-     .text("Apna Clinic", 110, 45, { bold: true })
-     .fontSize(10)
-     .text("HEALTHCARE", 111, 75, { characterSpacing: 2 });
+     .fontSize(22)
+     .text(details.hospitalName || "Apna Clinic", 110, 48, { bold: true })
+     .fontSize(9)
+     .text("HEALTHCARE", 110, 72, { characterSpacing: 1.5 });
   
-  // --- Header Badge ---
-  doc.fillColor("#2563eb").rect(400, 45, 172, 50, 5).fill();
+  // --- Header Badge (Right Side) ---
+  doc.fillColor("#2563eb").rect(380, 42, 192, 45, 3).fill();
   doc.fillColor("#ffffff")
-     .fontSize(8)
-     .text("RECEIPT NO: " + (details._id?.toString().slice(-8).toUpperCase() || "T-001"), 410, 55)
-     .fontSize(12)
-     .text("APPOINTMENT RECEIPT", 410, 70, { bold: true });
+     .fontSize(7)
+     .text("RECEIPT NO: " + (details._id?.toString().slice(-8).toUpperCase() || "EA5AD4F4"), 390, 50)
+     .fontSize(10)
+     .text("APPOINTMENT RECEIPT", 390, 64, { bold: true });
+
+  // --- Section 0: The "Hero" Stats Bar (Token, Fee, Queue) ---
+  const statsY = 125;
+  // Background for the Hero section
+  doc.fillColor("#f1f5f9").roundedRect(margin + 20, statsY, pageWidth - 40, 75, 8).fill();
+  
+  // 0.1 QR Code Area
+  if (qrDataURL) {
+    doc.fillColor("#ffffff").rect(margin + 30, statsY + 5, 65, 65).fill();
+    doc.image(qrDataURL, margin + 31, statsY + 6, { width: 63 });
+    doc.fillColor("#64748b").fontSize(7).text("SCAN TO VERIFY APPOINTMENT", margin + 20, statsY + 74, { width: 100, align: 'center' });
+  }
+
+  // 0.2 Token Number
+  doc.fillColor("#64748b").fontSize(9).text("YOUR NUMBER", 145, statsY + 12);
+  doc.fillColor("#1e3a8a").fontSize(42).text(details.tokenNumber || "45", 145, statsY + 24, { bold: true });
+
+  // 0.3 OPD Fee
+  const dividerX = 280;
+  doc.strokeColor("#cbd5e1").lineWidth(1).moveTo(dividerX, statsY + 10).lineTo(dividerX, statsY + 65).stroke();
+  
+  doc.fillColor("#64748b").fontSize(12).text("OPD FEE", dividerX + 30, statsY + 14);
+  doc.fillColor("#1e3a8a").fontSize(18).text("₹ " + (details.opdCharge || details.opdFee || "300"), dividerX + 135, statsY + 14, { bold: true });
+
+  // 0.4 Serving Status Bar (Navy Blue)
+  const servingY = statsY + 38;
+  doc.fillColor("#1e293b").roundedRect(dividerX + 10, servingY, (pageWidth - 40) - (dividerX - (margin + 20)) - 15, 30, 4).fill();
+  
+  doc.fillColor("#ffffff").fontSize(10).text("Now Serving:", dividerX + 25, servingY + 10);
+  doc.fontSize(13).text(details.nowServing || "18", dividerX + 90, servingY + 8, { bold: true });
+  
+  doc.fillColor("#cbd5e1").fontSize(8).text("People Ahead:", dividerX + 130, servingY + 12);
+  doc.fillColor("#ffffff").fontSize(10).text(details.peopleAhead || "27", dividerX + 195, servingY + 10, { bold: true });
+
 
   // --- Section 1: Patient Information ---
-  doc.fillColor("#1e3a8a")
-     .fontSize(14)
-     .text("PATIENT INFORMATION", 50, 150, { bold: true });
-  doc.strokeColor("#1e3a8a").lineWidth(1).moveTo(50, 170).lineTo(562, 170).stroke();
+  let currentY = statsY + 105;
+  doc.fillColor("#1e3a8a").fontSize(12).text("PATIENT INFORMATION", 50, currentY, { bold: true });
+  doc.strokeColor("#cbd5e1").lineWidth(0.5).moveTo(50, currentY + 18).lineTo(542, currentY + 18).stroke();
 
-  // Information Grid
-  const leftCol = 60;
-  const rightCol = 320;
-  let y = 190;
-
-  const drawRow = (label, value, xPos, yPos) => {
-    doc.fillColor("#6b7280").fontSize(9).text(label, xPos, yPos);
-    doc.fillColor("#111827").fontSize(11).text(value || "N/A", xPos, yPos + 15, { bold: true });
+  const drawRow = (label, value, x, y) => {
+    doc.fillColor("#94a3b8").fontSize(7).text(label, x, y);
+    doc.fillColor("#1e293b").fontSize(10).text(value || "N/A", x, y + 12, { bold: true });
   };
 
-  drawRow("PATIENT NAME", details.patientName, leftCol, y);
-  drawRow("APPOINTMENT DATE", details.date, rightCol, y);
+  currentY += 35;
+  drawRow("PATIENT NAME", details.patientName, 60, currentY);
+  drawRow("APPOINTMENT DATE", details.date, 320, currentY);
   
-  y += 50;
-  drawRow("CONTACT NUMBER", details.phone, leftCol, y);
-  drawRow("APPOINTMENT TIME", details.time, rightCol, y);
+  currentY += 50;
+  drawRow("CONTACT NUMBER", details.phone, 60, currentY);
+  drawRow("APPOINTMENT TIME", details.time, 320, currentY);
 
-  y += 50;
-  drawRow("EMAIL ADDRESS", details.patientEmail, leftCol, y);
-  drawRow("PROBLEM / SYMPTOMS", details.problem && details.problem !== "undefined" ? details.problem : "General Consultation", rightCol, y);
+  currentY += 50;
+  drawRow("EMAIL ADDRESS", details.patientEmail, 60, currentY);
+  drawRow("PROBLEM / SYMPTOMS", details.problem && details.problem !== "undefined" ? details.problem : "General Consultation", 320, currentY);
 
-  // --- Section 2: Hospital / Branch Details ---
-  y += 60;
-  doc.fillColor("#1e3a8a")
-     .fontSize(14)
-     .text("HOSPITAL & PROVIDER DETAILS", 50, y, { bold: true });
-  doc.strokeColor("#1e3a8a").moveTo(50, y + 20).lineTo(562, y + 20).stroke();
+  // --- Section 2: Hospital & Provider Details ---
+  currentY += 65;
+  doc.fillColor("#1e3a8a").fontSize(12).text("HOSPITAL & PROVIDER DETAILS", 50, currentY, { bold: true });
+  doc.strokeColor("#cbd5e1").lineWidth(0.5).moveTo(50, currentY + 18).lineTo(542, currentY + 18).stroke();
   
-  y += 40;
-  doc.fillColor("#f8fafc").roundedRect(50, y, 512, 100, 8).fill();
-  doc.fillColor("#1e3a8a").fontSize(12).text(details.hospitalName, 70, y + 20, { bold: true });
+  currentY += 30;
+  doc.fillColor("#f8fafc").roundedRect(50, currentY, 492, 55, 10).fill();
+  doc.fillColor("#1e3a8a").fontSize(11).text(details.hospitalName, 65, currentY + 15, { bold: true });
   
-  if (details.branchDetails) {
-    doc.fillColor("#ef4444").fontSize(9).text("BRANCH OFFICE", 70, y + 38, { bold: true });
-    doc.fillColor("#374151").fontSize(10).text(details.branchDetails.address, 70, y + 50, { width: 470 });
-  } else {
-    doc.fillColor("#374151").fontSize(10).text(details.location || "N/A", 70, y + 40, { width: 470 });
-  }
+  const address = details.branchDetails ? details.branchDetails.address : (details.location || "Lucknow, Uttar Pradesh");
+  doc.fillColor("#64748b").fontSize(8).text(address, 65, currentY + 30, { width: 450 });
 
-  // --- Section 3: Live Tracking & QR ---
-  y += 130;
-  doc.strokeColor("#cbd5e1").roundedRect(50, y, 512, 120, 10).stroke();
+  // --- Section 3: Support Box ---
+  currentY += 80;
+  doc.strokeColor("#cbd5e1").lineWidth(1).roundedRect(50, currentY, 492, 60, 5).dash(3, { space: 2 }).stroke().undash();
+  doc.fillColor("#475569").fontSize(9).text("For Support & Queries:", 65, currentY + 12, { bold: true });
   
-  doc.fillColor("#1e3a8a").fontSize(12).text("SCAN TO TRACK LIVE STATUS", 70, y + 20, { bold: true });
-  doc.fillColor("#64748b").fontSize(9).text("Scan this QR code to see your real-time position in the queue, live token number, and estimated wait time.", 70, y + 40, { width: 300 });
-  doc.fillColor("#2563eb").fontSize(9).text("URL: " + (details.trackingURL || "Visit Apna Clinic Portal"), 70, y + 80);
+  doc.fillColor("#1e3a8a").fontSize(9)
+     .text(`Email: ${details.supportEmail || "support@apnaclinic.com"}`, 65, currentY + 32)
+     .text(`Contact: ${details.supportPhone || "+91 9816326950"}`, 320, currentY + 32, { bold: true });
 
-  if (qrDataURL) {
-    doc.image(qrDataURL, 430, y + 10, { width: 100 });
-  }
+  // --- Notes Section ---
+  currentY += 85;
+  doc.fillColor("#94a3b8").fontSize(7)
+     .text("Notes:", 50, currentY)
+     .text("1. Please arrive at least 15 minutes before your scheduled time.", 50, currentY + 10)
+     .text("2. Carry a valid photo ID and previous medical records if any.", 50, currentY + 18)
+     .text("3. Cancellations should be made at least 2 hours in advance.", 50, currentY + 26);
 
-  // --- Section 4: Support Information ---
-  y += 150;
-  doc.strokeColor("#cbd5e1").roundedRect(50, y, 512, 65, 5).dash(5, { space: 2 }).stroke().undash();
-  doc.fillColor("#475569").fontSize(10).text("For Support & Queries:", 70, y + 15, { bold: true });
-  
-  doc.fillColor("#1e3a8a").fontSize(10)
-     .text(`Email: ${details.supportEmail || "support@apnaclinic.com"}`, 70, y + 35)
-     .text(`Contact: ${details.supportPhone || "+91 9876543210"}`, 300, y + 35);
-
-  // --- Terms & Instructions ---
-  y += 80;
-  doc.fillColor("#9ca3af").fontSize(8)
-     .text("Notes:", 50, y)
-     .text("1. Please arrive at least 15 minutes before your scheduled time.", 50, y + 12)
-     .text("2. Carry a valid photo ID and previous medical records if any.", 50, y + 22)
-     .text("3. Cancellations should be made at least 2 hours in advance.", 50, y + 32);
-
-  // --- Footer ---
-  doc.fillColor("#1e3a8a").rect(20, 742, 572, 30).fill();
+  // --- Bottom Footer Strip ---
+  doc.fillColor("#2e4a9e").rect(margin, pageHeight - 35, pageWidth, 30).fill();
   doc.fillColor("#ffffff").fontSize(9)
      .text("Generated by Apna Clinic HealthCare Ecosystem - Secure Medical Records", 20, 753, { align: "center", width: 572 });
 };

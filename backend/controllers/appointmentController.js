@@ -91,11 +91,22 @@ exports.bookAppointment = async (req, res) => {
     // 5. Notifications
     try {
       const branch = branchId ? await Branch.findById(branchId) : null;
+      // Fetch Queue Stats
+      const tracker = await TokenTracker.findOne({ 
+        hospitalId: appointment.hospitalId, 
+        branchId: appointment.branchId || null, 
+        date: appointment.date 
+      });
+      const nowServing = tracker ? tracker.currentToken : 1;
+      const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
+
       const notificationDetails = {
         ...appointment.toObject(),
         supportEmail: hospital.officialEmail,
         supportPhone: branch ? branch.phone : hospital.contactNumber,
-        branchDetails: branch
+        branchDetails: branch,
+        nowServing,
+        peopleAhead
       };
       
       const msg = `Hello ${patientName}, your appointment at ${hospitalName} is booked. Your Token: ${appointment.tokenNumber}. Status: WAITING.`;
@@ -216,11 +227,22 @@ exports.updateAppointmentStatus = async (req, res) => {
       const hospital = await Hospital.findById(appointment.hospitalId);
       const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
       
+      // Fetch Queue Stats
+      const tracker = await TokenTracker.findOne({ 
+        hospitalId: appointment.hospitalId, 
+        branchId: appointment.branchId || null, 
+        date: appointment.date 
+      });
+      const nowServing = tracker ? tracker.currentToken : 1;
+      const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
+
       const notificationDetails = {
         ...appointment.toObject(),
         supportEmail: hospital?.officialEmail,
         supportPhone: branch ? branch.phone : hospital?.contactNumber,
-        branchDetails: branch
+        branchDetails: branch,
+        nowServing,
+        peopleAhead
       };
 
       const branchName = branch ? `(${branch.branchName} Branch)` : '';
