@@ -25,6 +25,7 @@ export interface BackendHospital {
   gallery?: string[];
   branchCities?: string[];
   branchSpecialties?: string[];
+  opdCharge?: number;
 }
 
 function toLocal(h: BackendHospital, index: number) {
@@ -67,6 +68,7 @@ function toLocal(h: BackendHospital, index: number) {
     gallery: Array.isArray(h.gallery) ? h.gallery.map(resolveAssetUrl).filter(Boolean) : [],
     branchCities: h.branchCities || [],
     branchSpecialties: h.branchSpecialties || [],
+    opdCharge: h.opdCharge || 0,
   };
 }
 
