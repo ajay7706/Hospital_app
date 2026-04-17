@@ -331,19 +331,43 @@ export default function BranchDashboard() {
                           </td>
                           <td className="py-3.5">
                             <div className="flex items-center justify-end gap-2 flex-wrap">
-                              {/* Approve Button */}
-                              {['Waiting', 'Rescheduled'].includes(apt.status) && (
-                                <Button size="sm"
-                                  disabled={anyLoading(apt._id)}
-                                  onClick={() => handleAppointmentAction(apt._id, 'Confirmed')}
-                                  className="h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700">
-                                  {isLoading(apt._id, 'Confirmed')
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <><CheckCircle2 className="h-3 w-3 mr-1" />Approve</>}
-                                </Button>
+                              {/* Action Buttons for Waiting or Rescheduled */}
+                              {(apt.status === "Waiting" || apt.status === "Rescheduled") && (
+                                <>
+                                  {/* Approve Button */}
+                                  <Button size="sm"
+                                    disabled={anyLoading(apt._id)}
+                                    onClick={() => handleAppointmentAction(apt._id, 'Confirmed')}
+                                    className="h-7 px-2.5 text-xs bg-green-600 hover:bg-green-700">
+                                    {isLoading(apt._id, 'Confirmed')
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <><CheckCircle2 className="h-3 w-3 mr-1" />Approve</>}
+                                  </Button>
+                                  
+                                  {/* Move to Next Day */}
+                                  <Button size="sm" variant="outline"
+                                    disabled={anyLoading(apt._id)}
+                                    onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
+                                    className="h-7 px-2.5 text-xs">
+                                    {isLoading(apt._id, 'Rescheduled')
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <><CalendarDays className="h-3 w-3 mr-1" />Next Day</>}
+                                  </Button>
+
+                                  {/* Reject */}
+                                  <Button size="sm" variant="outline"
+                                    disabled={anyLoading(apt._id)}
+                                    onClick={() => handleAppointmentAction(apt._id, 'Not Selected')}
+                                    className="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50">
+                                    {isLoading(apt._id, 'Not Selected')
+                                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                                      : <><XCircle className="h-3 w-3 mr-1" />Reject</>}
+                                  </Button>
+                                </>
                               )}
-                              {/* Move to Next Day */}
-                              {['Waiting', 'Confirmed'].includes(apt.status) && (
+                              
+                              {/* Support Confirmed status actions if needed (like Move to Next Day) */}
+                              {apt.status === "Confirmed" && (
                                 <Button size="sm" variant="outline"
                                   disabled={anyLoading(apt._id)}
                                   onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
@@ -351,17 +375,6 @@ export default function BranchDashboard() {
                                   {isLoading(apt._id, 'Rescheduled')
                                     ? <Loader2 className="h-3 w-3 animate-spin" />
                                     : <><CalendarDays className="h-3 w-3 mr-1" />Next Day</>}
-                                </Button>
-                              )}
-                              {/* Reject */}
-                              {['Waiting', 'Rescheduled'].includes(apt.status) && (
-                                <Button size="sm" variant="outline"
-                                  disabled={anyLoading(apt._id)}
-                                  onClick={() => handleAppointmentAction(apt._id, 'Not Selected')}
-                                  className="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50">
-                                  {isLoading(apt._id, 'Not Selected')
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <><XCircle className="h-3 w-3 mr-1" />Reject</>}
                                 </Button>
                               )}
                             </div>

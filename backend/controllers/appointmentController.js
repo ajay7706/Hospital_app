@@ -111,8 +111,31 @@ exports.updateAppointmentStatus = async (req, res) => {
       }
     }
 
-    // SMART LOGIC: Move to Next Day
-    if (status === "Rescheduled") {
+    // SMART LOGIC: Confirmed (with capacity check)
+    if (status === "Confirmed") {
+        const hospital = await Hospital.findById(appointment.hospitalId);
+        let maxQueue = 0;
+        if (appointment.branchId) {
+            const branch = await Branch.findById(appointment.branchId);
+            maxQueue = (branch.branchCapacity || 50) * 1.5;
+        } else {
+            maxQueue = (hospital.dailyCapacity || 100) * 1.5;
+        }
+
+        const approvedCount = await Appointment.countDocuments({
+            hospitalId: appointment.hospitalId,
+            branchId: appointment.branchId || null,
+            date: appointment.date,
+            status: "Confirmed"
+        });
+
+        if (approvedCount >= maxQueue) {
+            return res.status(400).json({ msg: "Daily approval limit reached for this date." });
+        }
+        appointment.status = "Confirmed";
+    } 
+    // SMART LOGIC: Move to Next Day (Rescheduled)
+    else if (status === "Rescheduled") {
       const targetDate = nextDate || new Date(new Date(appointment.date).getTime() + 86400000).toISOString().split('T')[0];
       
       // Check target day capacity
@@ -132,13 +155,17 @@ exports.updateAppointmentStatus = async (req, res) => {
       });
 
       if (nextDayCount >= maxQueue) {
-        return res.status(400).json({ msg: "Next day slot is already full." });
+        return res.status(400).json({ msg: "Next day is full." });
       }
 
       appointment.date = targetDate;
       appointment.status = "Rescheduled";
       appointment.tokenNumber = nextDayCount + 1;
-    } else {
+    } 
+    else if (status === "Not Selected") {
+        appointment.status = "Not Selected";
+    }
+    else {
       appointment.status = status;
     }
 

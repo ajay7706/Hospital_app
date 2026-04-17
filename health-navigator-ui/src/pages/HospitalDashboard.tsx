@@ -5,7 +5,7 @@ import {
   Calendar, Users, Phone, Building2, Ambulance, User,
   Settings, Image as ImageIcon, Activity, ArrowRight,
   Search, Trash2, MapPin, AlertOctagon, Loader2,
-  ShieldCheck, Users2,
+  ShieldCheck, Users2, CheckCircle2, CalendarDays, XCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
@@ -284,9 +284,15 @@ export default function HospitalDashboard() {
         body: JSON.stringify({ status })
       });
       if (res.ok) {
+        const data = await res.json();
         toast({ title: `Marked as ${status}` });
-        // Automatically update without refresh
-        await fetchInitialData();
+        
+        // Update state instantly (NO reload)
+        if (type === 'appointment') {
+          setAppointments(prev => prev.map(a => a._id === id ? { ...a, ...data.appointment } : a));
+        } else {
+          setEmergencies(prev => prev.map(e => e._id === id ? { ...e, status } : e));
+        }
         return;
       }
       toast({ title: 'Error', description: await readErrorMessage(res), variant: 'destructive' });
@@ -451,7 +457,7 @@ export default function HospitalDashboard() {
                         <th className="pb-3 font-medium">Date & Token</th>
                         <th className="pb-3 font-medium">Type</th>
                         <th className="pb-3 font-medium">Status</th>
-                        <th className="pb-3 font-medium text-right">Note</th>
+                        <th className="pb-3 font-medium text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -482,12 +488,54 @@ export default function HospitalDashboard() {
                             </Badge>
                           </td>
                           <td className="py-3 text-right">
-                            {apt.branchId
-                              ? <span className="text-[10px] text-muted-foreground">Branch manages this</span>
-                              : updatingStatus === apt._id
-                                ? <Loader2 className="h-4 w-4 animate-spin ml-auto" />
-                                : <span className="text-[10px] text-green-600">Hospital booking</span>
-                            }
+                            <div className="flex items-center justify-end gap-2 px-1">
+                              {apt.status === "Waiting" || apt.status === "Rescheduled" ? (
+                                <>
+                                  <Button 
+                                    size="sm"
+                                    onClick={() => handleStatusUpdate(apt._id, 'Confirmed', 'appointment')}
+                                    disabled={updatingStatus === apt._id}
+                                    className="h-8 px-2 bg-green-600 hover:bg-green-700 text-xs"
+                                  >
+                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+                                    Approve
+                                  </Button>
+                                  <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
+                                    disabled={updatingStatus === apt._id}
+                                    className="h-8 px-2 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                                  >
+                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
+                                    Next Day
+                                  </Button>
+                                  <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusUpdate(apt._id, 'Not Selected', 'appointment')}
+                                    disabled={updatingStatus === apt._id}
+                                    className="h-8 px-2 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                                  >
+                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
+                                    Reject
+                                  </Button>
+                                </>
+                              ) : apt.status === "Confirmed" ? (
+                                <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
+                                    disabled={updatingStatus === apt._id}
+                                    className="h-8 px-2 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                                  >
+                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
+                                    Next Day
+                                  </Button>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground italic">Processed</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
