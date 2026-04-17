@@ -43,8 +43,8 @@ const bookingSchema = z.object({
   age: z.string().min(1, 'Age is required'),
   gender: z.string().min(1, 'Select gender'),
   symptoms: z.string().min(5, 'Describe your symptoms'),
-  date: z.date({ required_error: 'Select appointment date' }),
-  time: z.string().min(1, 'Select appointment time'),
+  date: z.date({ required_error: 'Select appointment date' }).optional(),
+  time: z.string().optional(),
   ambulanceRequired: z.boolean().default(false),
 });
 
@@ -76,6 +76,55 @@ const BookVisit = () => {
   const [otp, setOtp] = useState('');
   const [pendingData, setPendingData] = useState<BookingFormValues | null>(null);
   const [timer, setTimer] = useState(120);
+  const [todayCount, setTodayCount] = useState(0);
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+
+  const fetchAvailability = async () => {
+    if (!hospitalId) return;
+    try {
+      setCheckingAvailability(true);
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const res = await fetch(`${API_BASE}/api/appointments/availability?hospitalId=${hospitalId}&branchId=${branchId || 'null'}&date=${today}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTodayCount(data.count || 0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch availability', err);
+    } finally {
+      setCheckingAvailability(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAvailability();
+  }, [hospitalId, branchId]);
+
+  const getAvailableSlots = (selectedDate: Date | undefined) => {
+    if (!selectedDate) return timeSlots;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const selectedStr = format(selectedDate, 'yyyy-MM-dd');
+    
+    if (selectedStr !== todayStr) return timeSlots;
+    
+    // Filter for today: only future slots
+    const now = new Date();
+    return timeSlots.filter(slot => {
+      const match = slot.match(/(\d+):(\d+)\s(AM|PM)/);
+      if (!match) return true;
+      let [_, hours, minutes, period] = match;
+      let h = parseInt(hours);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      
+      const slotTime = new Date();
+      slotTime.setHours(h, parseInt(minutes), 0, 0);
+      return slotTime > now;
+    });
+  };
+
+  const isTodayDisabled = todayCount >= 300 || getAvailableSlots(new Date()).length === 0;
 
   const startTimer = () => {
     setTimer(120);
@@ -132,8 +181,20 @@ const BookVisit = () => {
   useEffect(() => {
     if (isEmergency) {
       form.setValue('ambulanceRequired', true);
+      // Auto-set for emergency as per request
+      form.setValue('date', new Date());
+      form.setValue('time', 'Emergency Now');
+    } else {
+      // For normal booking, if today is disabled, default to tomorrow
+      if (isTodayDisabled) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        form.setValue('date', tomorrow);
+      } else {
+        form.setValue('date', new Date());
+      }
     }
-  }, [form, isEmergency]);
+  }, [form, isEmergency, isTodayDisabled]);
 
   const handleInitialSubmit = async (data: BookingFormValues) => {
     setIsLoading(true);
@@ -180,25 +241,24 @@ const BookVisit = () => {
         throw new Error(err.msg || 'Invalid OTP');
       }
 
-      // Proceed with booking or emergency log
-      const bookingUrl = isEmergency ? `${API_BASE}/api/otp/emergency` : `${API_BASE}/api/appointments/book`;
-      const bookingBody = isEmergency 
-        ? { phone: pendingData.phone, hospitalId, branchId }
-        : {
+      // Proceed with booking (Using same endpoint for better data capture if form is filled)
+      const bookingUrl = `${API_BASE}/api/appointments/book`;
+      const bookingBody = {
             hospitalId,
             branchId,
             hospitalName,
             location: hospitalLocation,
             patientName: pendingData.fullName,
             patientEmail: pendingData.email,
-            date: format(pendingData.date, 'yyyy-MM-dd'),
-            time: pendingData.time,
+            date: pendingData.date ? format(pendingData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+            time: (isEmergency && (!pendingData.time || pendingData.time === 'Emergency Now')) ? 'Emergency' : pendingData.time,
             age: pendingData.age,
             gender: pendingData.gender,
             symptoms: pendingData.symptoms,
             problem: pendingData.symptoms,
             phone: pendingData.phone,
-            ambulanceRequired: pendingData.ambulanceRequired
+            ambulanceRequired: pendingData.ambulanceRequired,
+            type: isEmergency ? 'Emergency' : 'Normal'
           };
 
       const response = await fetch(bookingUrl, {
@@ -518,7 +578,13 @@ const BookVisit = () => {
                               mode="single"
                               selected={field.value}
                               onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
+                              disabled={(date) => {
+                                const today = new Date();
+                                today.setHours(0,0,0,0);
+                                const isBeforeToday = date < today;
+                                const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                return isBeforeToday || (isToday && isTodayDisabled);
+                              }}
                               initialFocus
                               className={cn('p-3 pointer-events-auto')}
                             />
@@ -542,7 +608,7 @@ const BookVisit = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {timeSlots.map((slot) => (
+                            {getAvailableSlots(form.getValues('date')).map((slot) => (
                               <SelectItem key={slot} value={slot}>
                                 {slot}
                               </SelectItem>

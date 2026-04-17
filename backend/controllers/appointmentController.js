@@ -41,8 +41,17 @@ exports.bookAppointment = async (req, res) => {
       date
     });
 
-    if (type !== "Emergency" && bookingCount >= maxQueue) {
-      return res.status(400).json({ msg: branchId ? "Slot full for this branch on selected date." : "Slot full for hospital on selected date." });
+    if (type !== "Emergency") {
+      const today = new Date().toISOString().split('T')[0];
+      const isToday = date === today;
+      
+      if (isToday && bookingCount >= 300) {
+        return res.status(400).json({ msg: "Today's appointments are full (Limit: 300)." });
+      }
+
+      if (bookingCount >= maxQueue) {
+        return res.status(400).json({ msg: branchId ? "Slot full for this branch on selected date." : "Slot full for hospital on selected date." });
+      }
     }
 
     // 4. Create Appointment with Token
@@ -207,6 +216,26 @@ exports.getPatientAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ patientId: req.user.id }).sort({ createdAt: -1 });
     res.json(appointments);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Check Availability
+exports.checkAvailability = async (req, res) => {
+  try {
+    const { hospitalId, branchId, date } = req.query;
+    if (!hospitalId || !date) {
+      return res.status(400).json({ msg: "Hospital ID and Date are required" });
+    }
+
+    const bookingCount = await Appointment.countDocuments({
+      hospitalId,
+      branchId: branchId === 'null' ? null : (branchId || null),
+      date
+    });
+
+    res.json({ count: bookingCount });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
