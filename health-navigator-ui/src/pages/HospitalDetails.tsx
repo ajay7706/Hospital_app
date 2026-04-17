@@ -481,11 +481,12 @@ const HospitalDetails = () => {
                               )}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+              )}
 
                 {/* Doctors Section */}
                 {doctors && doctors.length > 0 && (
