@@ -1,11 +1,12 @@
 const sgMail = require("@sendgrid/mail");
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
+const QRCode = require('qrcode');
 
 // Set SendGrid API Key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const createProfessionalPDF = (doc, details) => {
+const createProfessionalPDF = (doc, details, qrDataURL) => {
   // Page Border
   doc.strokeColor("#e5e7eb").rect(20, 20, 572, 752).stroke();
 
@@ -76,22 +77,34 @@ const createProfessionalPDF = (doc, details) => {
     doc.fillColor("#374151").fontSize(10).text(details.location || "N/A", 70, y + 40, { width: 470 });
   }
 
-  // --- Section 3: Support Information ---
+  // --- Section 3: Live Tracking & QR ---
   y += 130;
-  doc.strokeColor("#cbd5e1").roundedRect(50, y, 512, 85, 5).dash(5, { space: 2 }).stroke().undash();
-  doc.fillColor("#475569").fontSize(10).text("For Support & Queries:", 70, y + 20, { bold: true });
+  doc.strokeColor("#cbd5e1").roundedRect(50, y, 512, 120, 10).stroke();
+  
+  doc.fillColor("#1e3a8a").fontSize(12).text("SCAN TO TRACK LIVE STATUS", 70, y + 20, { bold: true });
+  doc.fillColor("#64748b").fontSize(9).text("Scan this QR code to see your real-time position in the queue, live token number, and estimated wait time.", 70, y + 40, { width: 300 });
+  doc.fillColor("#2563eb").fontSize(9).text("URL: " + (details.trackingURL || "Visit Apna Clinic Portal"), 70, y + 80);
+
+  if (qrDataURL) {
+    doc.image(qrDataURL, 430, y + 10, { width: 100 });
+  }
+
+  // --- Section 4: Support Information ---
+  y += 150;
+  doc.strokeColor("#cbd5e1").roundedRect(50, y, 512, 65, 5).dash(5, { space: 2 }).stroke().undash();
+  doc.fillColor("#475569").fontSize(10).text("For Support & Queries:", 70, y + 15, { bold: true });
   
   doc.fillColor("#1e3a8a").fontSize(10)
-     .text(`Email: ${details.supportEmail || "support@apnaclinic.com"}`, 70, y + 40)
-     .text(`Contact: ${details.supportPhone || "+91 9876543210"}`, 300, y + 40);
+     .text(`Email: ${details.supportEmail || "support@apnaclinic.com"}`, 70, y + 35)
+     .text(`Contact: ${details.supportPhone || "+91 9876543210"}`, 300, y + 35);
 
   // --- Terms & Instructions ---
-  y += 100;
+  y += 80;
   doc.fillColor("#9ca3af").fontSize(8)
      .text("Notes:", 50, y)
-     .text("1. Please arrive at least 15 minutes before your scheduled time.", 50, y + 15)
-     .text("2. Carry a valid photo ID and previous medical records if any.", 50, y + 28)
-     .text("3. Cancellations should be made at least 2 hours in advance.", 50, y + 41);
+     .text("1. Please arrive at least 15 minutes before your scheduled time.", 50, y + 12)
+     .text("2. Carry a valid photo ID and previous medical records if any.", 50, y + 22)
+     .text("3. Cancellations should be made at least 2 hours in advance.", 50, y + 32);
 
   // --- Footer ---
   doc.fillColor("#1e3a8a").rect(20, 742, 572, 30).fill();
@@ -134,10 +147,16 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = t
     let attachments = [];
     
     if (includePDF) {
+      // Generate QR Code URL
+      const trackingURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/track-appointment?query=${bookingDetails._id}`;
+      bookingDetails.trackingURL = trackingURL;
+      
+      const qrDataURL = await QRCode.toDataURL(trackingURL);
+
       const doc = new PDFDocument({ margin: 50 });
       const stream = new PassThrough();
       doc.pipe(stream);
-      createProfessionalPDF(doc, bookingDetails);
+      createProfessionalPDF(doc, bookingDetails, qrDataURL);
       doc.end();
 
       const chunks = [];
@@ -166,6 +185,7 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = t
     console.error("SendGrid Mailer Error:", error.response ? error.response.body : error);
   }
 };
+
 
 const sendHospitalApprovalEmail = async (hospitalEmail, hospitalName, status) => {
   try {

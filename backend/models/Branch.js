@@ -43,6 +43,15 @@ const branchSchema = new mongoose.Schema({
     max: 300,
     default: 50,
   },
+  opdChargeType: {
+    type: String,
+    enum: ["hospitalDefault", "custom"],
+    default: "hospitalDefault",
+  },
+  opdCharge: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Branch", branchSchema);

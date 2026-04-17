@@ -34,6 +34,7 @@ exports.addHospital = async (req, res) => {
       if (req.files.navbarIcon) hospitalData.navbarIcon = req.files.navbarIcon[0].path;
       if (req.files.licenseCertificate) hospitalData.licenseCertificate = req.files.licenseCertificate[0].path;
       if (req.files.ownerIdProof) hospitalData.ownerIdProof = req.files.ownerIdProof[0].path;
+      if (req.files.gstDocument) hospitalData.gstDocument = req.files.gstDocument[0].path;
       if (req.files.gallery) hospitalData.gallery = req.files.gallery.map(file => file.path);
     }
     
@@ -42,6 +43,7 @@ exports.addHospital = async (req, res) => {
     if (!hospitalData.navbarIcon && req.body.navbarIcon) hospitalData.navbarIcon = req.body.navbarIcon;
     if (!hospitalData.licenseCertificate && req.body.licenseCertificate) hospitalData.licenseCertificate = req.body.licenseCertificate;
     if (!hospitalData.ownerIdProof && req.body.ownerIdProof) hospitalData.ownerIdProof = req.body.ownerIdProof;
+    if (!hospitalData.gstDocument && req.body.gstDocument) hospitalData.gstDocument = req.body.gstDocument;
     if (!hospitalData.gallery && req.body.gallery) hospitalData.gallery = req.body.gallery;
 
     if (!hospitalData.navbarIcon) hospitalData.navbarIcon = hospitalData.hospitalLogo;
@@ -215,6 +217,7 @@ exports.updateHospitalProfile = async (req, res) => {
       if (req.files.navbarIcon) updateData.navbarIcon = req.files.navbarIcon[0].path;
       if (req.files.licenseCertificate) updateData.licenseCertificate = req.files.licenseCertificate[0].path;
       if (req.files.ownerIdProof) updateData.ownerIdProof = req.files.ownerIdProof[0].path;
+      if (req.files.gstDocument) updateData.gstDocument = req.files.gstDocument[0].path;
       if (req.files.gallery) {
         // Append new images to existing gallery, up to max 8
         const newImages = req.files.gallery.map(file => file.path);

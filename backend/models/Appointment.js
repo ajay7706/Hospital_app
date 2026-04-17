@@ -25,7 +25,20 @@ const appointmentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Waiting", "Confirmed", "Rescheduled", "Not Selected", "Not Selected Today", "pending", "approved", "completed", "cancelled"],
+    enum: [
+      "Waiting",
+      "Confirmed",
+      "In Consultation",
+      "Lab Pending",
+      "Completed",
+      "Rescheduled",
+      "Not Selected",
+      "Not Selected Today",
+      "pending",
+      "approved",
+      "completed",
+      "cancelled"
+    ],
     default: "Waiting",
   },
   tokenNumber: {
@@ -37,6 +50,10 @@ const appointmentSchema = new mongoose.Schema({
     enum: ["Normal", "Emergency"],
     default: "Normal"
   },
+  opdCharge: {
+    type: Number,
+    default: 0
+  },
   patientName: String,
   patientEmail: String,
   phone: String,
@@ -47,6 +64,11 @@ const appointmentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  assignedDoctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+  },
+  assignedDoctorName: String,
 }, { timestamps: true });
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

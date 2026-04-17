@@ -3,6 +3,10 @@ const Hospital = require("../models/Hospital");
 const User = require("../models/Users");
 const { sendAppointmentEmail, sendWhatsAppNotification } = require("../config/mailer");
 const Branch = require("../models/Branch");
+const TokenTracker = require("../models/TokenTracker");
+const Doctor = require("../models/Doctor");
+const mongoose = require("mongoose");
+
 
 // Book Appointment
 exports.bookAppointment = async (req, res) => {
@@ -54,7 +58,16 @@ exports.bookAppointment = async (req, res) => {
       }
     }
 
-    // 4. Create Appointment with Token
+    // 4. Calculate OPD Charge
+    let finalOpdCharge = hospital.opdCharge || 0;
+    if (branchId) {
+      const branch = await Branch.findById(branchId);
+      if (branch && branch.opdChargeType === "custom") {
+        finalOpdCharge = branch.opdCharge;
+      }
+    }
+
+    // 5. Create Appointment with Token
     const appointment = await Appointment.create({
       hospitalId,
       branchId: branchId || null,
@@ -70,8 +83,10 @@ exports.bookAppointment = async (req, res) => {
       status: "Waiting",
       type: type || "Normal",
       tokenNumber: type === "Emergency" ? 0 : bookingCount + 1,
-      ambulanceRequired: ambulanceRequired || false
+      ambulanceRequired: ambulanceRequired || false,
+      opdCharge: finalOpdCharge
     });
+
 
     // 5. Notifications
     try {
@@ -108,6 +123,17 @@ exports.updateAppointmentStatus = async (req, res) => {
     } else if (req.user.role === "branch") {
       if (!appointment.branchId || appointment.branchId.toString() !== req.user.branchId?.toString()) {
         return res.status(403).json({ msg: "Access denied to this branch data." });
+      }
+    } else if (req.user.role === "doctor") {
+      // Doctor can only move to consultation, lab, or complete
+      const allowedDoctorStatuses = ["In Consultation", "Lab Pending", "Completed"];
+      if (!allowedDoctorStatuses.includes(status)) {
+        return res.status(403).json({ msg: "Doctors can only change status to In Consultation, Lab Pending, or Completed." });
+      }
+      
+      const doctorProfile = await Doctor.findOne({ userId: req.user.id });
+      if (!doctorProfile || doctorProfile.hospitalId.toString() !== appointment.hospitalId.toString()) {
+        return res.status(403).json({ msg: "Access denied. This appointment belongs to another hospital." });
       }
     }
 
@@ -169,7 +195,21 @@ exports.updateAppointmentStatus = async (req, res) => {
       appointment.status = status;
     }
 
+    // Handle Token Progression
+    if (status === "Completed") {
+      await TokenTracker.findOneAndUpdate(
+        { 
+          hospitalId: appointment.hospitalId, 
+          branchId: appointment.branchId || null, 
+          date: appointment.date 
+        },
+        { $inc: { currentToken: 1 } },
+        { upsert: true, new: true }
+      );
+    }
+
     await appointment.save();
+
 
     // Trigger PDF & WhatsApp on Confirm/Reschedule
     if (["Confirmed", "Rescheduled"].includes(appointment.status)) {
@@ -263,6 +303,59 @@ exports.checkAvailability = async (req, res) => {
     });
 
     res.json({ count: bookingCount });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+// Get Now Serving Token
+exports.getNowServing = async (req, res) => {
+  try {
+    const { hospitalId, branchId, date } = req.query;
+    const tracker = await TokenTracker.findOne({ 
+      hospitalId, 
+      branchId: branchId === 'null' ? null : (branchId || null), 
+      date 
+    });
+    res.json({ currentToken: tracker ? tracker.currentToken : 1 });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+// Track Appointment
+exports.trackAppointment = async (req, res) => {
+  try {
+    const { query } = req.query; // phone or bookingId
+    let appointment;
+    
+    if (mongoose.Types.ObjectId.isValid(query)) {
+      appointment = await Appointment.findById(query).populate("hospitalId branchId");
+    } else {
+      appointment = await Appointment.findOne({ phone: query })
+        .sort({ createdAt: -1 })
+        .populate("hospitalId branchId");
+    }
+
+    if (!appointment) return res.status(404).json({ msg: "Appointment not found" });
+
+    const tracker = await TokenTracker.findOne({
+      hospitalId: appointment.hospitalId,
+      branchId: appointment.branchId || null,
+      date: appointment.date
+    });
+
+    const nowServing = tracker ? tracker.currentToken : 1;
+    const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
+
+    res.json({
+      patientName: appointment.patientName,
+      hospitalName: appointment.hospitalName,
+      branchName: appointment.branchId ? appointment.branchId.branchName : "Main",
+      tokenNumber: appointment.tokenNumber,
+      nowServing,
+      peopleAhead,
+      status: appointment.status
+    });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

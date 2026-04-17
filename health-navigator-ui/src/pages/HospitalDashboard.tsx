@@ -62,9 +62,14 @@ export default function HospitalDashboard() {
   const [selectedBranchFilter, setSelectedBranchFilter] = useState('all');
 
   // Forms States
-  const [doctorForm, setDoctorForm] = useState({ name: '', specialization: '', experience: '', image: null as File | null });
-  const [branchForm, setBranchForm] = useState({ branchName: '', address: '', city: '', phone: '', specialties: '', ambulanceAvailable: false, emergency24x7: false, image: null as File | null });
+  const [doctorForm, setDoctorForm] = useState({ name: '', email: '', password: '', specialization: '', experience: '', image: null as File | null });
+  const [branchForm, setBranchForm] = useState({ 
+    branchName: '', address: '', city: '', phone: '', specialties: '', 
+    ambulanceAvailable: false, emergency24x7: false, image: null as File | null,
+    opdChargeType: 'hospitalDefault', opdCharge: ''
+  });
   const [staffForm, setStaffForm] = useState({ name: '', email: '', password: '', branchId: '' });
+
   const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
   const [savingNavbarIcon, setSavingNavbarIcon] = useState(false);
@@ -152,8 +157,9 @@ export default function HospitalDashboard() {
       const res = await fetch(`${API_BASE}/api/doctors/add`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Doctor added successfully' });
-      setDoctorForm({ name: '', specialization: '', experience: '', image: null });
+      setDoctorForm({ name: '', email: '', password: '', specialization: '', experience: '', image: null });
       fetchInitialData();
+
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
     finally { setProcessingDoctor(false); }
   };
@@ -180,8 +186,13 @@ export default function HospitalDashboard() {
       const res = await fetch(`${API_BASE}/api/branches/add`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Branch added successfully' });
-      setBranchForm({ branchName: '', address: '', city: '', phone: '', specialties: '', ambulanceAvailable: false, emergency24x7: false, image: null });
+      setBranchForm({ 
+        branchName: '', address: '', city: '', phone: '', specialties: '', 
+        ambulanceAvailable: false, emergency24x7: false, image: null,
+        opdChargeType: 'hospitalDefault', opdCharge: ''
+      });
       fetchInitialData();
+
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
     finally { setProcessingBranch(false); }
   };
@@ -630,11 +641,14 @@ export default function HospitalDashboard() {
                   <h3 className="text-xl font-bold mb-6">Add New Doctor</h3>
                   <form onSubmit={handleAddDoctor} className="space-y-4">
                     <Input placeholder="Doctor Name" value={doctorForm.name} onChange={e => setDoctorForm({...doctorForm, name: e.target.value})} required />
-                    <Input placeholder="Specialization" value={doctorForm.specialization} onChange={e => setDoctorForm({...doctorForm, specialization: e.target.value})} required />
-                    <Input type="number" placeholder="Experience (Years)" value={doctorForm.experience} onChange={e => setDoctorForm({...doctorForm, experience: e.target.value})} required />
+                    <Input type="email" placeholder="Doctor Email (for login)" value={doctorForm.email} onChange={e => setDoctorForm({...doctorForm, email: e.target.value})} required />
+                    <Input type="password" placeholder="Login Password" value={doctorForm.password} onChange={e => setDoctorForm({...doctorForm, password: e.target.value})} required />
+                    <Input placeholder="Specialization (e.g. Cardiologist)" value={doctorForm.specialization} onChange={e => setDoctorForm({...doctorForm, specialization: e.target.value})} required />
+                    <Input type="number" placeholder="Experience (Years)" value={doctorForm.experience} onChange={e => setDoctorForm({...doctorForm, experience: e.target.value})} />
                     <Input type="file" accept="image/*" onChange={e => setDoctorForm({...doctorForm, image: e.target.files?.[0] || null})} />
                     <Button type="submit" className="w-full" isLoading={processingDoctor}>Add Doctor</Button>
                   </form>
+
                 </div>
               </div>
             )}
@@ -740,7 +754,27 @@ export default function HospitalDashboard() {
                         </div>
                       </div>
 
+                      <div className="space-y-3 p-3 border border-border rounded-xl bg-muted/20">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">OPD Charge Settings</p>
+                        <Select value={branchForm.opdChargeType} onValueChange={val => setBranchForm({...branchForm, opdChargeType: val})}>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select Charge Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hospitalDefault">Use Hospital Default (₹{hospital?.opdCharge || 0})</SelectItem>
+                            <SelectItem value="custom">Custom Branch Charge</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        {branchForm.opdChargeType === 'custom' && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                            <Input type="number" placeholder="Custom OPD Charge (₹)" value={branchForm.opdCharge} onChange={e => setBranchForm({...branchForm, opdCharge: e.target.value})} required className="bg-background mt-2" />
+                          </motion.div>
+                        )}
+                      </div>
+
                       <Input type="file" accept="image/*" onChange={e => setBranchForm({...branchForm, image: e.target.files?.[0] || null})} required/>
+
                       <Button type="submit" className="w-full" disabled={branches.length >= 4} isLoading={processingBranch}>
                         {branches.length >= 4 ? 'Max Branches Reached' : 'Add Branch'}
                       </Button>

@@ -78,28 +78,51 @@ const BookVisit = () => {
   const [timer, setTimer] = useState(120);
   const [todayCount, setTodayCount] = useState(0);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [opdCharge, setOpdCharge] = useState(0);
 
-  const fetchAvailability = async () => {
+  const fetchDetails = async () => {
     if (!hospitalId) return;
     try {
       setCheckingAvailability(true);
       const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
       const today = format(new Date(), 'yyyy-MM-dd');
-      const res = await fetch(`${API_BASE}/api/appointments/availability?hospitalId=${hospitalId}&branchId=${branchId || 'null'}&date=${today}`);
-      if (res.ok) {
-        const data = await res.json();
+      
+      const [availRes, hospRes] = await Promise.all([
+        fetch(`${API_BASE}/api/appointments/availability?hospitalId=${hospitalId}&branchId=${branchId || 'null'}&date=${today}`),
+        fetch(`${API_BASE}/api/hospitals/${hospitalId}`)
+      ]);
+
+      if (availRes.ok) {
+        const data = await availRes.json();
         setTodayCount(data.count || 0);
       }
+
+      if (hospRes.ok) {
+        const hospital = await hospRes.json();
+        let charge = hospital.opdCharge || 0;
+        
+        if (branchId) {
+          const branchRes = await fetch(`${API_BASE}/api/branches/single/${branchId}`);
+          if (branchRes.ok) {
+            const branch = await branchRes.json();
+            if (branch.opdChargeType === 'custom') {
+              charge = branch.opdCharge;
+            }
+          }
+        }
+        setOpdCharge(charge);
+      }
     } catch (err) {
-      console.error('Failed to fetch availability', err);
+      console.error('Failed to fetch details', err);
     } finally {
       setCheckingAvailability(false);
     }
   };
 
   useEffect(() => {
-    fetchAvailability();
+    fetchDetails();
   }, [hospitalId, branchId]);
+
 
   const getAvailableSlots = (selectedDate: Date | undefined) => {
     if (!selectedDate) return timeSlots;
@@ -364,13 +387,20 @@ const BookVisit = () => {
 
           <div className="rounded-2xl border border-border bg-card p-6 shadow-lg sm:p-8">
             {/* Dynamic hospital info */}
-            <div className="mb-6 flex items-center gap-3 rounded-lg bg-primary/5 p-4">
-              <Building2 className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-foreground">{hospitalName}</p>
-                <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
+            <div className="mb-6 flex items-center justify-between rounded-lg bg-primary/5 p-4">
+              <div className="flex items-center gap-3">
+                <Building2 className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">{hospitalName}</p>
+                  <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Consultation Fee</p>
+                <p className="text-lg font-black text-primary">₹{opdCharge}</p>
               </div>
             </div>
+
             {isEmergency && (
               <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
                 <Ambulance className="h-5 w-5" />

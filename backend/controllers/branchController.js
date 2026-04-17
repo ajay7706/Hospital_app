@@ -20,10 +20,33 @@ exports.addBranch = async (req, res) => {
     const newBranch = await Branch.create({
       ...req.body,
       hospitalId: hospital._id,
-      image: req.file ? req.file.path : req.body.image
+      image: req.file ? req.file.path : req.body.image,
+      opdChargeType: req.body.opdChargeType || "hospitalDefault",
+      opdCharge: req.body.opdCharge || 0
     });
 
     res.status(201).json(newBranch);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.updateBranch = async (req, res) => {
+  try {
+    const hospital = await Hospital.findOne({ userId: req.user.id });
+    if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+
+    const updateData = { ...req.body };
+    if (req.file) updateData.image = req.file.path;
+
+    const branch = await Branch.findOneAndUpdate(
+      { _id: req.params.id, hospitalId: hospital._id },
+      updateData,
+      { new: true }
+    );
+    
+    if (!branch) return res.status(404).json({ msg: "Branch not found" });
+    res.json(branch);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

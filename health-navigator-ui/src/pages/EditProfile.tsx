@@ -64,7 +64,10 @@ const editSchema = z.object({
     startTime: z.string().min(1, 'Required'),
     endTime: z.string().min(1, 'Required'),
   }),
+  opdCharge: z.string().min(1, 'Required'),
+  gstNumber: z.string().optional(),
 });
+
 
 type EditForm = z.infer<typeof editSchema>;
 
@@ -84,6 +87,8 @@ const EditProfile = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [hospitalLogoFile, setHospitalLogoFile] = useState<File | null>(null);
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
+  const [gstDocumentFile, setGstDocumentFile] = useState<File | null>(null);
+
 
   const form = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -104,8 +109,11 @@ const EditProfile = () => {
       openingTime: '08:00',
       closingTime: '20:00',
       appointmentSlots: { startTime: '09:00', endTime: '17:00' },
+      opdCharge: '0',
+      gstNumber: '',
     },
   });
+
 
   const servicesArray = useFieldArray<EditForm, 'services'>({ control: form.control, name: 'services' });
   const specialtiesArray = useFieldArray<EditForm, 'specialties'>({ control: form.control, name: 'specialties' });
@@ -153,7 +161,10 @@ const EditProfile = () => {
           openingTime: data.openingTime || '08:00',
           closingTime: data.closingTime || '20:00',
           appointmentSlots: data.appointmentSlots || { startTime: '09:00', endTime: '17:00' },
+          opdCharge: String(data.opdCharge || 0),
+          gstNumber: data.gstNumber || '',
         });
+
       } catch (err: any) {
         toast({ title: 'Error', description: err.message, variant: 'destructive' });
       } finally {
@@ -213,9 +224,14 @@ const EditProfile = () => {
       fd.append('appointmentSlots', JSON.stringify(data.appointmentSlots));
       fd.append('services', JSON.stringify(data.services || []));
       fd.append('specialties', (data.specialties || []).map(s => s.value).join(','));
+      fd.append('opdCharge', data.opdCharge);
+      fd.append('gstNumber', data.gstNumber || '');
+
 
       if (hospitalLogoFile) fd.append('hospitalLogo', hospitalLogoFile);
       if (navbarIconFile) fd.append('navbarIcon', navbarIconFile);
+      if (gstDocumentFile) fd.append('gstDocument', gstDocumentFile);
+
 
       const res = await fetch(`${API_BASE}/api/hospitals/update`, {
         method: 'PUT',
@@ -481,6 +497,39 @@ const EditProfile = () => {
                   )} />
                 </div>
               </div>
+
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                   Billing & Legal System
+                </h2>
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 space-y-5 shadow-sm">
+                  <FormField control={form.control} name="opdCharge" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-foreground font-bold flex items-center gap-1.5 underline decoration-primary/30 underline-offset-4">
+                        OPD Consultation Charge (₹) *
+                      </FormLabel>
+                      <FormControl><Input type="number" placeholder="e.g. 500" {...field} className="bg-background border-primary/20 focus:ring-primary/40 h-11 text-lg font-semibold" /></FormControl>
+                      <p className="text-[11px] text-muted-foreground italic font-medium">Ye charge patients ko website ke Hospital Cards pe dikhaya jayega.</p>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <FormField control={form.control} name="gstNumber" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-foreground font-medium">Hospital GST Number</FormLabel>
+                        <FormControl><Input placeholder="Enter GSTIN" {...field} className="bg-background h-11" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <div className="space-y-2">
+                       <FormLabel className="text-foreground font-medium">GST Document (PDF/Image)</FormLabel>
+                       <Input type="file" accept="image/*,.pdf" onChange={(e) => setGstDocumentFile(e.target.files?.[0] || null)} className="bg-background h-11" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
 
               <Button 
                 type="submit" 

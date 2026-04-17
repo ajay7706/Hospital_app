@@ -6,6 +6,14 @@ const doctorSchema = new mongoose.Schema({
     ref: "Hospital",
     required: true,
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  email: {
+    type: String,
+    unique: true,
+  },
   name: {
     type: String,
     required: true,
@@ -16,7 +24,7 @@ const doctorSchema = new mongoose.Schema({
   },
   experience: {
     type: Number, // in years
-    required: true,
+    default: 0,
   },
   availability: [
     {

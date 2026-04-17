@@ -433,19 +433,18 @@ const HospitalDetails = () => {
                                 {branch.specialties}
                               </p>
                             )}
-                            <div className="flex gap-2 mb-3">
-                              {branch.ambulanceAvailable && (
-                                <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm" title="Ambulance Available">
-                                  <Ambulance className="h-4 w-4" />
-                                </div>
-                              )}
-                              {branch.emergency24x7 && (
-                                <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm" title="24/7 Emergency">
-                                  <Activity className="h-4 w-4" />
-                                </div>
                               )}
                             </div>
+                            
+                            <div className="mb-4">
+                               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/60 shadow-sm group-hover:bg-emerald-100 transition-colors">
+                                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">Consultation:</span>
+                                  <span className="text-sm font-black text-emerald-700 dark:text-emerald-300 italic">₹{branch.opdChargeType === 'custom' ? branch.opdCharge : hospital.opdCharge}</span>
+                               </div>
+                            </div>
+
                             <div className="mt-auto grid grid-cols-2 gap-2">
+
                               <Button 
                                 size="sm" 
                                 variant="outline" 
@@ -524,9 +523,18 @@ const HospitalDetails = () => {
 
                 {/* Contact Card */}
                 <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-bold text-foreground">Contact Information</h3>
+                  <h3 className="mb-4 text-lg font-bold text-foreground">Contact & Billing</h3>
                   <div className="space-y-4">
+                    <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/60 flex items-center justify-between shadow-sm animate-pulse-slow">
+                       <div className="flex items-center gap-3">
+                          <Activity className="h-6 w-6 text-emerald-600" />
+                          <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100 uppercase tracking-tight">OPD Charge</span>
+                       </div>
+                       <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300">₹{hospital.opdCharge || 0}</span>
+                    </div>
+
                     <div className="flex items-start gap-3">
+
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                         <MapPin className="h-5 w-5 text-primary" />
                       </div>

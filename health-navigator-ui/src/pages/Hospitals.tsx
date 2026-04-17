@@ -25,7 +25,9 @@ interface Hospital {
   hours: string;
   emergency24x7: boolean;
   ambulanceAvailable: boolean;
+  opdCharge: number;
 }
+
 
 const Hospitals = () => {
   const [searchParams] = useSearchParams();
@@ -58,7 +60,9 @@ const Hospitals = () => {
           hours: `${h.openingTime} - ${h.closingTime}`,
           emergency24x7: h.emergency24x7 || false,
           ambulanceAvailable: h.ambulanceAvailable || false,
+          opdCharge: h.opdCharge || 0,
         }));
+
         setHospitals(mapped);
       }
     } catch (err) {
@@ -171,6 +175,14 @@ const Hospitals = () => {
                           </span>
                         </div>
                       )}
+
+                      <div className="mt-2.5 flex items-center gap-2">
+                         <div className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-sm">
+                            <span className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">OPD CHARGE</span>
+                            <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">₹{hospital.opdCharge}</span>
+                         </div>
+                      </div>
+
                       <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
                       {hospital.specialties.slice(0, 2).map((specialty, i) => (
                         <Badge key={i} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">

@@ -80,6 +80,22 @@ exports.isHospitalOrBranch = (req, res, next) => {
   }
 };
 
+exports.isHospitalBranchOrDoctor = (req, res, next) => {
+  if (req.user && (req.user.role === "hospital" || req.user.role === "branch" || req.user.role === "doctor")) {
+    next();
+  } else {
+    return res.status(401).json({ msg: "Not authorized as staff" });
+  }
+};
+
+exports.isDoctor = (req, res, next) => {
+  if (req.user && req.user.role === "doctor") {
+    next();
+  } else {
+    return res.status(401).json({ msg: "Not authorized as a doctor" });
+  }
+};
+
 exports.isAdmin = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
     next();

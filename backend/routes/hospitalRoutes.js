@@ -20,6 +20,7 @@ const cpUpload = upload.fields([
   { name: 'navbarIcon', maxCount: 1 },
   { name: 'licenseCertificate', maxCount: 1 },
   { name: 'ownerIdProof', maxCount: 1 },
+  { name: 'gstDocument', maxCount: 1 },
   { name: 'gallery', maxCount: 8 }
 ]);
 

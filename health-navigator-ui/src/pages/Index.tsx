@@ -97,7 +97,15 @@ const Index = () => {
                             </span>
                           </div>
                         )}
+
+                        <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
+                           <div className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800 flex items-center gap-1">
+                              <span className="text-[9px] sm:text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">OPD:</span>
+                              <span className="text-[11px] sm:text-sm font-black text-emerald-700 dark:text-emerald-300">₹{h.opdCharge || 0}</span>
+                           </div>
+                        </div>
                         <div className="mt-auto flex items-center justify-between pt-2 sm:pt-4 border-t border-border">
+
                           <div className="flex -space-x-1.5 sm:-space-x-2">
                             {[1, 2, 3].map(i => (
                               <div key={i} className="w-5 h-5 sm:w-7 sm:h-7 rounded-full border-2 border-card bg-muted flex items-center justify-center overflow-hidden">

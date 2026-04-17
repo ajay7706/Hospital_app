@@ -114,6 +114,16 @@ const hospitalSchema = new mongoose.Schema({
     max: 300,
     default: 50,
   },
+  opdCharge: {
+    type: Number,
+    default: 0,
+  },
+  gstNumber: {
+    type: String,
+  },
+  gstDocument: {
+    type: String, // Cloudinary URL
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Hospital", hospitalSchema);
