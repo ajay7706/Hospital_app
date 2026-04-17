@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Users, Calendar, Clock, CheckCircle2, 
   Activity, ArrowRight, LogOut, Search,
-  Loader2, ClipboardList, Microbe, ArrowUpRight
+  Loader2, ClipboardList, FlaskConical, ArrowUpRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -240,7 +240,7 @@ export default function DoctorDashboard() {
                                   disabled={updatingStatus === apt._id}
                                   className="border-amber-200 text-amber-700 hover:bg-amber-50"
                                 >
-                                  <Microbe className="mr-2 h-4 w-4" /> Lab Tests
+                                  <FlaskConical className="mr-2 h-4 w-4" /> Lab Tests
                                 </Button>
                                 <Button 
                                   onClick={() => handleUpdateStatus(apt._id, 'Completed')}
