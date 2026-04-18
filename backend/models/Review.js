@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 
 const reviewSchema = new mongoose.Schema({
+  appointmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Appointment",
+    required: true,
+    unique: true
+  },
   patientId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -11,21 +17,21 @@ const reviewSchema = new mongoose.Schema({
     ref: "Hospital",
     required: true,
   },
+  branchId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Branch"
+  },
   rating: {
     type: Number,
     required: true,
     min: 1,
     max: 5,
   },
-  comment: {
+  reviewText: {
     type: String,
-    required: true,
     maxlength: 500,
   },
   patientName: String,
 }, { timestamps: true });
-
-// Ensure one review per hospital per patient
-reviewSchema.index({ patientId: 1, hospitalId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Review", reviewSchema);

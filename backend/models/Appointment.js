@@ -69,6 +69,10 @@ const appointmentSchema = new mongoose.Schema({
     ref: "Doctor",
   },
   assignedDoctorName: String,
+  isRated: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Appointment", appointmentSchema);

@@ -8,7 +8,7 @@ const {
 } = require("../controllers/reviewController");
 
 // Review Routes
-router.post("/add", protect, addReview);
+router.post("/", protect, addReview);
 router.get("/:id", getHospitalReviews);
 
 module.exports = router;

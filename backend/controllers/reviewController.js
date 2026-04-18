@@ -4,32 +4,38 @@ const Appointment = require("../models/Appointment");
 // Add Review
 exports.addReview = async (req, res) => {
   try {
-    const { hospitalId, rating, comment, patientName } = req.body;
+    const { appointmentId, rating, reviewText, patientName } = req.body;
 
-    // Rule: Only patients with COMPLETED appointment can review
-    const appointment = await Appointment.findOne({
-      patientId: req.user.id,
-      hospitalId,
-      status: { $regex: /^completed$/i }
-    });
+    const appointment = await Appointment.findById(appointmentId);
 
     if (!appointment) {
-      return res.status(403).json({ msg: "You can only review after a completed appointment" });
+      return res.status(404).json({ msg: "Appointment not found" });
     }
 
-    // Rule: Only ONE review per hospital per patient
-    const existingReview = await Review.findOne({ patientId: req.user.id, hospitalId });
-    if (existingReview) {
-      return res.status(400).json({ msg: "You have already reviewed this hospital" });
+    if (appointment.patientId.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ msg: "Not authorized" });
+    }
+
+    if (appointment.status.toLowerCase() !== "completed") {
+      return res.status(400).json({ msg: "Can only rate completed appointments" });
+    }
+
+    if (appointment.isRated) {
+      return res.status(400).json({ msg: "You have already rated this appointment" });
     }
 
     const review = await Review.create({
+      appointmentId,
       patientId: req.user.id,
-      hospitalId,
+      hospitalId: appointment.hospitalId,
+      branchId: appointment.branchId,
       rating,
-      comment,
+      reviewText,
       patientName: patientName || req.user.name || "Anonymous"
     });
+
+    appointment.isRated = true;
+    await appointment.save();
 
     res.status(201).json({ msg: "Review added successfully", review });
   } catch (error) {
@@ -41,7 +47,7 @@ exports.addReview = async (req, res) => {
 // Get All Reviews for a Hospital (with stats)
 exports.getHospitalReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ hospitalId: req.params.id }).sort({ createdAt: -1 });
+    const reviews = await Review.find({ hospitalId: req.params.id }).populate('appointmentId').sort({ createdAt: -1 });
     
     if (reviews.length === 0) {
       return res.json({ reviews: [], averageRating: 0, totalReviews: 0 });

@@ -301,30 +301,38 @@ const BranchDetails = () => {
             </div>
           )}
           {activeTab === 'reviews' && (
-            <div className="max-w-2xl mx-auto space-y-8">
-              <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                <h3 className="font-bold mb-4">Post a Review</h3>
-                <form onSubmit={handleAddReview} className="space-y-4">
-                  <div className="flex gap-2">
-                    {[1,2,3,4,5].map(s => <button key={s} type="button" onClick={() => setNewReview({...newReview, rating: s})}><Star className={`h-8 w-8 ${s <= newReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} /></button>)}
-                  </div>
-                  <Textarea placeholder="How was your visit?" value={newReview.comment} onChange={e => setNewReview({...newReview, comment: e.target.value})} />
-                  <Button type="submit" disabled={submittingReview}>Submit Review</Button>
-                </form>
-              </div>
+            <div className="max-w-2xl mx-auto space-y-6">
               <div className="space-y-4">
-                {reviewsData.reviews.map((r, i) => (
-                  <div key={i} className="p-5 border rounded-2xl bg-card">
-                    <div className="flex justify-between">
-                      <div className="flex gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">{(r.patientName || 'A')[0]}</div>
-                        <div><p className="font-bold">{r.patientName}</p><p className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p></div>
+                {reviewsData.reviews.length > 0 ? (
+                  reviewsData.reviews.map((r, i) => (
+                    <div key={i} className="p-5 border rounded-2xl bg-card">
+                      <div className="flex justify-between">
+                        <div className="flex gap-3">
+                          <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700">{(r.patientName || 'A')[0]}</div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold">{r.patientName}</p>
+                              {r.appointmentId && r.appointmentId.status === 'Completed' && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[9px] uppercase tracking-wider px-1.5 py-0">
+                                  ✔ Verified Patient
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex">{[...Array(r.rating)].map((_, j) => <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
                       </div>
-                      <div className="flex">{[...Array(r.rating)].map((_, j) => <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
+                      {r.reviewText && (
+                        <p className="mt-3 text-sm text-slate-700">{r.reviewText}</p>
+                      )}
                     </div>
-                    <p className="mt-3 text-sm text-muted-foreground">{r.comment}</p>
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    No reviews yet.
                   </div>
-                ))}
+                )}
               </div>
             </div>
           )}

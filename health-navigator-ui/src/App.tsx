@@ -19,6 +19,7 @@ import HospitalProfile from "./pages/HospitalProfile";
 import EditProfile from "./pages/EditProfile";
 import BranchDashboard from "./pages/BranchDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import RateAppointment from "./pages/RateAppointment";
 import PatientDashboard from "./pages/PatientDashboard";
 import TrackAppointment from "./pages/TrackAppointment";
 import BranchDetails from "./pages/BranchDetails";
@@ -47,6 +48,7 @@ const App = () => (
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
           <Route path="/book" element={<BookVisit />} />
+          <Route path="/rate" element={<RateAppointment />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/support" element={<Support />} />
           <Route path="/profile" element={<HospitalProfile />} />

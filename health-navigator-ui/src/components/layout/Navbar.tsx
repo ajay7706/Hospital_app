@@ -264,6 +264,8 @@ export const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ReviewPopup />
     </nav>
   );
 };

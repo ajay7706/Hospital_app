@@ -679,36 +679,7 @@ const HospitalDetails = () => {
 
           {/* Reviews Tab */}
           {activeTab === 'reviews' && (
-            <div className="mx-auto max-w-2xl space-y-8">
-              {/* Add Review Form */}
-              <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                <h3 className="text-lg font-bold text-foreground mb-4">Rate your experience</h3>
-                <form onSubmit={handleAddReview} className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setNewReview({ ...newReview, rating: s })}
-                        className="transition-transform hover:scale-110"
-                      >
-                        <Star className={`h-8 w-8 ${s <= newReview.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground opacity-30'}`} />
-                      </button>
-                    ))}
-                  </div>
-                  <Textarea
-                    placeholder="Tell us about your visit..."
-                    value={newReview.comment}
-                    onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                    required
-                    className="min-h-[100px]"
-                  />
-                  <Button type="submit" variant="cta" disabled={submittingReview}>
-                    {submittingReview ? "Submitting..." : "Post Review"}
-                  </Button>
-                </form>
-              </motion.div>
-
+            <div className="mx-auto max-w-2xl space-y-6">
               {/* Reviews List */}
               <div className="space-y-4">
                 {reviewsData.reviews.length > 0 ? (
@@ -722,11 +693,18 @@ const HospitalDetails = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary uppercase">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700 uppercase">
                             {(r.patientName || 'A').charAt(0)}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground">{r.patientName || 'Anonymous'}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground">{r.patientName || 'Anonymous'}</p>
+                              {r.appointmentId && r.appointmentId.status === 'Completed' && (
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[9px] uppercase tracking-wider px-1.5 py-0">
+                                  ✔ Verified Patient
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</p>
                           </div>
                         </div>
@@ -736,12 +714,14 @@ const HospitalDetails = () => {
                           ))}
                         </div>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{r.comment}</p>
+                      {r.reviewText && (
+                        <p className="mt-3 text-sm leading-relaxed text-slate-700">{r.reviewText}</p>
+                      )}
                     </motion.div>
                   ))
                 ) : (
                   <div className="text-center py-10 text-muted-foreground">
-                    No reviews yet. Be the first to review!
+                    No reviews yet.
                   </div>
                 )}
               </div>

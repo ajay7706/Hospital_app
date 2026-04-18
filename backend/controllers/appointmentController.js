@@ -243,7 +243,8 @@ exports.updateAppointmentStatus = async (req, res) => {
         notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date.`;
         updateMsg = notificationDetails.msg;
       } else if (appointment.status === "Completed") {
-        notificationDetails.msg = `Your consultation is completed. Please rate your experience.`;
+        const ratingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/rate?appointmentId=${appointment._id}`;
+        notificationDetails.msg = `Your consultation is completed. Please rate your experience: ${ratingLink}`;
         updateMsg = notificationDetails.msg;
       }
 
