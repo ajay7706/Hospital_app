@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Menu, X, Stethoscope, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ReviewPopup } from './ReviewPopup';
 import {
   DropdownMenu,
   DropdownMenuContent,
