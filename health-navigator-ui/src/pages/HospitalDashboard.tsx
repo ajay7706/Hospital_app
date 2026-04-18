@@ -522,28 +522,28 @@ export default function HospitalDashboard() {
                                         handleStatusUpdate(apt._id, 'Confirmed', 'appointment', select.value);
                                       }}
                                       disabled={updatingStatus === apt._id}
-                                      className="h-8 w-full bg-green-600 hover:bg-green-700 text-[10px] font-bold"
+                                      className="h-8 w-full bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold"
                                     >
                                       {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
                                       Approve & Assign
                                     </Button>
                                   </div>
                                   <Button 
-                                    variant="outline"
+                                    variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
-                                    disabled={updatingStatus === apt._id}
-                                    className="h-8 px-2 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                                    disabled={updatingStatus === apt._id || (stats?.confirmed || 0) < 200}
+                                    className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
                                     Next Day
                                   </Button>
                                   <Button 
-                                    variant="outline"
+                                    variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Not Selected', 'appointment')}
                                     disabled={updatingStatus === apt._id}
-                                    className="h-8 px-2 text-xs border-red-200 text-red-600 hover:bg-red-50"
+                                    className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
                                     Reject
@@ -551,11 +551,11 @@ export default function HospitalDashboard() {
                                 </>
                               ) : apt.status === "Confirmed" ? (
                                 <Button 
-                                    variant="outline"
+                                    variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
-                                    disabled={updatingStatus === apt._id}
-                                    className="h-8 px-2 text-xs border-blue-200 text-blue-700 hover:bg-blue-50"
+                                    disabled={updatingStatus === apt._id || (stats?.confirmed || 0) < 200}
+                                    className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
                                     Next Day

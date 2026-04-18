@@ -8,9 +8,18 @@ exports.addDoctor = async (req, res) => {
   try {
     const { name, email, password, specialization, experience, branchId } = req.body;
     
-    const hospital = await Hospital.findOne({ userId: req.user.id });
-    if (!hospital) {
-      return res.status(404).json({ msg: "Hospital not found" });
+    let hospitalId;
+    let bId = branchId;
+
+    if (req.user.role === 'hospital') {
+      const hospital = await Hospital.findOne({ userId: req.user.id });
+      if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+      hospitalId = hospital._id;
+    } else if (req.user.role === 'branch') {
+      hospitalId = req.user.hospitalId;
+      bId = req.user.branchId; // Ensure doctor is added to THEIR branch
+    } else {
+      return res.status(403).json({ msg: "Not authorized" });
     }
 
     // 1. Create User
@@ -23,15 +32,15 @@ exports.addDoctor = async (req, res) => {
       email,
       password: hashedPassword,
       role: 'doctor',
-      hospitalId: hospital._id,
-      branchId: branchId || null
+      hospitalId: hospitalId,
+      branchId: bId
     });
     
     // 2. Create Doctor Profile
     const newDoctor = await Doctor.create({
       userId: user._id,
-      hospitalId: hospital._id,
-      branchId: branchId || null,
+      hospitalId: hospitalId,
+      branchId: bId,
       name,
       email,
       specialization,
@@ -73,14 +82,23 @@ exports.getDoctorsByHospital = async (req, res) => {
 
 exports.deleteDoctor = async (req, res) => {
   try {
-    const hospital = await Hospital.findOne({ userId: req.user.id });
-    if (!hospital) {
-      return res.status(404).json({ msg: "Hospital not found" });
+    let hospitalId;
+    if (req.user.role === 'hospital') {
+      const hospital = await Hospital.findOne({ userId: req.user.id });
+      if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+      hospitalId = hospital._id;
+    } else if (req.user.role === 'branch') {
+      hospitalId = req.user.hospitalId;
+    } else {
+      return res.status(403).json({ msg: "Not authorized" });
     }
 
-    const doctor = await Doctor.findOneAndDelete({ _id: req.params.id, hospitalId: hospital._id });
+    const query = { _id: req.params.id, hospitalId: hospitalId };
+    if (req.user.role === 'branch') query.branchId = req.user.branchId;
+
+    const doctor = await Doctor.findOneAndDelete(query);
     if (!doctor) {
-      return res.status(404).json({ msg: "Doctor not found" });
+      return res.status(404).json({ msg: "Doctor not found or you are not authorized" });
     }
 
     // Also delete the user
@@ -99,6 +117,15 @@ exports.getBranchDoctors = async (req, res) => {
     const { branchId, hospitalId } = req.user;
     const query = branchId ? { branchId } : { hospitalId, branchId: null };
     const doctors = await Doctor.find(query);
+    res.json(doctors);
+  } catch (error) {
+    res.status(500).json({ msg: "Server Error", error: error.message });
+  }
+};
+
+exports.getDoctorsByBranch = async (req, res) => {
+  try {
+    const doctors = await Doctor.find({ branchId: req.params.branchId });
     res.json(doctors);
   } catch (error) {
     res.status(500).json({ msg: "Server Error", error: error.message });

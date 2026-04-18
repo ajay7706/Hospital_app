@@ -29,14 +29,14 @@ exports.bookAppointment = async (req, res) => {
       return res.status(400).json({ msg: "You already have an active appointment." });
     }
 
-    // 3. SEPARATE QUEUE SYSTEM: Check capacity
     let maxQueue = 0;
+    let dailyApprovalLimit = 200;
     if (branchId) {
       const branch = await Branch.findById(branchId);
       if (!branch) return res.status(404).json({ msg: "Branch not found" });
-      maxQueue = (branch.branchCapacity || 50) * 1.5;
+      maxQueue = 300; // Force 300 bookings limit per requirement
     } else {
-      maxQueue = (hospital.dailyCapacity || 100) * 1.5;
+      maxQueue = 300; // Force 300 bookings limit per requirement
     }
 
     const bookingCount = await Appointment.countDocuments({
@@ -46,13 +46,6 @@ exports.bookAppointment = async (req, res) => {
     });
 
     if (type !== "Emergency") {
-      const today = new Date().toISOString().split('T')[0];
-      const isToday = date === today;
-      
-      if (isToday && bookingCount >= 300) {
-        return res.status(400).json({ msg: "Today's appointments are full (Limit: 300)." });
-      }
-
       if (bookingCount >= maxQueue) {
         return res.status(400).json({ msg: branchId ? "Slot full for this branch on selected date." : "Slot full for hospital on selected date." });
       }
@@ -151,13 +144,7 @@ exports.updateAppointmentStatus = async (req, res) => {
     // SMART LOGIC: Confirmed (with capacity check)
     if (status === "Confirmed") {
         const hospital = await Hospital.findById(appointment.hospitalId);
-        let maxQueue = 0;
-        if (appointment.branchId) {
-            const branch = await Branch.findById(appointment.branchId);
-            maxQueue = (branch.branchCapacity || 50) * 1.5;
-        } else {
-            maxQueue = (hospital.dailyCapacity || 100) * 1.5;
-        }
+        let maxApprovalQueue = 200;
 
         const approvedCount = await Appointment.countDocuments({
             hospitalId: appointment.hospitalId,
@@ -166,8 +153,8 @@ exports.updateAppointmentStatus = async (req, res) => {
             status: "Confirmed"
         });
 
-        if (approvedCount >= maxQueue) {
-            return res.status(400).json({ msg: "Daily approval limit reached for this date." });
+        if (approvedCount >= maxApprovalQueue) {
+            return res.status(400).json({ msg: "Daily approval limit reached for this date (Limit: 200)." });
         }
         appointment.status = "Confirmed";
         
@@ -185,14 +172,7 @@ exports.updateAppointmentStatus = async (req, res) => {
       const targetDate = nextDate || new Date(new Date(appointment.date).getTime() + 86400000).toISOString().split('T')[0];
       
       // Check target day capacity
-      let maxQueue = 0;
-      if (appointment.branchId) {
-        const branch = await Branch.findById(appointment.branchId);
-        maxQueue = (branch.branchCapacity || 50) * 1.5;
-      } else {
-        const hospital = await Hospital.findById(appointment.hospitalId);
-        maxQueue = (hospital.dailyCapacity || 100) * 1.5;
-      }
+      let maxQueue = 300;
 
       const nextDayCount = await Appointment.countDocuments({
         hospitalId: appointment.hospitalId,
@@ -231,8 +211,8 @@ exports.updateAppointmentStatus = async (req, res) => {
     await appointment.save();
 
 
-    // Trigger PDF & WhatsApp on Confirm/Reschedule
-    if (["Confirmed", "Rescheduled"].includes(appointment.status)) {
+    // Trigger PDF & WhatsApp on Confirm/Reschedule/Complete
+    if (["Confirmed", "Rescheduled", "Completed"].includes(appointment.status)) {
       const hospital = await Hospital.findById(appointment.hospitalId);
       const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
       
@@ -255,10 +235,18 @@ exports.updateAppointmentStatus = async (req, res) => {
       };
 
       const branchName = branch ? `(${branch.branchName} Branch)` : '';
-      const updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Date: ${appointment.date}, Token: ${appointment.tokenNumber}.`;
+      let updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Date: ${appointment.date}, Token: ${appointment.tokenNumber}.`;
+
+      if (appointment.status === "Rescheduled") {
+        notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date.`;
+        updateMsg = notificationDetails.msg;
+      } else if (appointment.status === "Completed") {
+        notificationDetails.msg = `Your consultation is completed. Please rate your experience.`;
+        updateMsg = notificationDetails.msg;
+      }
 
       try {
-        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true);
+        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, appointment.status !== "Completed"); // PDF only for not completed
         if (appointment.phone) await sendWhatsAppNotification(appointment.phone, updateMsg);
       } catch (err) {}
     }
@@ -379,13 +367,9 @@ exports.trackAppointment = async (req, res) => {
     const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
 
     res.json({
-      patientName: appointment.patientName,
-      hospitalName: appointment.hospitalName,
-      branchName: appointment.branchId ? appointment.branchId.branchName : "Main",
-      tokenNumber: appointment.tokenNumber,
+      appointment,
       nowServing,
-      peopleAhead,
-      status: appointment.status
+      peopleAhead
     });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });

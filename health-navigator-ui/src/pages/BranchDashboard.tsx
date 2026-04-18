@@ -40,6 +40,10 @@ export default function BranchDashboard() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<string | null>(null);
   const [doctors, setDoctors] = useState<any[]>([]);
+  const [branch, setBranch] = useState<any>(null);
+  const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingDoctor, setSavingDoctor] = useState(false);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -58,11 +62,14 @@ export default function BranchDashboard() {
     try {
       const token = localStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
-      const [aRes, eRes, dRes] = await Promise.all([
+      const userDataFromStorage = JSON.parse(localStorage.getItem('user') || '{}');
+      const [aRes, eRes, dRes, bResData] = await Promise.all([
         fetch(`${API_BASE}/api/appointments/hospital`, { headers }),
         fetch(`${API_BASE}/api/otp/emergency`, { headers }),
-        fetch(`${API_BASE}/api/doctors/branch/list`, { headers }) // Endpoint for branch-specific doctors
+        fetch(`${API_BASE}/api/doctors/branch/list`, { headers }),
+        fetch(`${API_BASE}/api/branches/details/${userDataFromStorage.branchId}`, { headers })
       ]);
+
       if (aRes.ok) {
         const aData = await aRes.json();
         setAppointments(Array.isArray(aData.appointments) ? aData.appointments : []);
@@ -75,6 +82,10 @@ export default function BranchDashboard() {
       if (dRes.ok) {
         const dData = await dRes.json();
         setDoctors(Array.isArray(dData) ? dData : []);
+      }
+      if (bResData.ok) {
+        const bData = await bResData.json();
+        setBranch(bData);
       }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -174,6 +185,8 @@ export default function BranchDashboard() {
           <SidebarItem icon={Activity} label="Overview" id="dashboard" />
           <SidebarItem icon={Calendar} label="Appointments" id="appointments" />
           <SidebarItem icon={Ambulance} label="Emergency" id="emergency" />
+          <SidebarItem icon={Users} label="Doctors" id="doctors" />
+          <SidebarItem icon={Building2} label="Profile & Settings" id="settings" />
         </nav>
 
         <div className="mt-6 pt-4 border-t border-border space-y-2">
@@ -361,7 +374,7 @@ export default function BranchDashboard() {
                                         const select = document.getElementById(`doc-select-branch-${apt._id}`) as HTMLSelectElement;
                                         handleAppointmentAction(apt._id, 'Confirmed', undefined, select.value);
                                       }}
-                                      className="h-7 w-full text-[10px] bg-green-600 hover:bg-green-700 font-bold">
+                                      className="h-7 w-full text-[10px] bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
                                       {isLoading(apt._id, 'Confirmed')
                                         ? <Loader2 className="h-3 w-3 animate-spin" />
                                         : <><CheckCircle2 className="h-3 w-3 mr-1" />Approve & Assign</>}
@@ -369,20 +382,20 @@ export default function BranchDashboard() {
                                   </div>
                                   
                                   {/* Move to Next Day */}
-                                  <Button size="sm" variant="outline"
-                                    disabled={anyLoading(apt._id)}
+                                  <Button size="sm" variant="default"
+                                    disabled={anyLoading(apt._id) || (stats?.confirmed || 0) < 200}
                                     onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
-                                    className="h-7 px-2.5 text-xs">
+                                    className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                                     {isLoading(apt._id, 'Rescheduled')
                                       ? <Loader2 className="h-3 w-3 animate-spin" />
                                       : <><CalendarDays className="h-3 w-3 mr-1" />Next Day</>}
                                   </Button>
 
                                   {/* Reject */}
-                                  <Button size="sm" variant="outline"
+                                  <Button size="sm" variant="default"
                                     disabled={anyLoading(apt._id)}
                                     onClick={() => handleAppointmentAction(apt._id, 'Not Selected')}
-                                    className="h-7 px-2.5 text-xs text-red-600 border-red-200 hover:bg-red-50">
+                                    className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                                     {isLoading(apt._id, 'Not Selected')
                                       ? <Loader2 className="h-3 w-3 animate-spin" />
                                       : <><XCircle className="h-3 w-3 mr-1" />Reject</>}
@@ -392,10 +405,10 @@ export default function BranchDashboard() {
                               
                               {/* Support Confirmed status actions if needed (like Move to Next Day) */}
                               {apt.status === "Confirmed" && (
-                                <Button size="sm" variant="outline"
-                                  disabled={anyLoading(apt._id)}
+                                <Button size="sm" variant="default"
+                                  disabled={anyLoading(apt._id) || (stats?.confirmed || 0) < 200}
                                   onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
-                                  className="h-7 px-2.5 text-xs">
+                                  className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                                   {isLoading(apt._id, 'Rescheduled')
                                     ? <Loader2 className="h-3 w-3 animate-spin" />
                                     : <><CalendarDays className="h-3 w-3 mr-1" />Next Day</>}
@@ -418,7 +431,6 @@ export default function BranchDashboard() {
             {activeTab === 'emergency' && (
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xl font-bold mb-6">Emergency Requests</h3>
-
                 {/* Emergency Appointments from main list */}
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wide">Emergency Bookings</h4>
@@ -502,6 +514,259 @@ export default function BranchDashboard() {
                   ))}
                   {emergencies.length === 0 && <p className="text-center py-8 text-muted-foreground">No emergency call history.</p>}
                 </div>
+              </div>
+            )}
+
+            {/* ─── DOCTORS TAB ──────────────────────────── */}
+            {activeTab === 'doctors' && (
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">Doctor Management</h3>
+                  <Button onClick={() => (document.getElementById('add-doctor-modal') as any).showModal()} className="gap-2">
+                     <Users className="h-4 w-4" /> Add Doctor
+                  </Button>
+                </div>
+                
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                   {doctors.map(doc => (
+                     <div key={doc._id} className="p-4 border rounded-2xl bg-card flex items-center justify-between">
+                       <div className="flex items-center gap-3">
+                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                           {doc.image ? <img src={doc.image.startsWith('http') ? doc.image : `${API_BASE}/${doc.image}`} className="h-full w-full object-cover rounded-full" /> : doc.name[0]}
+                         </div>
+                         <div>
+                           <p className="font-bold text-sm">Dr. {doc.name}</p>
+                           <p className="text-xs text-muted-foreground">{doc.specialization}</p>
+                         </div>
+                       </div>
+                       <Button size="sm" variant="ghost" className="text-red-500 hover:bg-red-50" onClick={async () => {
+                         if (confirm("Delete this doctor?")) {
+                           const res = await fetch(`${API_BASE}/api/doctors/${doc._id}`, {
+                             method: 'DELETE',
+                             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                           });
+                           if (res.ok) fetchBranchData();
+                         }
+                       }}>
+                         <XCircle className="h-4 w-4" />
+                       </Button>
+                     </div>
+                   ))}
+                </div>
+                
+                <dialog id="add-doctor-modal" className="modal p-0 rounded-2xl bg-transparent backdrop:bg-black/40">
+                   <div className="bg-card border p-6 w-full max-w-md mx-auto rounded-2xl shadow-xl">
+                      <h3 className="text-lg font-bold mb-4">Add New Doctor</h3>
+                      <form className="space-y-4" onSubmit={async (e) => {
+                         e.preventDefault();
+                         setSavingDoctor(true);
+                         const fd = new FormData(e.currentTarget);
+                         const res = await fetch(`${API_BASE}/api/doctors/add`, {
+                           method: 'POST',
+                           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                           body: fd
+                         });
+                         setSavingDoctor(false);
+                         if (res.ok) {
+                           (document.getElementById('add-doctor-modal') as any).close();
+                           fetchBranchData();
+                           toast({ title: "Doctor Added Successfully" });
+                         } else {
+                           const err = await res.json();
+                           toast({ title: "Error", description: err.msg, variant: "destructive" });
+                         }
+                      }}>
+                         <div><label className="text-xs font-bold mb-1 block">Name</label><input name="name" className="w-full border rounded-lg p-2 text-sm bg-background" required /></div>
+                         <div><label className="text-xs font-bold mb-1 block">Email</label><input name="email" type="email" className="w-full border rounded-lg p-2 text-sm bg-background" required /></div>
+                         <div><label className="text-xs font-bold mb-1 block">Password</label><input name="password" type="password" className="w-full border rounded-lg p-2 text-sm bg-background" required /></div>
+                         <div><label className="text-xs font-bold mb-1 block">Specialization</label><input name="specialization" className="w-full border rounded-lg p-2 text-sm bg-background" required /></div>
+                         <div><label className="text-xs font-bold mb-1 block">Experience (Years)</label><input name="experience" type="number" className="w-full border rounded-lg p-2 text-sm bg-background" required /></div>
+                         <div><label className="text-xs font-bold mb-1 block">Doctor Image</label><input type="file" name="image" className="w-full text-xs" /></div>
+                         <input type="hidden" name="branchId" value={branch?._id} />
+                         <div className="flex gap-2 pt-2">
+                           <Button type="submit" className="flex-1 bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={savingDoctor}>
+                             {savingDoctor ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Save Doctor"}
+                           </Button>
+                           <Button type="button" variant="outline" className="flex-1" onClick={() => (document.getElementById('add-doctor-modal') as any).close()}>Cancel</Button>
+                         </div>
+                      </form>
+                   </div>
+                </dialog>
+              </div>
+            )}
+
+            {/* ─── SETTINGS TAB ─────────────────────────── */}
+            {activeTab === 'settings' && (
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                <h3 className="text-xl font-bold mb-6">Profile & Branch Settings</h3>
+                <form className="space-y-8" onSubmit={async (e) => {
+                   e.preventDefault();
+                   if (!branch) return;
+                   
+                   const fd = new FormData(e.currentTarget);
+                   const days = Array.from(e.currentTarget.querySelectorAll('input[name="workingDays"]:checked')).map((i: any) => i.value);
+                   
+                   // Handle days
+                   fd.delete('workingDays'); 
+                   fd.append('workingDays', JSON.stringify(days));
+                   
+                   // Handle gallery
+                   fd.append('existingGallery', JSON.stringify(branch.gallery || []));
+                   
+                   // Handle services
+                   fd.append('services', JSON.stringify(branch.services || []));
+                   
+                   setSavingProfile(true);
+                   try {
+                     const res = await fetch(`${API_BASE}/api/branches/${branch._id}`, {
+                       method: 'PUT',
+                       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                       body: fd
+                     });
+                     
+                     if (res.ok) {
+                       toast({ title: "Profile Updated", description: "All changes saved successfully." });
+                       fetchBranchData();
+                       setNewGalleryPreviews([]); // Clear previews
+                     } else {
+                       const err = await res.json();
+                       toast({ title: "Failed to update", description: err.msg, variant: "destructive" });
+                     }
+                   } catch (err: any) {
+                     toast({ title: "Error", description: err.message, variant: "destructive" });
+                   } finally {
+                     setSavingProfile(false);
+                   }
+                }}>
+                   <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-sm border-b pb-2">General Information</h4>
+                        <div>
+                          <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">About Branch</label>
+                          <textarea name="about" defaultValue={branch?.about} className="w-full border rounded-lg p-3 text-sm min-h-[120px] bg-background placeholder:text-muted-foreground focus:ring-1 focus:ring-primary" placeholder="Describe your branch..." />
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Emergency Phone</label>
+                          <input name="emergencyContactNumber" defaultValue={branch?.emergencyContactNumber} className="w-full border rounded-lg p-2 text-sm bg-background" placeholder="+91 88888 77777" />
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-xl border bg-red-50/30 border-red-100">
+                           <input type="checkbox" name="emergency24x7" defaultChecked={branch?.emergency24x7} className="h-5 w-5 rounded border-red-300 text-red-600 focus:ring-red-500" />
+                           <div>
+                              <p className="text-sm font-bold text-red-700">24/7 Emergency Service</p>
+                              <p className="text-[10px] text-red-600/70">Enable this if your branch operates emergency care round the clock.</p>
+                           </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="font-bold text-sm border-b pb-2">Business Hours</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                             <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Opening Time</label>
+                             <input name="openingTime" type="time" defaultValue={branch?.openingTime} className="w-full border rounded-lg p-2 text-sm bg-background" />
+                           </div>
+                           <div>
+                             <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Closing Time</label>
+                             <input name="closingTime" type="time" defaultValue={branch?.closingTime} className="w-full border rounded-lg p-2 text-sm bg-background" />
+                           </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold mb-2 block text-muted-foreground uppercase">Working Days</label>
+                          <div className="flex flex-wrap gap-2">
+                             {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                               <label key={day} className="flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-lg border text-sm cursor-pointer hover:bg-muted transition-colors">
+                                 <input type="checkbox" name="workingDays" value={day} defaultChecked={branch?.workingDays?.includes(day)} className="h-4 w-4 rounded border-gray-300" />
+                                 {day}
+                               </label>
+                             ))}
+                          </div>
+                        </div>
+                      </div>
+                   </div>
+
+                   {/* ─── SERVICES ────────────────────────────── */}
+                   <div className="space-y-4">
+                      <div className="flex justify-between items-center border-b pb-2">
+                        <h4 className="font-bold text-sm uppercase text-primary">Services Offering</h4>
+                        <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                           const title = prompt("Service Title:");
+                           if (!title) return;
+                           const desc = prompt("Short Description:");
+                           setBranch({...branch, services: [...(branch.services || []), { title, description: desc || '' }]});
+                        }}>Add Service</Button>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                         {(branch?.services || []).map((s: any, i: number) => (
+                           <div key={i} className="p-3 border rounded-xl bg-card/50 relative group">
+                              <p className="font-bold text-sm">{s.title}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{s.description}</p>
+                              <button type="button" className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm" onClick={() => {
+                                 const newS = branch.services.filter((_: any, idx: number) => idx !== i);
+                                 setBranch({...branch, services: newS});
+                              }}><XCircle className="h-3 w-3" /></button>
+                           </div>
+                         ))}
+                         {(!branch?.services || branch.services.length === 0) && <p className="text-xs text-muted-foreground col-span-full italic">No services added yet.</p>}
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      <h4 className="font-bold text-sm border-b pb-2 uppercase text-primary">Gallery & Images</h4>
+                      <p className="text-xs text-muted-foreground">Manage your branch photos. New uploads will appear in the slider on your details page.</p>
+                      
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                         {/* Existing Gallery */}
+                         {(branch?.gallery || []).map((img: string, i: number) => (
+                           <div key={i} className="relative aspect-video border rounded-xl overflow-hidden group shadow-sm bg-muted/20">
+                             <img src={img} className="h-full w-full object-cover" alt={`Gallery ${i}`} />
+                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <button type="button" className="bg-red-600 text-white p-2 rounded-full shadow-lg" onClick={() => {
+                                  const newG = branch.gallery.filter((_: any, idx: number) => idx !== i);
+                                  setBranch({...branch, gallery: newG});
+                                }}><XCircle className="h-5 w-5" /></button>
+                             </div>
+                             <span className="absolute bottom-1 left-1 bg-black/60 text-[8px] text-white px-1.5 rounded uppercase font-bold tracking-tighter">Live</span>
+                           </div>
+                         ))}
+                         
+                         {/* New Upload Previews */}
+                         {newGalleryPreviews.map((url, i) => (
+                           <div key={`new-${i}`} className="relative aspect-video border rounded-xl overflow-hidden group shadow-sm ring-2 ring-primary/20">
+                             <img src={url} className="h-full w-full object-cover opacity-60" alt="New Preview" />
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="bg-primary text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase animate-pulse">Pending</span>
+                             </div>
+                           </div>
+                         ))}
+                         
+                         <label className="aspect-video border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground hover:bg-primary/5 hover:text-primary hover:border-primary transition-all cursor-pointer group">
+                            <Building2 className="h-6 w-6 mb-1 transition-transform group-hover:scale-110" />
+                            <span className="text-xs font-bold text-center px-2">Select Images</span>
+                            <span className="text-[10px] text-muted-foreground">JPG, PNG up to 5MB</span>
+                            <input type="file" name="gallery" multiple className="hidden" accept="image/*" onChange={(e) => {
+                               const files = Array.from(e.target.files || []);
+                               const urls = files.map(f => URL.createObjectURL(f));
+                               setNewGalleryPreviews(urls);
+                               toast({ title: "Images Selected", description: `${files.length} images ready for upload.` });
+                            }} />
+                         </label>
+                      </div>
+                   </div>
+
+                   <div className="flex justify-end gap-3 pt-6 border-t">
+                      <Button variant="ghost" type="button" onClick={fetchBranchData}>Discard Changes</Button>
+                      <Button type="submit" size="lg" className="px-8 shadow-md" disabled={savingProfile}>
+                        {savingProfile ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          "Save Profile Settings"
+                        )}
+                      </Button>
+                   </div>
+                </form>
               </div>
             )}
 

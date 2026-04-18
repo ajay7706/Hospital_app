@@ -33,21 +33,71 @@ exports.addBranch = async (req, res) => {
 
 exports.updateBranch = async (req, res) => {
   try {
-    const hospital = await Hospital.findOne({ userId: req.user.id });
-    if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+    let hospitalId;
+    if (req.user.role === 'hospital') {
+      const hospital = await Hospital.findOne({ userId: req.user.id });
+      if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+      hospitalId = hospital._id;
+    } else if (req.user.role === 'branch') {
+      hospitalId = req.user.hospitalId;
+      // Ensure branch staff only updates their own branch
+      if (req.params.id !== req.user.branchId.toString()) {
+        console.error("Branch ID mismatch:", { paramId: req.params.id, userBranchId: req.user.branchId });
+        return res.status(403).json({ msg: "Access denied. You can only update your own branch." });
+      }
+    } else {
+      return res.status(403).json({ msg: "Not authorized" });
+    }
 
     const updateData = { ...req.body };
-    if (req.file) updateData.image = req.file.path;
+
+    // Convert checkbox "on"/"true" strings to Booleans for Mongoose
+    if (req.body.emergency24x7 !== undefined) {
+      updateData.emergency24x7 = req.body.emergency24x7 === 'on' || req.body.emergency24x7 === 'true' || req.body.emergency24x7 === true;
+    }
+    if (req.body.ambulanceAvailable !== undefined) {
+      updateData.ambulanceAvailable = req.body.ambulanceAvailable === 'on' || req.body.ambulanceAvailable === 'true' || req.body.ambulanceAvailable === true;
+    }
+    
+    // Parse JSON strings from FormData
+    if (req.body.workingDays) {
+      try { updateData.workingDays = JSON.parse(req.body.workingDays); } catch (e) { /* ignore */ }
+    }
+    
+    if (req.body.existingGallery) {
+      try { 
+        updateData.gallery = JSON.parse(req.body.existingGallery); 
+      } catch (e) { /* ignore */ }
+    }
+
+    if (req.body.services) {
+      try { 
+        updateData.services = JSON.parse(req.body.services); 
+      } catch (e) { /* ignore */ }
+    }
+
+    // Handle files from upload.fields
+    if (req.files) {
+      if (req.files.image) {
+        updateData.image = req.files.image[0].path;
+      }
+      if (req.files.gallery) {
+        const newGalleryImages = req.files.gallery.map(f => f.path);
+        const currentGallery = updateData.gallery || []; 
+        updateData.gallery = [...currentGallery, ...newGalleryImages];
+      }
+    }
 
     const branch = await Branch.findOneAndUpdate(
-      { _id: req.params.id, hospitalId: hospital._id },
+      { _id: req.params.id, hospitalId: hospitalId },
       updateData,
-      { new: true }
+      { returnDocument: 'after' }
     );
     
     if (!branch) return res.status(404).json({ msg: "Branch not found" });
     res.json(branch);
   } catch (error) {
+    console.error("Update Branch Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
@@ -56,6 +106,16 @@ exports.getBranchesByHospital = async (req, res) => {
   try {
     const branches = await Branch.find({ hospitalId: req.params.hospitalId });
     res.json(branches);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.getBranchById = async (req, res) => {
+  try {
+    const branch = await Branch.findById(req.params.id).populate("hospitalId");
+    if (!branch) return res.status(404).json({ msg: "Branch not found" });
+    res.json(branch);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

@@ -52,6 +52,34 @@ const branchSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  gallery: {
+    type: [String],
+    default: [],
+  },
+  about: {
+    type: String,
+  },
+  workingDays: {
+    type: [String],
+    default: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  },
+  openingTime: {
+    type: String,
+    default: "09:00 AM",
+  },
+  closingTime: {
+    type: String,
+    default: "08:00 PM",
+  },
+  emergencyContactNumber: {
+    type: String,
+  },
+  services: [
+    {
+      title: String,
+      description: String,
+    }
+  ],
 }, { timestamps: true });
 
 module.exports = mongoose.model("Branch", branchSchema);

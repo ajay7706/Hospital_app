@@ -144,63 +144,62 @@ const Hospitals = () => {
                   transition={{ duration: 0.5, delay: index * 0.05 }}
                   className="group h-full overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md flex flex-col"
                 >
-                  <div className="relative h-32 sm:h-48 overflow-hidden shrink-0">
+                  <div className="relative h-40 sm:h-48 overflow-hidden shrink-0">
                     <img
                       src={hospital.image || '/assets/hospital-1.jpg'}
                       alt={hospital.name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 text-[10px] sm:text-xs font-bold shadow-sm">
                       <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-400 text-amber-400" />
                       {hospital.rating}
                     </div>
                   </div>
-                  <div className="p-3 sm:p-5 flex flex-col flex-1">
-                      <h3 className="font-bold text-sm sm:text-lg text-foreground group-hover:text-primary transition-colors truncate">
-                        {hospital.name}
-                      </h3>
-                      <div className="mt-1 sm:mt-2 flex items-center justify-between gap-1 text-[10px] sm:text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1 truncate">
-                          <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                          <span className="truncate">{hospital.location}</span>
-                        </div>
+                  <div className="p-4 sm:p-5 flex flex-col flex-1">
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                          {hospital.name}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1 text-[11px] sm:text-sm text-muted-foreground mb-3">
+                        <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0 text-primary" />
+                        <span className="truncate">{hospital.location}</span>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-3">
                         {hospital.ambulanceAvailable && (
-                          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Ambulance</div>
+                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0">Ambulance</Badge>
+                        )}
+                        {hospital.branchCount > 0 && (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0">{hospital.branchCount} Branches</Badge>
                         )}
                       </div>
-                      {hospital.branchCount > 0 && (
-                        <div className="mt-2">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                            {hospital.branchCount} Branches Available
-                          </span>
-                        </div>
-                      )}
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                         <div className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-1.5 shadow-sm">
-                            <span className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">OPD CHARGE</span>
-                            <span className="text-sm sm:text-base font-black text-emerald-700 dark:text-emerald-300">₹{hospital.opdCharge}</span>
+                      <div className="mt-auto space-y-3">
+                         <div className="flex items-center justify-between border-t border-border/50 pt-3">
+                            <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">OPD Charge</span>
+                            <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">₹{hospital.opdCharge}</span>
                          </div>
-                      </div>
 
-                      <div className="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2">
-                      {hospital.specialties.slice(0, 2).map((specialty, i) => (
-                        <Badge key={i} variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">
-                          {specialty}
-                        </Badge>
-                      ))}
-                      {hospital.specialties.length > 2 && (
-                        <Badge variant="secondary" className="text-[9px] sm:text-xs px-1.5 py-0">
-                          +{hospital.specialties.length - 2}
-                        </Badge>
-                      )}
+                         <div className="flex flex-wrap gap-1.5">
+                            {hospital.specialties.slice(0, 3).map((specialty, i) => (
+                              <span key={i} className="text-[9px] sm:text-[10px] bg-secondary text-secondary-foreground px-2 py-1 rounded font-medium">
+                                {specialty}
+                              </span>
+                            ))}
+                            {hospital.specialties.length > 3 && (
+                              <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-1 rounded font-medium">
+                                +{hospital.specialties.length - 3}
+                              </span>
+                            )}
+                          </div>
+                      </div>
+                      <div className="mt-4 pt-1">
+                        <Button variant="default" size="sm" className="w-full h-9 sm:h-10 text-xs sm:text-sm font-bold shadow-sm group-hover:shadow-md transition-shadow">
+                          View Hospital <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="mt-auto pt-3 sm:pt-4">
-                      <Button variant="default" size="sm" className="w-full h-8 sm:h-10 text-xs sm:text-sm">
-                        View Hospital
-                      </Button>
-                    </div>
-                  </div>
                 </motion.div>
               </Link>
             ))}

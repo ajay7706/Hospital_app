@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Menu, X, Stethoscope, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck } from 'lucide-react';
+import { Menu, X, Stethoscope, Search, LogOut, LayoutDashboard, UserCircle2, ShieldCheck, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DropdownMenu,
@@ -148,16 +148,35 @@ export const Navbar = () => {
 
                 {/* Menu items */}
                 <div className="p-1">
-                  {user.role !== 'admin' && (
-                    <DropdownMenuItem className="gap-2 rounded-md px-3 py-2 cursor-pointer">
-                      <UserCircle2 className="h-4 w-4 text-muted-foreground" />
-                      <span>My Profile</span>
-                    </DropdownMenuItem>
-                  )}
+                  {/* Common Profile Link */}
+                  <DropdownMenuItem onClick={() => navigate('/edit-profile')} className="gap-2 rounded-md px-3 py-2 cursor-pointer">
+                    <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
+                  
+                  {/* Role-Specific Dashboard Links */}
                   {user.role === 'hospital' && (
                     <DropdownMenuItem onClick={() => navigate('/hospital-dashboard')} className="gap-2 rounded-md px-3 py-2 cursor-pointer">
                       <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                       <span>Hospital Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === 'branch' && (
+                    <DropdownMenuItem onClick={() => navigate('/branch-dashboard')} className="gap-2 rounded-md px-3 py-2 cursor-pointer">
+                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                      <span>Staff Dashboard</span>
+                    </DropdownMenuItem>
+                  )}
+                  {user.role === 'doctor' && (
+                    <DropdownMenuItem onClick={() => navigate('/doctor-dashboard')} className="gap-2 rounded-md px-3 py-2 cursor-pointer">
+                      <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+                      <span>Doctor Portal</span>
+                    </DropdownMenuItem>
+                  )}
+                  {(user.role === 'patient' || user.role === 'user') && (
+                    <DropdownMenuItem onClick={() => navigate('/patient-dashboard')} className="gap-2 rounded-md px-3 py-2 cursor-pointer">
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                      <span>Track Appointment</span>
                     </DropdownMenuItem>
                   )}
                   {user.role === 'admin' && (
@@ -166,6 +185,7 @@ export const Navbar = () => {
                       <span>Admin Dashboard</span>
                     </DropdownMenuItem>
                   )}
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="gap-2 rounded-md px-3 py-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
                     <LogOut className="h-4 w-4" />

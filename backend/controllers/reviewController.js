@@ -10,7 +10,7 @@ exports.addReview = async (req, res) => {
     const appointment = await Appointment.findOne({
       patientId: req.user.id,
       hospitalId,
-      status: "completed",
+      status: { $regex: /^completed$/i }
     });
 
     if (!appointment) {

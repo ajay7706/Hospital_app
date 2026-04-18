@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { getAllHospitals } from '@/lib/hospitalStore';
 import api from '@/lib/api';
 import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -413,62 +414,67 @@ const HospitalDetails = () => {
                       {branches.slice(0, 4).map((branch: any) => {
                         return (
                         <div key={branch._id} className="group overflow-hidden border rounded-2xl bg-card transition-all hover:shadow-md flex flex-col">
-                          <div className="relative h-32 overflow-hidden bg-muted">
+                          <Link to={`/branch-details?id=${branch._id}`} className="block relative h-40 sm:h-48 overflow-hidden">
                             <img 
                               src={branch.image || '/assets/hospital-1.jpg'} 
                               alt={branch.branchName} 
-                              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = '/assets/hospital-1.jpg';
                               }}
                             />
-                          </div>
-                          <div className="p-4 flex flex-col flex-1">
-                            <h3 className="font-bold text-base truncate">{branch.branchName}</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5 mb-1 flex items-start gap-1">
-                              <MapPin className="h-3 w-3 mt-0.5 shrink-0 text-primary" /> 
+                          </Link>
+                          <div className="p-4 sm:p-5 flex flex-col flex-1">
+                            <Link to={`/branch-details?id=${branch._id}`} className="hover:text-primary transition-colors">
+                              <h3 className="font-bold text-base sm:text-lg line-clamp-1 mb-1">{branch.branchName}</h3>
+                            </Link>
+                            <p className="text-[11px] sm:text-sm text-muted-foreground flex items-center gap-1 mb-3">
+                              <MapPin className="h-3 w-3 sm:h-4 w-4 shrink-0 text-primary" /> 
                               <span className="truncate">{branch.city}</span>
                             </p>
-                            {branch.specialties && (
-                              <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-tight mb-2 truncate">
-                                {branch.specialties}
-                              </p>
-                            )}
-                            <div className="flex gap-2 mb-3">
+                            
+                            <div className="flex flex-wrap gap-2 mb-3">
                               {branch.ambulanceAvailable && (
-                                <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shadow-sm" title="Ambulance Available">
-                                  <Ambulance className="h-4 w-4" />
-                                </div>
+                                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0">Ambulance</Badge>
                               )}
                               {branch.emergency24x7 && (
-                                <div className="h-7 w-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 shadow-sm" title="24/7 Emergency">
-                                  <Activity className="h-4 w-4" />
-                                </div>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[9px] sm:text-[10px] uppercase font-bold tracking-wider px-1.5 py-0">24/7 Emergency</Badge>
                               )}
                             </div>
+
+                            {branch.specialties && (
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {branch.specialties.split(',').map((spec: string, i: number) => (
+                                  <span key={i} className="text-[9px] sm:text-[10px] bg-secondary text-secondary-foreground px-2 py-1 rounded font-medium">
+                                    {spec.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             
-                            <div className="mb-4">
-                               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/60 shadow-sm group-hover:bg-emerald-100 transition-colors">
-                                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">Consultation:</span>
-                                  <span className="text-sm font-black text-emerald-700 dark:text-emerald-300 italic">₹{branch.opdChargeType === 'custom' ? branch.opdCharge : hospital.opdCharge}</span>
+                            <div className="mt-auto space-y-3">
+                               <div className="flex items-center justify-between border-t border-border/50 pt-3 mb-3">
+                                  <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">OPD Charge</span>
+                                  <span className="text-sm sm:text-lg font-black text-emerald-600 dark:text-emerald-400">₹{branch.opdChargeType === 'custom' ? branch.opdCharge : hospital.opdCharge}</span>
                                </div>
-                            </div>
 
-                            <div className="mt-auto grid grid-cols-2 gap-2">
-
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-9 text-[10px] font-bold" 
-                                onClick={() => navigate(`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&branchPhone=${encodeURIComponent(branch.phone || '')}&hospitalName=${encodeURIComponent(hospital.name || '')}&autoCall=1`)}
-                              >
-                                <Phone className="mr-1 h-3 w-3" /> Call
-                              </Button>
-                              <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="">
-                                <Button size="sm" className="w-full h-9 text-[10px] font-bold">
-                                  Book Visit
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="h-9 sm:h-10 text-[11px] sm:text-sm font-bold border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors" 
+                                  onClick={() => {
+                                    const num = branch.emergencyContactNumber || branch.phone || hospital.phone;
+                                    if (num) window.location.href = `tel:${num}`;
+                                  }}
+                                >
+                                  <Phone className="mr-1 sm:mr-2 h-3.5 w-3.5" /> Call
                                 </Button>
-                              </Link>
+                                <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="">
+                                  <Button size="sm" className="w-full h-9 sm:h-10 text-[11px] sm:text-sm font-bold group-hover:shadow-md transition-shadow">
+                                    Book Visit
+                                  </Button>
+                                </Link>
                               {(branch.emergency24x7 || branch.ambulanceAvailable) && (
                                 <Button 
                                   size="sm" 
@@ -479,6 +485,7 @@ const HospitalDetails = () => {
                                   <Ambulance className="mr-1 h-3 w-3" /> Emergency Booking
                                 </Button>
                               )}
+                            </div>
                             </div>
                           </div>
                         </div>

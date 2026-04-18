@@ -70,6 +70,8 @@ const BookVisit = () => {
   const isEmergency = searchParams.get('emergency') === '1';
   const returnTo = searchParams.get('returnTo');
 
+  const displayName = branchName ? `${hospitalName} - ${branchName}` : hospitalName;
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [otpStep, setOtpStep] = useState(false);
@@ -381,7 +383,7 @@ const BookVisit = () => {
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-foreground md:text-3xl">Book Your Visit</h1>
             <p className="mt-2 text-muted-foreground">
-              Fill in the details below to schedule your appointment at {hospitalName}
+              Fill in the details below to schedule your appointment at {displayName}
             </p>
           </div>
 
@@ -391,7 +393,7 @@ const BookVisit = () => {
               <div className="flex items-center gap-3">
                 <Building2 className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-foreground">{hospitalName}</p>
+                  <p className="text-sm font-medium text-foreground">{displayName}</p>
                   <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
                 </div>
               </div>
