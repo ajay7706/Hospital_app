@@ -397,10 +397,12 @@ const BookVisit = () => {
                   <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Consultation Fee</p>
-                <p className="text-lg font-black text-primary">₹{opdCharge}</p>
-              </div>
+              {opdCharge > 0 && (
+                <div className="text-right">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Consultation Fee</p>
+                  <p className="text-lg font-black text-primary">₹{opdCharge}</p>
+                </div>
+              )}
             </div>
 
             {isEmergency && (

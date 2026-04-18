@@ -90,6 +90,11 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
   drawRow("EMAIL ADDRESS", details.patientEmail, 60, currentY);
   drawRow("PROBLEM / SYMPTOMS", details.problem && details.problem !== "undefined" ? details.problem : "General Consultation", 320, currentY);
 
+  if (details.opdCharge && details.opdCharge > 0) {
+    currentY += 50;
+    drawRow("OPD CONSULTATION FEE", `Rs. ${details.opdCharge}`, 60, currentY);
+  }
+
   // --- Section 2: Hospital & Provider Details ---
   currentY += 65;
   doc.fillColor("#1e3a8a").fontSize(12).text("HOSPITAL & PROVIDER DETAILS", 50, currentY, { bold: true });
