@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -127,7 +128,9 @@ export default function BranchDashboard() {
       if (!res.ok) { toast({ title: 'Error', description: await readError(res), variant: 'destructive' }); return; }
       setEmergencies(prev => prev.map(e => e._id === id ? { ...e, status } : e));
       toast({ title: `Emergency ${status}` });
-    } catch { } finally { setUpdatingId(null); setActionType(null); }
+    } catch (err: any) {
+       console.error("Emergency action failed:", err);
+    } finally { setUpdatingId(null); setActionType(null); }
   };
 
   const isLoading = (id: string, type: string) => updatingId === id && actionType === type;
