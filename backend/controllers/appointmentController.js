@@ -20,13 +20,15 @@ exports.bookAppointment = async (req, res) => {
       return res.status(403).json({ msg: "Hospital is not approved yet." });
     }
 
-    // 2. USER RESTRICTION: One active booking per user
+    // 2. USER RESTRICTION: Allow booking again if already approved, or at different hospitals/dates
     const activeBooking = await Appointment.findOne({
       patientId: req.user.id,
-      status: { $in: ["Waiting", "Confirmed", "Rescheduled", "pending", "approved"] }
+      hospitalId,
+      date,
+      status: { $in: ["Waiting", "pending", "Rescheduled"] }
     });
     if (activeBooking) {
-      return res.status(400).json({ msg: "You already have an active appointment." });
+      return res.status(400).json({ msg: "You already have an active appointment at this hospital on this date." });
     }
 
     let maxQueue = 0;
