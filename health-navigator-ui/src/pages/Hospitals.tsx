@@ -4,7 +4,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Star, MapPin, Search, Ambulance } from 'lucide-react';
+import { Star, MapPin, Search, Ambulance, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getHospitals as getApiHospitals } from '@/lib/api'; // Removed unused api import
 import { Badge } from '@/components/ui/badge';
