@@ -506,6 +506,7 @@ export default function HospitalDashboard() {
                                       id={`doc-select-${apt._id}`}
                                       className="h-8 text-[10px] border rounded bg-background px-1"
                                       defaultValue=""
+                                      disabled={!!apt.branchId}
                                     >
                                       <option value="">Select Doctor</option>
                                       {doctors
@@ -521,18 +522,18 @@ export default function HospitalDashboard() {
                                         const select = document.getElementById(`doc-select-${apt._id}`) as HTMLSelectElement;
                                         handleStatusUpdate(apt._id, 'Confirmed', 'appointment', select.value);
                                       }}
-                                      disabled={updatingStatus === apt._id}
+                                      disabled={updatingStatus === apt._id || !!apt.branchId}
                                       className="h-8 w-full bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold"
                                     >
                                       {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
-                                      Approve & Assign
+                                      {apt.branchId ? 'Branch Appt' : 'Approve & Assign'}
                                     </Button>
                                   </div>
                                   <Button 
                                     variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
-                                    disabled={updatingStatus === apt._id || (stats?.confirmed || 0) < 200}
+                                    disabled={updatingStatus === apt._id || !!apt.branchId || (stats?.confirmed || 0) < 200}
                                     className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
@@ -542,7 +543,7 @@ export default function HospitalDashboard() {
                                     variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Not Selected', 'appointment')}
-                                    disabled={updatingStatus === apt._id}
+                                    disabled={updatingStatus === apt._id || !!apt.branchId}
                                     className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
@@ -554,7 +555,7 @@ export default function HospitalDashboard() {
                                     variant="default"
                                     size="sm"
                                     onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
-                                    disabled={updatingStatus === apt._id || (stats?.confirmed || 0) < 200}
+                                    disabled={updatingStatus === apt._id || !!apt.branchId || (stats?.confirmed || 0) < 200}
                                     className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
                                     {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}

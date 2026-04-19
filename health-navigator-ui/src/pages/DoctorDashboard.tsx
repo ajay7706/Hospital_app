@@ -247,6 +247,7 @@ export default function DoctorDashboard() {
                                   disabled={updatingStatus === apt._id}
                                   className="bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-200"
                                 >
+                                  {updatingStatus === apt._id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                   Mark Completed
                                 </Button>
                               </>

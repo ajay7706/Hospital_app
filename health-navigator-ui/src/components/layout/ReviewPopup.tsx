@@ -35,8 +35,8 @@ export function ReviewPopup() {
         return; // Don't show if reminder is set for future
       }
       
-      // Check session storage (only once per session)
-      if (sessionStorage.getItem('reviewPopupShown')) return;
+      // Check session storage (commented out to allow persistent showing until rated)
+      // if (sessionStorage.getItem('reviewPopupShown')) return;
 
       try {
         const res = await fetch(`${API_BASE}/api/appointments/patient`, {
@@ -49,7 +49,7 @@ export function ReviewPopup() {
           if (unrated) {
             setAppointment(unrated);
             setIsOpen(true);
-            sessionStorage.setItem('reviewPopupShown', 'true');
+            // sessionStorage.setItem('reviewPopupShown', 'true');
           }
         }
       } catch (err) {
@@ -58,9 +58,9 @@ export function ReviewPopup() {
     };
 
     // Small delay to let the page load
-    const timer = setTimeout(checkUnratedAppointments, 2000);
+    const timer = setTimeout(checkUnratedAppointments, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isOpen]); // Re-check if it was closed but maybe another unrated exists or just keep checking
 
   const handleRemindLater = () => {
     // 24 hours from now
