@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const Hospital = require("../models/Hospital");
 const User = require("../models/Users");
 const { sendHospitalApprovalEmail, sendHospitalPendingEmail, sendWhatsAppNotification } = require("../config/mailer");
+const AdminSettings = require("../models/AdminSettings");
+const Branch = require("../models/Branch");
+const Doctor = require("../models/Doctor");
+const Appointment = require("../models/Appointment");
+const EmergencyLog = require("../models/EmergencyLog");
 
 // Add Hospital (Hospital Setup)
 exports.addHospital = async (req, res) => {
@@ -369,25 +374,25 @@ exports.getAdminStats = async (req, res) => {
     const totalHospitals = await Hospital.countDocuments({ isDeleted: false });
     const pendingHospitals = await Hospital.countDocuments({ approvalStatus: "pending", isDeleted: false });
     const totalUsers = await User.countDocuments({ role: { $ne: 'admin' } });
-    const totalAppointments = await mongoose.model('Appointment').countDocuments();
+    const totalAppointments = await Appointment.countDocuments();
     
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    const todayEmergencies = await mongoose.model('EmergencyLog').countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
+    const todayEmergencies = await EmergencyLog.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } });
 
     // Analytics (Weekly Appointment Trends)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const appointmentTrends = await mongoose.model('Appointment').aggregate([
+    const appointmentTrends = await Appointment.aggregate([
       { $match: { createdAt: { $gte: sevenDaysAgo } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]);
 
     // Analytics (Weekly Emergency Trends)
-    const emergencyTrends = await mongoose.model('EmergencyLog').aggregate([
+    const emergencyTrends = await EmergencyLog.aggregate([
       { $match: { createdAt: { $gte: sevenDaysAgo } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
@@ -395,11 +400,11 @@ exports.getAdminStats = async (req, res) => {
 
     // Recent Activity
     const recentHospitals = await Hospital.find({ isDeleted: false }).sort({ createdAt: -1 }).limit(5);
-    const recentAppointments = await mongoose.model('Appointment').find().sort({ createdAt: -1 }).limit(5);
-    const recentEmergencies = await mongoose.model('EmergencyLog').find().populate('hospitalId', 'hospitalName').sort({ createdAt: -1 }).limit(5);
+    const recentAppointments = await Appointment.find().sort({ createdAt: -1 }).limit(5);
+    const recentEmergencies = await EmergencyLog.find().populate('hospitalId', 'hospitalName').sort({ createdAt: -1 }).limit(5);
 
     // Analytics: Top Hospitals by Bookings
-    const topHospitals = await mongoose.model('Appointment').aggregate([
+    const topHospitals = await Appointment.aggregate([
       { $group: { _id: "$hospitalName", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 5 }
@@ -413,19 +418,74 @@ exports.getAdminStats = async (req, res) => {
       { $limit: 5 }
     ]);
 
+    const totalBranches = await Branch.countDocuments();
+    const totalDoctors = await Doctor.countDocuments();
+    const totalStaff = await User.countDocuments({ role: "branch" });
+
+    // Newly added hospitals
+    const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const hospitalsAddedToday = await Hospital.countDocuments({ createdAt: { $gte: todayStart }, isDeleted: false });
+    const hospitalsAddedThisWeek = await Hospital.countDocuments({ createdAt: { $gte: weekStart }, isDeleted: false });
+
+    // Detailed Analytics: Platform Insights
+    const platformInsights = {
+      hospitals: {
+        total: totalHospitals,
+        today: hospitalsAddedToday,
+        thisWeek: hospitalsAddedThisWeek,
+        all: await Hospital.find({ isDeleted: false }).select('hospitalName createdAt city').sort({ createdAt: -1 })
+      },
+      branches: {
+        total: totalBranches,
+        perHospital: await Branch.aggregate([
+          { $group: { _id: "$hospitalId", count: { $sum: 1 } } }
+        ])
+      },
+      doctors: {
+        total: totalDoctors,
+        perHospital: await Doctor.aggregate([
+          { $group: { _id: "$hospitalId", count: { $sum: 1 } } }
+        ]),
+        perBranch: await Doctor.aggregate([
+          { $group: { _id: "$branchId", count: { $sum: 1 } } }
+        ])
+      },
+      staff: {
+        total: totalStaff,
+        perHospital: await User.aggregate([
+          { $match: { role: "branch" } },
+          { $group: { _id: "$hospitalId", count: { $sum: 1 } } }
+        ]),
+        perBranch: await User.aggregate([
+          { $match: { role: "branch" } },
+          { $group: { _id: "$branchId", count: { $sum: 1 } } }
+        ])
+      },
+      appointments: {
+        total: totalAppointments,
+        today: await Appointment.countDocuments({ createdAt: { $gte: todayStart } }),
+        pending: await Appointment.countDocuments({ status: "Waiting" }),
+        completed: await Appointment.countDocuments({ status: "Completed" })
+      }
+    };
+
     res.json({
       totalHospitals,
       pendingHospitals,
       totalUsers,
       totalAppointments,
       todayEmergencies,
+      totalBranches,
+      totalDoctors,
+      totalStaff,
       appointmentTrends,
       emergencyTrends,
       recentHospitals,
       recentAppointments,
       recentEmergencies,
       topHospitals,
-      activeCities
+      activeCities,
+      platformInsights
     });
   } catch (error) {
     console.error("Admin Stats Error:", error);
@@ -512,3 +572,54 @@ exports.rejectHospital = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
+
+// Admin Settings Controllers
+exports.getAdminSettings = async (req, res) => {
+  try {
+    let settings = await AdminSettings.findOne();
+    if (!settings) {
+      settings = await AdminSettings.create({});
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.updateAdminSettings = async (req, res) => {
+  try {
+    let settings = await AdminSettings.findOne();
+    if (!settings) {
+      settings = new AdminSettings(req.body);
+    } else {
+      Object.assign(settings, req.body);
+    }
+    settings.updatedAt = Date.now();
+    await settings.save();
+    res.json({ msg: "Settings updated successfully", settings });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
+exports.getHospitalBranchesDetail = async (req, res) => {
+  try {
+    const hospitalId = req.params.id;
+    const branches = await Branch.find({ hospitalId });
+    
+    const detailedBranches = await Promise.all(branches.map(async (b) => {
+      const doctorsCount = await Doctor.countDocuments({ branchId: b._id });
+      const staffCount = await User.countDocuments({ branchId: b._id, role: "branch" });
+      return {
+        ...b.toObject(),
+        doctorsCount,
+        staffCount
+      };
+    }));
+
+    res.json(detailedBranches);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+

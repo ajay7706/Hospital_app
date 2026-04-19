@@ -77,8 +77,10 @@ const Login = () => {
           return;
         }
 
-        if (result.user?.role === 'admin' || result.user?.role === 'hospital') {
-          if (result.user?.hospitalAdded || result.user?.role === 'admin') {
+        if (result.user?.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (result.user?.role === 'hospital') {
+          if (result.user?.hospitalAdded) {
             navigate('/hospital-dashboard');
           } else {
             navigate('/hospital-setup');

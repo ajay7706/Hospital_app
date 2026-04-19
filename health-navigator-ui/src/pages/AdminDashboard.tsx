@@ -17,8 +17,22 @@ import {
   Ban,
   RotateCcw,
   Eye,
-  XCircle
+  XCircle,
+  Database,
+  TrendingUp,
+  Lock,
+  Settings2,
+  Mail,
+  Phone as PhoneIcon,
+  Globe,
+  Percent,
+  Shield,
+  Save,
+  Image as ImageIcon
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Table,
@@ -58,9 +72,13 @@ const AdminDashboard = () => {
   const [reviews, setReviews] = useState<any[]>([]);
   const [emergencies, setEmergencies] = useState<any[]>([]);
 
-  // Selection for Modals
   const [selectedHospital, setSelectedHospital] = useState<any>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
+  const [hospitalBranches, setHospitalBranches] = useState<any[]>([]);
+
+  // Settings State
+  const [adminSettings, setAdminSettings] = useState<any>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   const fetchAdminData = async () => {
     setLoading(true);
@@ -83,7 +101,11 @@ const AdminDashboard = () => {
       } else if (activeTab === 'reviews') {
         const res = await fetch(`${API_BASE}/api/admin/reviews`, { headers });
         if (res.ok) setReviews(await res.json());
+      } else if (activeTab === 'settings') {
+        const res = await fetch(`${API_BASE}/api/admin/settings`, { headers });
+        if (res.ok) setAdminSettings(await res.json());
       }
+    } catch (err) {
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
     } finally {
@@ -124,6 +146,44 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleUpdateSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/admin/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(adminSettings)
+      });
+
+      if (res.ok) {
+        toast({ title: 'Success', description: 'Platform settings updated' });
+      } else {
+        throw new Error('Failed to update settings');
+      }
+    } catch (err) {
+      toast({ title: 'Error', description: 'Failed to update settings', variant: 'destructive' });
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const fetchHospitalBranches = async (hospitalId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/admin/hospital/${hospitalId}/branches`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setHospitalBranches(await res.json());
+    } catch (err) {
+      console.error('Failed to fetch branches');
+    }
+  };
+
   const statCards = [
     { label: 'Total Hospitals', value: stats?.totalHospitals || 0, icon: Building2, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Pending Approvals', value: stats?.pendingHospitals || 0, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
@@ -161,9 +221,11 @@ const AdminDashboard = () => {
         <nav className="space-y-2 flex-1">
           <SidebarItem icon={LayoutDashboard} label="Overview" id="overview" />
           <SidebarItem icon={Building2} label="Hospitals" id="hospitals" />
+          <SidebarItem icon={TrendingUp} label="Platform Insights" id="insights" />
           <SidebarItem icon={Users} label="Users" id="users" />
           <SidebarItem icon={Calendar} label="Appointments" id="appointments" />
           <SidebarItem icon={Star} label="Reviews" id="reviews" />
+          <SidebarItem icon={Settings2} label="Settings" id="settings" />
         </nav>
       </aside>
 
@@ -332,7 +394,11 @@ const AdminDashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-2">
-                          <Button size="sm" variant="ghost" onClick={() => { setSelectedHospital(h); setDocModalOpen(true); }}>
+                          <Button size="sm" variant="ghost" onClick={() => { 
+                            setSelectedHospital(h); 
+                            fetchHospitalBranches(h._id);
+                            setDocModalOpen(true); 
+                          }}>
                             <Eye className="h-4 w-4" />
                           </Button>
                           {h.approvalStatus === 'pending' && (
@@ -417,6 +483,331 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'appointments' && (
+            </motion.div>
+          )}
+
+          {activeTab === 'insights' && (
+            <motion.div key="insights" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6">
+                  <h4 className="text-blue-700 font-bold mb-1">New Hospitals</h4>
+                  <p className="text-3xl font-black text-blue-900">{stats?.platformInsights?.hospitals?.today || 0}</p>
+                  <p className="text-xs text-blue-600 mt-1">Today's registrations</p>
+                </div>
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6">
+                  <h4 className="text-indigo-700 font-bold mb-1">Total Branches</h4>
+                  <p className="text-3xl font-black text-indigo-900">{stats?.totalBranches || 0}</p>
+                  <p className="text-xs text-indigo-600 mt-1">Across all locations</p>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-6">
+                  <h4 className="text-emerald-700 font-bold mb-1">Active Doctors</h4>
+                  <p className="text-3xl font-black text-emerald-900">{stats?.totalDoctors || 0}</p>
+                  <p className="text-xs text-emerald-600 mt-1">Verified professionals</p>
+                </div>
+                <div className="bg-rose-50 border border-rose-100 rounded-2xl p-6">
+                  <h4 className="text-rose-700 font-bold mb-1">Platform Staff</h4>
+                  <p className="text-3xl font-black text-rose-900">{stats?.totalStaff || 0}</p>
+                  <p className="text-xs text-rose-600 mt-1">Total support staff</p>
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-8">
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-primary" /> Hospital Registry
+                  </h3>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {stats?.platformInsights?.hospitals?.all?.map((h: any) => (
+                      <div key={h._id} className="flex items-center justify-between p-3 rounded-xl hover:bg-muted/50 transition-colors border border-transparent hover:border-border">
+                        <div>
+                          <p className="font-bold text-sm">{h.hospitalName}</p>
+                          <p className="text-xs text-muted-foreground">{h.city}</p>
+                        </div>
+                        <p className="text-[10px] font-medium bg-muted px-2 py-1 rounded-full">
+                          {new Date(h.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" /> Appointment Insights
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Bookings</p>
+                      <p className="text-2xl font-black mt-1">{stats?.platformInsights?.appointments?.total || 0}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/30">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Today's</p>
+                      <p className="text-2xl font-black mt-1 text-primary">{stats?.platformInsights?.appointments?.today || 0}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+                      <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Pending</p>
+                      <p className="text-2xl font-black mt-1 text-amber-900">{stats?.platformInsights?.appointments?.pending || 0}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-green-50 border border-green-100">
+                      <p className="text-xs font-bold text-green-700 uppercase tracking-wider">Completed</p>
+                      <p className="text-2xl font-black mt-1 text-green-900">{stats?.platformInsights?.appointments?.completed || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
+            <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <form onSubmit={handleUpdateSettings} className="space-y-8 max-w-4xl">
+                {/* 1. GENERAL SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Globe className="h-5 w-5 text-primary" /> 1. General Settings
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Platform Name</Label>
+                      <Input 
+                        value={adminSettings?.platformName || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, platformName: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default City/Location</Label>
+                      <Input 
+                        value={adminSettings?.defaultCity || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, defaultCity: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Support Email</Label>
+                      <Input 
+                        type="email"
+                        value={adminSettings?.supportEmail || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, supportEmail: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Support Phone</Label>
+                      <Input 
+                        value={adminSettings?.supportPhone || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, supportPhone: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. OPD SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-primary" /> 2. OPD Settings
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-8 items-end">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Enable OPD Fee Globally</Label>
+                        <p className="text-xs text-muted-foreground">Charge platform fees on all bookings</p>
+                      </div>
+                      <Switch 
+                        checked={adminSettings?.enableOpdFeeGlobally} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableOpdFeeGlobally: checked})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Default OPD Fee (₹)</Label>
+                      <Input 
+                        type="number"
+                        value={adminSettings?.defaultOpdFee || 0} 
+                        onChange={(e) => setAdminSettings({...adminSettings, defaultOpdFee: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Allow Branch Override</Label>
+                        <p className="text-xs text-muted-foreground">Branches can set custom fees</p>
+                      </div>
+                      <Switch 
+                        checked={adminSettings?.allowBranchOverride} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, allowBranchOverride: checked})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. APPOINTMENT SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" /> 3. Appointment Settings
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Max Bookings Per Day</Label>
+                      <Input 
+                        type="number"
+                        value={adminSettings?.maxBookingsPerDay || 300} 
+                        onChange={(e) => setAdminSettings({...adminSettings, maxBookingsPerDay: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Approvals Per Day</Label>
+                      <Input 
+                        type="number"
+                        value={adminSettings?.maxApprovalsPerDay || 200} 
+                        onChange={(e) => setAdminSettings({...adminSettings, maxApprovalsPerDay: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Slot Timing (Minutes)</Label>
+                      <Input 
+                        type="number"
+                        value={adminSettings?.slotTimingMinutes || 15} 
+                        onChange={(e) => setAdminSettings({...adminSettings, slotTimingMinutes: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Allow Overbooking</Label>
+                      </div>
+                      <Switch 
+                        checked={adminSettings?.allowOverbooking} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, allowOverbooking: checked})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. NOTIFICATION SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-primary" /> 4. Notifications
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <Label>Email</Label>
+                      <Switch 
+                        checked={adminSettings?.enableEmail} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableEmail: checked})}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <Label>SMS</Label>
+                      <Switch 
+                        checked={adminSettings?.enableSms} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableSms: checked})}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl opacity-50">
+                      <Label>WhatsApp</Label>
+                      <Switch disabled checked={false} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. RATING SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Star className="h-5 w-5 text-primary" /> 5. Rating Settings
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between p-4 bg-muted/30 rounded-xl">
+                      <Label>Enable Rating System</Label>
+                      <Switch 
+                        checked={adminSettings?.enableRatingSystem} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableRatingSystem: checked})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Max Reminder Count</Label>
+                      <Input 
+                        type="number"
+                        value={adminSettings?.maxReminderCount || 2} 
+                        onChange={(e) => setAdminSettings({...adminSettings, maxReminderCount: parseInt(e.target.value)})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. SECURITY & DATA */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                      <Lock className="h-5 w-5 text-primary" /> 6. Security
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Auto Logout (Minutes)</Label>
+                        <Input 
+                          type="number"
+                          value={adminSettings?.autoLogoutTimeMinutes || 60} 
+                          onChange={(e) => setAdminSettings({...adminSettings, autoLogoutTimeMinutes: parseInt(e.target.value)})}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label>Login Protection</Label>
+                        <Switch 
+                          checked={adminSettings?.enableLoginProtection} 
+                          onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableLoginProtection: checked})}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                      <Trash2 className="h-5 w-5 text-primary" /> 7. Data Management
+                    </h3>
+                    <div className="flex items-center justify-between p-4 bg-rose-50 border border-rose-100 rounded-xl">
+                      <div className="space-y-0.5">
+                        <Label className="text-rose-700">Enable Soft Delete</Label>
+                        <p className="text-xs text-rose-600">Items are hidden instead of removed</p>
+                      </div>
+                      <Switch 
+                        checked={adminSettings?.enableSoftDelete} 
+                        onCheckedChange={(checked) => setAdminSettings({...adminSettings, enableSoftDelete: checked})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8. API SETTINGS */}
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Settings2 className="h-5 w-5 text-primary" /> 8. API Configuration
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>SMS API Key</Label>
+                      <Input 
+                        type="password"
+                        placeholder="••••••••••••••••"
+                        value={adminSettings?.smsApiKey || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, smsApiKey: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email API Key (SendGrid/SMTP)</Label>
+                      <Input 
+                        type="password"
+                        placeholder="••••••••••••••••"
+                        value={adminSettings?.emailApiKey || ''} 
+                        onChange={(e) => setAdminSettings({...adminSettings, emailApiKey: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-6">
+                  <Button size="lg" className="px-10 gap-2 h-14 text-lg shadow-xl" type="submit" isLoading={settingsLoading}>
+                    <Save className="h-5 w-5" /> Save All Settings
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {activeTab === 'appointments' && (
             <motion.div key="appointments" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                 <Table>
@@ -492,37 +883,115 @@ const AdminDashboard = () => {
         </AnimatePresence>
       </main>
 
-      {/* Hospital Docs Modal */}
+      {/* Hospital Details Modal */}
       <Dialog open={docModalOpen} onOpenChange={setDocModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Hospital Verification Documents</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0 border-none shadow-2xl">
           {selectedHospital && (
-            <div className="grid md:grid-cols-2 gap-6 mt-4">
-              <div className="space-y-2">
-                <p className="text-sm font-bold">License Certificate</p>
-                <div className="border rounded-xl overflow-hidden bg-muted">
-                  {selectedHospital.licenseCertificate?.endsWith('.pdf') ? (
-                    <iframe src={resolveUrl(selectedHospital.licenseCertificate)} className="w-full h-64" />
-                  ) : (
-                    <img src={resolveUrl(selectedHospital.licenseCertificate)} className="w-full h-auto object-contain" />
-                  )}
+            <div className="flex flex-col h-full">
+              {/* Header Banner */}
+              <div className="h-32 bg-gradient-to-r from-primary/20 to-indigo-500/10 flex items-end px-8 pb-4">
+                <div className="flex items-center gap-4">
+                  <img src={resolveUrl(selectedHospital.hospitalLogo)} className="h-20 w-20 rounded-2xl border-4 border-background shadow-lg object-cover" />
+                  <div className="mb-2">
+                    <h2 className="text-2xl font-bold">{selectedHospital.hospitalName}</h2>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {selectedHospital.city}, {selectedHospital.state}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-bold">Owner ID Proof</p>
-                <div className="border rounded-xl overflow-hidden bg-muted">
-                  <img src={resolveUrl(selectedHospital.ownerIdProof)} className="w-full h-auto object-contain" />
+
+              <div className="p-8 space-y-8">
+                {/* Stats Summary */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 text-center">
+                    <Building2 className="h-5 w-5 mx-auto mb-2 text-primary" />
+                    <p className="text-2xl font-black">{hospitalBranches.length}</p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Branches</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 text-center">
+                    <Users className="h-5 w-5 mx-auto mb-2 text-indigo-500" />
+                    <p className="text-2xl font-black">
+                      {hospitalBranches.reduce((acc, b) => acc + (b.doctorsCount || 0), 0)}
+                    </p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Total Doctors</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/50 text-center">
+                    <ShieldCheck className="h-5 w-5 mx-auto mb-2 text-emerald-500" />
+                    <p className="text-2xl font-black">
+                      {hospitalBranches.reduce((acc, b) => acc + (b.staffCount || 0), 0)}
+                    </p>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Support Staff</p>
+                  </div>
                 </div>
-              </div>
-              <div className="md:col-span-2 p-4 bg-muted/50 rounded-xl space-y-3">
-                <h4 className="font-bold">Hospital Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <p><span className="text-muted-foreground">License:</span> {selectedHospital.hospitalLicenseNumber}</p>
-                  <p><span className="text-muted-foreground">Admin:</span> {selectedHospital.adminName}</p>
-                  <p><span className="text-muted-foreground">Contact:</span> {selectedHospital.contactNumber}</p>
-                  <p><span className="text-muted-foreground">Email:</span> {selectedHospital.officialEmail}</p>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Left Column: Branches */}
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Database className="h-4 w-4 text-primary" /> Branch Network
+                    </h3>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      {hospitalBranches.map((b) => (
+                        <div key={b._id} className="p-4 rounded-xl border border-border bg-card shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-bold text-sm">{b.branchName}</h4>
+                            <Badge variant="outline" className="text-[10px]">{b.location}</Badge>
+                          </div>
+                          <div className="flex gap-4 text-[11px] text-muted-foreground">
+                            <span>{b.doctorsCount || 0} Doctors</span>
+                            <span>{b.staffCount || 0} Staff</span>
+                          </div>
+                        </div>
+                      ))}
+                      {hospitalBranches.length === 0 && (
+                        <p className="text-sm text-muted-foreground italic">No branches registered yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Verification Documents */}
+                  <div className="space-y-4">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-amber-500" /> Verification Assets
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase text-muted-foreground">License</Label>
+                        <div className="aspect-[3/4] rounded-xl bg-muted overflow-hidden border border-border group relative">
+                          <img src={resolveUrl(selectedHospital.licenseCertificate)} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                          <button className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                            View Full
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] uppercase text-muted-foreground">Owner ID</Label>
+                        <div className="aspect-[3/4] rounded-xl bg-muted overflow-hidden border border-border group relative">
+                          <img src={resolveUrl(selectedHospital.ownerIdProof)} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                          <button className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                            View Full
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer Contact Info */}
+                <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-indigo-900">Contact Administrator</h4>
+                    <p className="text-sm text-indigo-700">{selectedHospital.adminName} • {selectedHospital.officialEmail}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                      <Mail className="h-4 w-4 mr-2" /> Email
+                    </Button>
+                    <Button size="sm" variant="outline" className="bg-white border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+                      <PhoneIcon className="h-4 w-4 mr-2" /> Call
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

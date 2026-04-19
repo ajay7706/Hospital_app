@@ -14,6 +14,9 @@ const {
   cancelAppointmentOverride,
   getAllReviews,
   deleteReview,
+  getAdminSettings,
+  updateAdminSettings,
+  getHospitalBranchesDetail
 } = require("../controllers/hospitalController");
 
 // All routes here are prefixed with /api/admin in app.js
@@ -39,5 +42,12 @@ router.patch("/appointment/:id/cancel", cancelAppointmentOverride);
 // Review Management
 router.get("/reviews", getAllReviews);
 router.delete("/review/:id", deleteReview);
+
+// Platform Settings
+router.get("/settings", getAdminSettings);
+router.patch("/settings", updateAdminSettings);
+
+// Detailed Hospital Insights
+router.get("/hospital/:id/branches", getHospitalBranchesDetail);
 
 module.exports = router;
