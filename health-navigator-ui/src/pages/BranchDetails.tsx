@@ -169,13 +169,13 @@ const BranchDetails = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main>
-        <div className="relative h-80 lg:h-96 overflow-hidden flex flex-col justify-end">
+        <div className="relative min-h-[380px] md:min-h-0 md:h-80 lg:h-96 overflow-hidden flex flex-col justify-end">
           <img src={branch.image || '/assets/hospital-1.jpg'} alt={branch.branchName} className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-          <Link to="/hospitals" className="absolute left-6 top-6 z-10 flex items-center gap-1 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md hover:bg-white/30 transition">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 md:via-transparent to-transparent" />
+          <Link to="/hospitals" className="absolute left-4 top-4 md:left-6 md:top-6 z-20 flex items-center gap-1 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-md hover:bg-white/30 transition">
              <ArrowLeft className="h-4 w-4" /> Back
           </Link>
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 p-6 md:p-10 container mx-auto flex flex-col md:flex-row md:items-end md:justify-between text-white">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 p-6 md:p-10 container mx-auto flex flex-col md:flex-row md:items-end md:justify-between text-white mt-16 md:mt-0">
             <div>
               <div className="mb-2 inline-block rounded-full bg-primary/90 px-3 py-1 text-xs font-semibold uppercase tracking-wider">{branch.specialties || 'General Clinic'}</div>
               <h1 className="text-3xl md:text-5xl font-bold">{branch.branchName}</h1>
