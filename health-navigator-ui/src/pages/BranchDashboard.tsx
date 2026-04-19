@@ -598,22 +598,25 @@ export default function BranchDashboard() {
             {/* ─── SETTINGS TAB ─────────────────────────── */}
             {activeTab === 'settings' && (
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <h3 className="text-xl font-bold mb-6">Profile & Branch Settings</h3>
+                <h3 className="text-xl font-bold mb-6 text-foreground">Branch Identity & Operational Settings</h3>
                 <form className="space-y-8" onSubmit={async (e) => {
                    e.preventDefault();
                    if (!branch) return;
                    
-                   const fd = new FormData(e.currentTarget);
-                   const days = Array.from(e.currentTarget.querySelectorAll('input[name="workingDays"]:checked')).map((i: any) => i.value);
+                   const form = e.currentTarget;
+                   const fd = new FormData(form);
                    
-                   // Handle days
-                   fd.delete('workingDays'); 
-                   fd.append('workingDays', JSON.stringify(days));
+                   // Handle working days
+                   const selectedDays = Array.from(form.querySelectorAll('input[name="workingDays"]:checked')).map((i: any) => i.value);
+                   fd.delete('workingDays');
+                   fd.append('workingDays', JSON.stringify(selectedDays));
                    
-                   // Handle gallery
+                   // Handle checkboxes (explicit true/false strings)
+                   const emergency24x7 = (form.querySelector('input[name="emergency24x7"]') as HTMLInputElement)?.checked;
+                   fd.set('emergency24x7', emergency24x7 ? 'true' : 'false');
+
+                   // Handle gallery and services
                    fd.append('existingGallery', JSON.stringify(branch.gallery || []));
-                   
-                   // Handle services
                    fd.append('services', JSON.stringify(branch.services || []));
                    
                    setSavingProfile(true);
@@ -627,7 +630,7 @@ export default function BranchDashboard() {
                      if (res.ok) {
                        toast({ title: "Profile Updated", description: "All changes saved successfully." });
                        fetchBranchData();
-                       setNewGalleryPreviews([]); // Clear previews
+                       setNewGalleryPreviews([]);
                      } else {
                        const err = await res.json();
                        toast({ title: "Failed to update", description: err.msg, variant: "destructive" });
@@ -638,51 +641,70 @@ export default function BranchDashboard() {
                      setSavingProfile(false);
                    }
                 }}>
-                   <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-sm border-b pb-2">General Information</h4>
-                        <div>
-                          <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">About Branch</label>
-                          <textarea name="about" defaultValue={branch?.about} className="w-full border rounded-lg p-3 text-sm min-h-[120px] bg-background placeholder:text-muted-foreground focus:ring-1 focus:ring-primary" placeholder="Describe your branch..." />
+                    <div className="grid md:grid-cols-2 gap-8">
+                       <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-b border-border pb-3">
+                           <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                              <Building2 className="h-4 w-4" />
+                           </div>
+                           <h4 className="font-bold text-sm text-foreground uppercase tracking-wider">General Information</h4>
                         </div>
                         <div>
-                          <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Emergency Phone</label>
-                          <input name="emergencyContactNumber" defaultValue={branch?.emergencyContactNumber} className="w-full border rounded-lg p-2 text-sm bg-background" placeholder="+91 88888 77777" />
+                          <label className="text-[10px] font-bold mb-1.5 block text-muted-foreground uppercase tracking-widest px-1">About Branch</label>
+                          <textarea name="about" defaultValue={branch?.about} className="w-full border border-border rounded-xl p-3.5 text-sm min-h-[140px] bg-background placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Describe your branch..." />
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-xl border bg-red-50/30 border-red-100">
-                           <input type="checkbox" name="emergency24x7" defaultChecked={branch?.emergency24x7} className="h-5 w-5 rounded border-red-300 text-red-600 focus:ring-red-500" />
-                           <div>
+                        <div>
+                          <label className="text-[10px] font-bold mb-1.5 block text-muted-foreground uppercase tracking-widest px-1">Emergency Phone</label>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <input name="emergencyContactNumber" defaultValue={branch?.emergencyContactNumber} className="w-full border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" placeholder="+91 88888 77777" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 p-4 rounded-2xl border bg-red-50/40 border-red-100 shadow-sm transition-all hover:shadow-md">
+                           <input type="checkbox" name="emergency24x7" id="emergency24x7" defaultChecked={branch?.emergency24x7} className="h-5 w-5 rounded border-red-300 text-red-600 focus:ring-red-500 cursor-pointer" />
+                           <label htmlFor="emergency24x7" className="cursor-pointer flex-1">
                               <p className="text-sm font-bold text-red-700">24/7 Emergency Service</p>
                               <p className="text-[10px] text-red-600/70">Enable this if your branch operates emergency care round the clock.</p>
-                           </div>
+                           </label>
                         </div>
-                      </div>
+                       </div>
 
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-sm border-b pb-2">Business Hours</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div>
-                             <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Opening Time</label>
-                             <input name="openingTime" type="time" defaultValue={branch?.openingTime} className="w-full border rounded-lg p-2 text-sm bg-background" />
+                       <div className="space-y-6">
+                        <div className="flex items-center gap-2 border-b border-border pb-3">
+                           <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                              <Clock className="h-4 w-4" />
                            </div>
-                           <div>
-                             <label className="text-xs font-bold mb-1 block text-muted-foreground uppercase">Closing Time</label>
-                             <input name="closingTime" type="time" defaultValue={branch?.closingTime} className="w-full border rounded-lg p-2 text-sm bg-background" />
+                           <h4 className="font-bold text-sm text-foreground uppercase tracking-wider">Working Day & Hour</h4>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="space-y-1.5">
+                             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Opening Time</label>
+                             <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <input name="openingTime" type="time" defaultValue={branch?.openingTime} className="w-full border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" />
+                             </div>
+                           </div>
+                           <div className="space-y-1.5">
+                             <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Closing Time</label>
+                             <div className="relative">
+                                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <input name="closingTime" type="time" defaultValue={branch?.closingTime} className="w-full border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" />
+                             </div>
                            </div>
                         </div>
                         <div>
-                          <label className="text-xs font-bold mb-2 block text-muted-foreground uppercase">Working Days</label>
-                          <div className="flex flex-wrap gap-2">
+                          <label className="text-[10px] font-bold mb-3 block text-muted-foreground uppercase tracking-widest px-1">Active Working Days</label>
+                          <div className="grid grid-cols-2 gap-2">
                              {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
-                               <label key={day} className="flex items-center gap-2 bg-muted/40 px-3 py-1.5 rounded-lg border text-sm cursor-pointer hover:bg-muted transition-colors">
-                                 <input type="checkbox" name="workingDays" value={day} defaultChecked={branch?.workingDays?.includes(day)} className="h-4 w-4 rounded border-gray-300" />
+                               <label key={day} className="flex items-center gap-2 bg-muted/30 px-3 py-2 rounded-xl border border-border/60 text-xs font-medium cursor-pointer hover:bg-muted transition-all">
+                                 <input type="checkbox" name="workingDays" value={day} defaultChecked={branch?.workingDays?.includes(day)} className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/20" />
                                  {day}
                                </label>
                              ))}
                           </div>
                         </div>
-                      </div>
-                   </div>
+                       </div>
+                    </div>
 
                    {/* ─── SERVICES ────────────────────────────── */}
                    <div className="space-y-4">

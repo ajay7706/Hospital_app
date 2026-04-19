@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Star, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,6 +19,7 @@ export function ReviewPopup() {
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkUnratedAppointments = async () => {
@@ -26,30 +27,35 @@ export function ReviewPopup() {
       const userStr = localStorage.getItem('user');
       if (!token || !userStr) return;
       
-      const user = JSON.parse(userStr);
-      if (user.role !== 'patient') return;
+      try {
+        const user = JSON.parse(userStr);
+        const role = user.role?.toLowerCase();
+        if (role !== 'patient' && role !== 'user') return;
+      } catch (e) { return; }
 
       // Check "Remind me later" logic
       const reminderTime = localStorage.getItem('reviewReminderTime');
       if (reminderTime && new Date().getTime() < parseInt(reminderTime)) {
-        return; // Don't show if reminder is set for future
+        return; 
       }
       
-      // Check session storage (commented out to allow persistent showing until rated)
-      // if (sessionStorage.getItem('reviewPopupShown')) return;
-
       try {
         const res = await fetch(`${API_BASE}/api/appointments/patient`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
           const data = await res.json();
+          const appointments = Array.isArray(data.appointments) ? data.appointments : (Array.isArray(data) ? data : []);
+          
           // Find first unrated completed appointment
-          const unrated = data.appointments.find((a: any) => a.status.toLowerCase() === 'completed' && !a.isRated);
+          const unrated = appointments.find((a: any) => {
+            const s = a.status?.toLowerCase();
+            return (s === 'completed') && !a.isRated;
+          });
+          
           if (unrated) {
             setAppointment(unrated);
             setIsOpen(true);
-            // sessionStorage.setItem('reviewPopupShown', 'true');
           }
         }
       } catch (err) {
@@ -57,13 +63,15 @@ export function ReviewPopup() {
       }
     };
 
-    // Small delay to let the page load
-    const timer = setTimeout(checkUnratedAppointments, 3000);
+    // Check immediately on mount/navigate
+    checkUnratedAppointments();
+    
+    // Also check after a 1s delay to be safe
+    const timer = setTimeout(checkUnratedAppointments, 1000);
     return () => clearTimeout(timer);
-  }, [isOpen, navigate]); // Re-check if it was closed or if we navigated to a new page
+  }, [navigate, location.pathname]); 
 
   const handleRemindLater = () => {
-    // 24 hours from now
     const tomorrow = new Date().getTime() + 24 * 60 * 60 * 1000;
     localStorage.setItem('reviewReminderTime', tomorrow.toString());
     setIsOpen(false);
@@ -97,9 +105,13 @@ export function ReviewPopup() {
 
       if (res.ok) {
         setSuccess(true);
+        toast({ title: 'Feedback received!' });
         setTimeout(() => {
           setIsOpen(false);
-          // Optional: refresh page to update UI
+          setSuccess(false);
+          setRating(0);
+          setReviewText('');
+          // Refresh list to see if there are MORE unrated ones
           window.location.reload();
         }, 2000);
       } else {
@@ -117,12 +129,12 @@ export function ReviewPopup() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9, y: 40 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative"
+          exit={{ opacity: 0, scale: 0.9, y: 40 }}
+          className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden relative border border-white/20"
         >
           {success ? (
             <div className="p-8 text-center">

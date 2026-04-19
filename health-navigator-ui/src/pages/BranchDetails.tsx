@@ -178,7 +178,12 @@ const BranchDetails = () => {
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 p-6 md:p-10 container mx-auto flex flex-col md:flex-row md:items-end md:justify-between text-white mt-16 md:mt-0">
             <div>
               <div className="mb-2 inline-block rounded-full bg-primary/90 px-3 py-1 text-xs font-semibold uppercase tracking-wider">{branch.specialties || 'General Clinic'}</div>
-              <h1 className="text-3xl md:text-5xl font-bold">{branch.branchName}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl md:text-5xl font-bold">{branch.branchName}</h1>
+                {branch.emergency24x7 && (
+                  <Badge className="bg-red-600 text-white border-none animate-pulse px-3 py-1 text-[10px] font-bold">24/7 EMERGENCY</Badge>
+                )}
+              </div>
               <p className="text-white/60 text-sm mt-1">A unit of {hospital?.name}</p>
               <div className="mt-2 flex items-center gap-3">
                 <div className="flex items-center gap-0.5">
@@ -263,18 +268,27 @@ const BranchDetails = () => {
                     <div className="flex gap-3 text-sm"><Phone className="h-5 w-5 text-primary" /> <div><p className="font-semibold">Phone</p><p className="text-muted-foreground">{branch.phone}</p></div></div>
                   </div>
                 </div>
-                <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-bold flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Working Hours</h3>
-                  <div className="space-y-2">
+                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-bold flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Working Day & Hour</h3>
+                  <div className="space-y-3">
                     {branch.emergency24x7 ? (
-                      <div className="p-3 rounded-lg bg-red-50 text-red-700 font-bold text-center">OPEN 24/7 (Emergency Available)</div>
+                      <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-700 font-bold text-center shadow-inner">
+                        <Ambulance className="h-6 w-6 mx-auto mb-2 animate-bounce" />
+                        OPEN 24/7 (Emergency Available)
+                      </div>
                     ) : (
-                      (branch.workingDays || []).map((day: string) => (
-                        <div key={day} className="flex justify-between text-sm py-1 border-b last:border-0 border-border/40">
-                          <span className="font-medium text-foreground">{day}</span>
-                          <span className="text-muted-foreground">{branch.openingTime || '09:00 AM'} - {branch.closingTime || '08:00 PM'}</span>
-                        </div>
-                      ))
+                      <div className="space-y-2">
+                        {(branch.workingDays || []).length > 0 ? (
+                          (branch.workingDays || []).map((day: string) => (
+                            <div key={day} className="flex justify-between items-center text-sm py-2 px-3 rounded-lg bg-muted/30 border border-border/40">
+                              <span className="font-semibold text-foreground">{day}</span>
+                              <span className="text-primary font-medium">{branch.openingTime || '09:00'} - {branch.closingTime || '18:00'}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic text-center py-4">Contact for working hours</p>
+                        ) }
+                      </div>
                     )}
                   </div>
                 </div>
