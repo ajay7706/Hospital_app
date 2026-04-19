@@ -129,12 +129,12 @@ export function ReviewPopup() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 40 }}
+          initial={{ opacity: 0, scale: 0.8, y: 0 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 40 }}
-          className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden relative border border-white/20"
+          exit={{ opacity: 0, scale: 0.8, y: 0 }}
+          className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden relative border border-white/20 mx-auto my-auto"
         >
           {success ? (
             <div className="p-8 text-center">
