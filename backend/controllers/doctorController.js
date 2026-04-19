@@ -73,7 +73,7 @@ exports.getDoctorAppointments = async (req, res) => {
 
 exports.getDoctorsByHospital = async (req, res) => {
   try {
-    const doctors = await Doctor.find({ hospitalId: req.params.hospitalId });
+    const doctors = await Doctor.find({ hospitalId: req.params.hospitalId, branchId: null });
     res.json(doctors);
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });

@@ -243,7 +243,7 @@ exports.updateAppointmentStatus = async (req, res) => {
         notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date.`;
         updateMsg = notificationDetails.msg;
       } else if (appointment.status === "Completed") {
-        const ratingLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/rate?appointmentId=${appointment._id}`;
+        const ratingLink = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/rate?appointmentId=${appointment._id}`;
         notificationDetails.msg = `Your consultation is completed. Please rate your experience: ${ratingLink}`;
         updateMsg = notificationDetails.msg;
       }
@@ -304,7 +304,7 @@ exports.getHospitalAppointments = async (req, res) => {
 exports.getPatientAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({ patientId: req.user.id }).sort({ createdAt: -1 });
-    res.json(appointments);
+    res.json({ appointments });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

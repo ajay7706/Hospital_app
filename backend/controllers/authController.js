@@ -173,7 +173,7 @@ exports.login = async (req, res) => {
     const isEmail = emailRegex.test(identifier);
 
     // ADMIN LOGIN CHECK
-    if (isEmail && identifier === adminCreds.email && password === adminCreds.password) {
+    if (identifier === adminCreds.email && password === adminCreds.password) {
       const token = jwt.sign(
         { id: "admin-id", role: "admin" },
         process.env.JWT_SECRET,

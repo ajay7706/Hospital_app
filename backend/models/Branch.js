@@ -71,6 +71,14 @@ const branchSchema = new mongoose.Schema({
     type: String,
     default: "08:00 PM",
   },
+  startTime: {
+    type: String,
+    default: "09:00",
+  },
+  endTime: {
+    type: String,
+    default: "18:00",
+  },
   emergencyContactNumber: {
     type: String,
   },
