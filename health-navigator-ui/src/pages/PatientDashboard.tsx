@@ -51,7 +51,9 @@ export default function PatientDashboard() {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.ok) {
-        setAppointments(await res.json());
+        const data = await res.json();
+        const apts = Array.isArray(data.appointments) ? data.appointments : (Array.isArray(data) ? data : []);
+        setAppointments(apts);
       }
     } catch (err) {
       toast({ title: 'Failed to load appointments', variant: 'destructive' });

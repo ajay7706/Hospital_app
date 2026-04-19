@@ -63,6 +63,7 @@ const Login = () => {
       // Store token and user info
       localStorage.setItem('token', result.token);
       localStorage.setItem('user', JSON.stringify(result.user));
+      localStorage.removeItem('reviewReminderTime'); // Force review popup on fresh login if needed
 
       toast({
         title: 'Login successful!',
@@ -82,12 +83,12 @@ const Login = () => {
           } else {
             navigate('/hospital-setup');
           }
+        } else if (result.user?.role === 'patient' || result.user?.role === 'user') {
+          navigate('/patient-dashboard');
         } else if (result.user?.role === 'branch') {
           navigate('/branch-dashboard');
         } else if (result.user?.role === 'doctor') {
           navigate('/doctor-dashboard');
-        } else if (result.user?.role === 'patient') {
-          navigate('/patient-dashboard');
         } else {
           navigate('/');
         }
