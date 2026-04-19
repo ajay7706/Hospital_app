@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Calendar, Users, Ambulance, Building2, ArrowRight,
-  Activity, AlertOctagon, CheckCircle2, Clock, XCircle,
+  Activity, AlertOctagon, CheckCircle2, Clock, XCircle, Phone,
   CalendarDays, Loader2, RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
