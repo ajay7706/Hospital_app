@@ -25,7 +25,10 @@ export const HeroSection = () => {
           
           const hospitalSpecs = hospitals.flatMap(h => Array.isArray(h.specialties) ? h.specialties : []);
           const branchSpecs = hospitals.flatMap(h => h.branchSpecialties || []);
-          const uniqueSpecs = Array.from(new Set([...hospitalSpecs, ...branchSpecs])).filter(Boolean);
+          const uniqueSpecs = Array.from(new Set([...hospitalSpecs, ...branchSpecs]))
+            .filter(Boolean)
+            .map(s => s.trim())
+            .filter((v, i, a) => a.indexOf(v) === i);
           
           setLocations(uniqueLocs as string[]);
           setSpecialties(uniqueSpecs as string[]);
@@ -36,6 +39,9 @@ export const HeroSection = () => {
     };
     fetchData();
   }, []);
+
+  const [showAllSpecialties, setShowAllSpecialties] = useState(false);
+  const displayedSpecialties = showAllSpecialties ? specialties : specialties.slice(0, 8);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -115,6 +121,41 @@ export const HeroSection = () => {
               <Button variant="cta" size="lg" className="mt-4 w-full" onClick={handleSearch}>
                 Find Best Hospital
               </Button>
+
+              {/* Specialty Quick Tags */}
+              {specialties.length > 0 && (
+                <div className="mt-6 border-t border-border pt-4">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Popular Specialties</p>
+                  <div className="flex flex-wrap gap-2">
+                    {displayedSpecialties.map(spec => (
+                      <button
+                        key={spec}
+                        onClick={() => {
+                          setSpecialty(spec);
+                          const params = new URLSearchParams();
+                          params.set('specialty', spec);
+                          navigate(`/hospitals?${params.toString()}`);
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
+                          specialty === spec 
+                            ? 'bg-primary text-primary-foreground shadow-md scale-105' 
+                            : 'bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary border border-border/50'
+                        }`}
+                      >
+                        {spec}
+                      </button>
+                    ))}
+                    {specialties.length > 8 && (
+                      <button
+                        onClick={() => setShowAllSpecialties(!showAllSpecialties)}
+                        className="px-3 py-1.5 rounded-full text-[11px] font-bold text-primary hover:bg-primary/5 transition-colors border border-primary/20"
+                      >
+                        {showAllSpecialties ? 'Show Less' : `+${specialties.length - 8} More`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
 

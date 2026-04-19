@@ -281,8 +281,9 @@ export default function HospitalDashboard() {
     }
   };
 
-  const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency', doctorId?: string) => {
-    setUpdatingStatus(id);
+  const handleStatusUpdate = async (id: string, status: string, type: 'appointment' | 'emergency', doctorId?: string, actionType?: string) => {
+    const loadingKey = actionType ? id + actionType : id;
+    setUpdatingStatus(loadingKey);
     try {
       const token = localStorage.getItem('token');
       const url = type === 'appointment' 
@@ -520,33 +521,33 @@ export default function HospitalDashboard() {
                                       size="sm"
                                       onClick={() => {
                                         const select = document.getElementById(`doc-select-${apt._id}`) as HTMLSelectElement;
-                                        handleStatusUpdate(apt._id, 'Confirmed', 'appointment', select.value);
+                                        handleStatusUpdate(apt._id, 'Confirmed', 'appointment', select.value, 'approve');
                                       }}
-                                      disabled={updatingStatus === apt._id || !!apt.branchId}
+                                      disabled={updatingStatus !== null || !!apt.branchId}
                                       className="h-8 w-full bg-primary hover:bg-primary/90 text-primary-foreground text-[10px] font-bold"
                                     >
-                                      {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
+                                      {updatingStatus === (apt._id + 'approve') ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />}
                                       {apt.branchId ? 'Branch Appt' : 'Approve & Assign'}
                                     </Button>
                                   </div>
                                   <Button 
                                     variant="default"
                                     size="sm"
-                                    onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment')}
-                                    disabled={updatingStatus === apt._id || !!apt.branchId || (stats?.confirmed || 0) < 200}
+                                    onClick={() => handleStatusUpdate(apt._id, 'Rescheduled', 'appointment', undefined, 'reschedule')}
+                                    disabled={updatingStatus !== null || !!apt.branchId || (stats?.confirmed || 0) < 200}
                                     className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
-                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
+                                    {updatingStatus === (apt._id + 'reschedule') ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3.5 w-3.5 mr-1" />}
                                     Next Day
                                   </Button>
                                   <Button 
                                     variant="default"
                                     size="sm"
-                                    onClick={() => handleStatusUpdate(apt._id, 'Not Selected', 'appointment')}
-                                    disabled={updatingStatus === apt._id || !!apt.branchId}
+                                    onClick={() => handleStatusUpdate(apt._id, 'Not Selected', 'appointment', undefined, 'reject')}
+                                    disabled={updatingStatus !== null || !!apt.branchId}
                                     className="h-8 px-2 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
                                   >
-                                    {updatingStatus === apt._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
+                                    {updatingStatus === (apt._id + 'reject') ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
                                     Reject
                                   </Button>
                                 </>

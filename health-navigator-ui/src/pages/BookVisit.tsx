@@ -81,6 +81,8 @@ const BookVisit = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [opdCharge, setOpdCharge] = useState(0);
+  const [branchData, setBranchData] = useState<any>(null);
+  const [bookingClosed, setBookingClosed] = useState(false);
 
   const fetchDetails = async () => {
     if (!hospitalId) return;
@@ -107,8 +109,19 @@ const BookVisit = () => {
           const branchRes = await fetch(`${API_BASE}/api/branches/single/${branchId}`);
           if (branchRes.ok) {
             const branch = await branchRes.json();
+            setBranchData(branch);
             if (branch.opdChargeType === 'custom') {
               charge = branch.opdCharge;
+            }
+
+            // Check if same-day booking is closed based on endTime
+            if (branch.endTime) {
+              const [h, m] = branch.endTime.split(':').map(Number);
+              const end = new Date();
+              end.setHours(h, m, 0, 0);
+              if (new Date() > end) {
+                setBookingClosed(true);
+              }
             }
           }
         }
@@ -149,7 +162,7 @@ const BookVisit = () => {
     });
   };
 
-  const isTodayDisabled = todayCount >= 300 || getAvailableSlots(new Date()).length === 0;
+  const isTodayDisabled = todayCount >= 300 || getAvailableSlots(new Date()).length === 0 || bookingClosed;
 
   const startTimer = () => {
     setTimer(120);
@@ -352,7 +365,7 @@ const BookVisit = () => {
               </div>
               <p className="text-xs text-muted-foreground">Sent to: {form.getValues('email')}</p>
             </div>
-            <div className="mt-8 flex justify-center gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
               <Button
                 variant="default"
                 size="lg"
@@ -363,6 +376,17 @@ const BookVisit = () => {
               >
                 Book Another Visit
               </Button>
+              {branchPhone && (
+                <Button
+                  variant="cta"
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => window.location.href = `tel:${branchPhone}`}
+                >
+                  <Phone className="h-5 w-5" />
+                  Call Now
+                </Button>
+              )}
             </div>
           </motion.div>
         </main>
@@ -601,7 +625,7 @@ const BookVisit = () => {
                                 )}
                               >
                                 <CalendarIcon className="mr-2 h-4 w-4" />
-                                {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
@@ -622,6 +646,11 @@ const BookVisit = () => {
                             />
                           </PopoverContent>
                         </Popover>
+                        {format(form.getValues('date') || new Date(), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && isTodayDisabled && (
+                           <p className="text-[10px] text-red-500 font-bold mt-1 uppercase animate-pulse">
+                             {bookingClosed ? "Today's booking closed. Please select next date." : "Today's slots full. Select next date."}
+                           </p>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}

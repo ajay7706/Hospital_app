@@ -692,6 +692,19 @@ export default function BranchDashboard() {
                              </div>
                            </div>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl border bg-primary/5 border-primary/10">
+                           <div className="space-y-1.5">
+                             <label className="text-[10px] font-bold text-primary uppercase tracking-widest px-1">Slot Start Time</label>
+                             <input name="startTime" type="time" defaultValue={branch?.startTime || "09:00"} className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" />
+                             <p className="text-[9px] text-muted-foreground">Booking slots start from here.</p>
+                           </div>
+                           <div className="space-y-1.5">
+                             <label className="text-[10px] font-bold text-primary uppercase tracking-widest px-1">Slot End Time</label>
+                             <input name="endTime" type="time" defaultValue={branch?.endTime || "18:00"} className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" />
+                             <p className="text-[9px] text-muted-foreground">Same-day booking blocks after this.</p>
+                           </div>
+                        </div>
                         <div>
                           <label className="text-[10px] font-bold mb-3 block text-muted-foreground uppercase tracking-widest px-1">Active Working Days</label>
                           <div className="grid grid-cols-2 gap-2">

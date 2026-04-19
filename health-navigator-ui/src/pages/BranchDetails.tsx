@@ -94,9 +94,9 @@ const BranchDetails = () => {
   };
 
   const handleEmergencyCall = () => {
-    const num = branch?.emergencyContactNumber || branch?.phone || hospital?.phone;
-    if (!num) return;
-    window.location.href = `tel:${num}`;
+    if (!branch || !hospital) return;
+    const bookUrl = `/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}&autoCall=1&branchPhone=${branch.emergencyContactNumber || branch.phone || hospital.phone}&returnTo=${encodeURIComponent(`/branch-details?id=${branchId}`)}`;
+    navigate(bookUrl);
   };
 
   const handleAddReview = async (e: React.FormEvent) => {
