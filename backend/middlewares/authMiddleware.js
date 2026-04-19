@@ -57,7 +57,7 @@ exports.optionalProtect = async (req, res, next) => {
 };
 
 exports.isHospital = (req, res, next) => {
-  if (req.user && req.user.role === "hospital") {
+  if (req.user && (req.user.role === "hospital" || req.user.role === "admin")) {
     next();
   } else {
     return res.status(401).json({ msg: "Not authorized as a hospital" });
@@ -65,7 +65,7 @@ exports.isHospital = (req, res, next) => {
 };
 
 exports.isBranch = (req, res, next) => {
-  if (req.user && req.user.role === "branch") {
+  if (req.user && (req.user.role === "branch" || req.user.role === "admin")) {
     next();
   } else {
     return res.status(401).json({ msg: "Not authorized as a branch staff" });
@@ -73,7 +73,7 @@ exports.isBranch = (req, res, next) => {
 };
 
 exports.isHospitalOrBranch = (req, res, next) => {
-  if (req.user && (req.user.role === "hospital" || req.user.role === "branch")) {
+  if (req.user && (req.user.role === "hospital" || req.user.role === "branch" || req.user.role === "admin")) {
     next();
   } else {
     return res.status(401).json({ msg: "Not authorized as hospital or branch" });
@@ -81,7 +81,7 @@ exports.isHospitalOrBranch = (req, res, next) => {
 };
 
 exports.isHospitalBranchOrDoctor = (req, res, next) => {
-  if (req.user && (req.user.role === "hospital" || req.user.role === "branch" || req.user.role === "doctor")) {
+  if (req.user && (req.user.role === "hospital" || req.user.role === "branch" || req.user.role === "doctor" || req.user.role === "admin")) {
     next();
   } else {
     return res.status(401).json({ msg: "Not authorized as staff" });
@@ -89,7 +89,7 @@ exports.isHospitalBranchOrDoctor = (req, res, next) => {
 };
 
 exports.isDoctor = (req, res, next) => {
-  if (req.user && req.user.role === "doctor") {
+  if (req.user && (req.user.role === "doctor" || req.user.role === "admin")) {
     next();
   } else {
     return res.status(401).json({ msg: "Not authorized as a doctor" });
