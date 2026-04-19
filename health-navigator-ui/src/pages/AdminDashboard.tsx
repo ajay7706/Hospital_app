@@ -106,7 +106,6 @@ const AdminDashboard = () => {
         if (res.ok) setAdminSettings(await res.json());
       }
     } catch (err) {
-    } catch (err) {
       console.error('Failed to fetch admin data:', err);
     } finally {
       setLoading(false);
@@ -376,7 +375,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {hospitals.map((h) => (
+                    {hospitals?.map((h) => (
                       <TableRow key={h._id} className={h.isDeleted ? 'opacity-50 grayscale' : ''}>
                         <TableCell>
                           <div className="flex items-center gap-3">
@@ -454,7 +453,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((u) => (
+                    {users?.map((u) => (
                       <TableRow key={u._id}>
                         <TableCell className="font-bold">{u.name}</TableCell>
                         <TableCell className="text-xs">
@@ -479,10 +478,6 @@ const AdminDashboard = () => {
                   </TableBody>
                 </Table>
               </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'appointments' && (
             </motion.div>
           )}
 
@@ -821,7 +816,7 @@ const AdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {appointments.map((a) => (
+                    {appointments?.map((a) => (
                       <TableRow key={a._id}>
                         <TableCell className="font-medium">{a.patientName}</TableCell>
                         <TableCell className="text-xs">{a.hospitalName}</TableCell>
@@ -851,7 +846,7 @@ const AdminDashboard = () => {
           {activeTab === 'reviews' && (
             <motion.div key="reviews" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
               <div className="grid gap-4">
-                {reviews.map((r) => (
+                {reviews?.map((r) => (
                   <div key={r._id} className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
@@ -932,7 +927,7 @@ const AdminDashboard = () => {
                       <Database className="h-4 w-4 text-primary" /> Branch Network
                     </h3>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
-                      {hospitalBranches.map((b) => (
+                      {hospitalBranches?.map((b) => (
                         <div key={b._id} className="p-4 rounded-xl border border-border bg-card shadow-sm">
                           <div className="flex justify-between items-start mb-2">
                             <h4 className="font-bold text-sm">{b.branchName}</h4>
