@@ -60,7 +60,7 @@ export function ReviewPopup() {
     // Small delay to let the page load
     const timer = setTimeout(checkUnratedAppointments, 3000);
     return () => clearTimeout(timer);
-  }, [isOpen]); // Re-check if it was closed but maybe another unrated exists or just keep checking
+  }, [isOpen, navigate]); // Re-check if it was closed or if we navigated to a new page
 
   const handleRemindLater = () => {
     // 24 hours from now

@@ -271,7 +271,7 @@ const BookVisit = () => {
       const bookingBody = {
             hospitalId,
             branchId,
-            hospitalName,
+            hospitalName: displayName,
             location: hospitalLocation,
             patientName: pendingData.fullName,
             patientEmail: pendingData.email,
