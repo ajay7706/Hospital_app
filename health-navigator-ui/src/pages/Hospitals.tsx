@@ -127,7 +127,7 @@ const Hospitals = () => {
 
         {/* Loading State */}
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={index} className="h-60 w-full animate-pulse rounded-xl bg-muted" />
             ))}
@@ -136,7 +136,7 @@ const Hospitals = () => {
 
         {/* Hospital Cards */}
         {!loading && hospitals.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {hospitals.map((hospital, index) => (
               <motion.div
                 key={hospital.id || index}
