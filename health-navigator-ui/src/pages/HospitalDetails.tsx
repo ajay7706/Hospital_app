@@ -14,6 +14,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import { BranchCard } from '@/components/BranchCard';
  
 // Service icon helper function
 const getServiceIcon = (title: string = "") => {
@@ -407,93 +408,21 @@ const HospitalDetails = () => {
                 {/* Branches Section */}
                 {branches && branches.length > 0 && (
                   <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
-                      <Building2 className="h-5 w-5 text-primary" /> Branches
+                    <h2 className="mb-6 flex items-center gap-2 text-xl font-bold text-foreground">
+                      <Building2 className="h-6 w-6 text-primary" /> Our Branches
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {branches.slice(0, 6).map((branch: any) => {
-                        return (
-                        <div key={branch._id} className="group overflow-hidden border rounded-xl bg-card transition-all hover:shadow-md flex flex-row sm:flex-col">
-                          <Link to={`/branch-details?id=${branch._id}`} className="block relative w-2/5 sm:w-full min-h-[140px] sm:h-36 overflow-hidden shrink-0">
-                            <img 
-                              src={branch.image || '/assets/hospital-1.jpg'} 
-                              alt={branch.branchName} 
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/hospital-1.jpg';
-                              }}
-                            />
-                          </Link>
-                          <div className="p-3 sm:p-4 flex flex-col flex-1 min-w-0">
-                            <Link to={`/branch-details?id=${branch._id}`} className="hover:text-primary transition-colors">
-                              <h3 className="font-bold text-sm sm:text-base line-clamp-1 mb-1">{branch.branchName}</h3>
-                            </Link>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                              <MapPin className="h-3 w-3 shrink-0 text-primary" /> 
-                              <span className="truncate">{branch.city}</span>
-                            </p>
-                            
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              {branch.ambulanceAvailable && (
-                                <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0">Amb</Badge>
-                              )}
-                              {branch.emergency24x7 && (
-                                <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0">24/7</Badge>
-                              )}
-                            </div>
-
-                            {branch.specialties && (
-                              <div className="flex flex-wrap gap-1 mb-3">
-                                {branch.specialties.split(',').slice(0, 2).map((spec: string, i: number) => (
-                                  <span key={i} className="text-[9px] sm:text-[10px] bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded font-medium truncate max-w-full">
-                                    {spec.trim()}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            
-                            <div className="mt-auto space-y-2.5">
-                               <div className="flex items-center justify-between border-t border-border/50 pt-2.5 mb-2">
-                                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">OPD</span>
-                                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{branch.opdChargeType === 'custom' ? branch.opdCharge : hospital.opdCharge}</span>
-                               </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="h-8 px-2 text-[10px] sm:text-xs font-bold border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors" 
-                                  onClick={() => {
-                                    const num = branch.emergencyContactNumber || branch.phone || hospital.phone;
-                                    if (num) window.location.href = `tel:${num}`;
-                                  }}
-                                >
-                                  <Phone className="mr-1 h-3 w-3" /> Call
-                                </Button>
-                                <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="w-full">
-                                  <Button size="sm" className="w-full h-8 px-2 text-[10px] sm:text-xs font-bold transition-shadow hover:shadow-md">
-                                    Book
-                                  </Button>
-                                </Link>
-                              {(branch.emergency24x7 || branch.ambulanceAvailable) && (
-                                <Button 
-                                  size="sm" 
-                                  variant="destructive" 
-                                  className="col-span-2 h-8 px-2 text-[10px] sm:text-xs font-bold bg-red-600 hover:bg-red-700"
-                                  onClick={() => handleEmergencyClick(branch._id, branch.branchName)}
-                                >
-                                  <Ambulance className="mr-1 h-3 w-3" /> Emergency
-                                </Button>
-                              )}
-                            </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div className="grid grid-cols-1 gap-6">
+                      {branches.slice(0, 10).map((branch: any) => (
+                        <BranchCard 
+                          key={branch._id} 
+                          branch={branch} 
+                          hospital={hospital} 
+                          onEmergencyClick={handleEmergencyClick} 
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
                 {/* Doctors Section */}
                 {doctors && doctors.length > 0 && (
