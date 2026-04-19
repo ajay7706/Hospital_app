@@ -83,7 +83,9 @@ exports.getAllHospitals = async (req, res) => {
 
     // Advanced search logic
     if (search) {
-      const searchRegex = new RegExp(search, "i");
+      // Clean search query (remove "near me", "in ", "at ")
+      const cleanSearch = search.replace(/near me|in\s+|at\s+/gi, '').trim() || search;
+      const searchRegex = new RegExp(cleanSearch, "i");
       
       // Get all branches that match the search city/name to include their hospitals
       const matchingBranches = await mongoose.model('Branch').find({
@@ -173,6 +175,18 @@ exports.getHospitalById = async (req, res) => {
 // Get Hospital by User ID
 exports.getHospitalByUserId = async (req, res) => {
   try {
+    if (req.user.role === 'admin') {
+      return res.json({
+        _id: "admin-system-id",
+        hospitalName: "Apna Clinic System",
+        name: "Apna Clinic System",
+        city: "All Cities",
+        userId: req.user.id,
+        approvalStatus: "approved",
+        specialties: ["All Specialties"],
+        isDeleted: false
+      });
+    }
     const hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
       return res.status(404).json({ msg: "Hospital not found" });
