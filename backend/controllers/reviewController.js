@@ -44,10 +44,17 @@ exports.addReview = async (req, res) => {
   }
 };
 
-// Get All Reviews for a Hospital (with stats)
-exports.getHospitalReviews = async (req, res) => {
+// Get All Reviews for a Hospital or Branch (with stats)
+exports.getReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ hospitalId: req.params.id }).populate('appointmentId').sort({ createdAt: -1 });
+    const id = req.params.id;
+    // Search by hospitalId OR branchId
+    const reviews = await Review.find({ 
+      $or: [
+        { hospitalId: id }, 
+        { branchId: id }
+      ] 
+    }).populate('appointmentId').sort({ createdAt: -1 });
     
     if (reviews.length === 0) {
       return res.json({ reviews: [], averageRating: 0, totalReviews: 0 });
@@ -65,3 +72,27 @@ exports.getHospitalReviews = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
+
+
+// Get All Reviews for a Branch (with stats)
+exports.getBranchReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ branchId: req.params.id }).populate('appointmentId').sort({ createdAt: -1 });
+    
+    if (reviews.length === 0) {
+      return res.json({ reviews: [], averageRating: 0, totalReviews: 0 });
+    }
+
+    const totalRating = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    const averageRating = (totalRating / reviews.length).toFixed(1);
+
+    res.json({ 
+      reviews, 
+      averageRating: parseFloat(averageRating), 
+      totalReviews: reviews.length 
+    });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
