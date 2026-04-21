@@ -154,7 +154,19 @@ export default function HospitalSetup() {
     }
   }, [form2.watch('fullAddress.address'), form2.watch('fullAddress.city'), form2.watch('fullAddress.state')]);
 
+  const [isLocationSelected, setIsLocationSelected] = useState(false);
+
   const onSubmit = async (data2: z.infer<typeof step2Schema>) => {
+    if (!isLocationSelected) {
+      toast({ 
+        title: 'Location Required', 
+        description: 'Please click "Select Location on Map" and confirm your hospital location.', 
+        variant: 'destructive' 
+      });
+      setMapOpen(true);
+      return;
+    }
+
     if (!licenseFile || !idProofFile || !gstFile) {
       toast({ title: 'Error', description: 'Please upload all required documents (License, ID Proof, and GST Certificate)', variant: 'destructive' });
       return;
@@ -493,6 +505,7 @@ export default function HospitalSetup() {
                 lng: form2.getValues().location.lng || 78.9629 
               }}
               onLocationSelect={(loc) => {
+                setIsLocationSelected(true);
                 form2.setValue('location.lat', loc.lat);
                 form2.setValue('location.lng', loc.lng);
                 form2.setValue('latitude', loc.lat);

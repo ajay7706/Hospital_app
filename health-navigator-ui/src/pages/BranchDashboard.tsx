@@ -48,6 +48,7 @@ export default function BranchDashboard() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingDoctor, setSavingDoctor] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
+  const [isLocationSelected, setIsLocationSelected] = useState(true); // Default to true as it's an existing branch
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -632,6 +633,11 @@ export default function BranchDashboard() {
                    fd.append('existingGallery', JSON.stringify(branch.gallery || []));
                    fd.append('services', JSON.stringify(branch.services || []));
                    
+                   if (!isLocationSelected) {
+                     toast({ title: "Location Required", description: "Please select branch location on map.", variant: "destructive" });
+                     setMapOpen(true);
+                     return;
+                   }
                    setSavingProfile(true);
                    try {
                      const res = await fetch(`${API_BASE}/api/branches/${branch._id}`, {
@@ -888,6 +894,44 @@ export default function BranchDashboard() {
         </div>
       </DialogContent>
     </Dialog>
+      <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+          <DialogHeader className="p-6 bg-white border-b">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Select Branch Location
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 bg-slate-50">
+            <GoogleMapPicker 
+              initialLocation={{ 
+                lat: branch?.latitude || 20.5937, 
+                lng: branch?.longitude || 78.9629 
+              }}
+              onLocationSelect={(loc) => {
+                setIsLocationSelected(true);
+                setBranch((prev: any) => ({
+                  ...prev,
+                  latitude: loc.lat,
+                  longitude: loc.lng,
+                  address: loc.address,
+                  city: loc.city,
+                  state: loc.state,
+                  pincode: loc.pincode
+                }));
+              }}
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button 
+                variant="default" 
+                className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+                onClick={() => setMapOpen(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Branch Location
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,29 +1,36 @@
 import { motion } from 'framer-motion';
 import { Shield, Target, Users, Clock, MapPin, CheckCircle2 } from 'lucide-react';
 
+import { Footer } from '@/components/layout/Footer';
+
 const AboutUs = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative py-20 bg-primary overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
+      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
+        {/* Background Image with Dark Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80" 
+            alt="Healthcare professionals" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-900/80" />
         </div>
         
         <div className="container mx-auto px-4 relative z-10 text-center">
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-6"
+            className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight"
           >
-            About Apna Clinic Healthcare
+            About <span className="text-primary">Apna Clinic</span>
           </motion.h1>
           <motion.p 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-xl text-white/90 max-w-2xl mx-auto"
+            className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto font-medium leading-relaxed"
           >
             Your trusted partner in making quality healthcare accessible, transparent, and simple for every Indian family.
           </motion.p>
@@ -141,7 +148,8 @@ const AboutUs = () => {
         >
           Find Your Doctor Today
         </button>
-      </section>
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 };

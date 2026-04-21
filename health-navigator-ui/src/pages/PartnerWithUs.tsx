@@ -1,34 +1,49 @@
 import { motion } from 'framer-motion';
 import { Building2, TrendingUp, Users, Shield, Zap, Globe, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Footer } from '@/components/layout/Footer';
 
 const PartnerWithUs = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative py-24 bg-slate-900 overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-20" />
+      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
+        {/* Background Image with Dark Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80" 
+            alt="Healthcare partnership" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-900/80" />
+        </div>
+
         <div className="container mx-auto px-4 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl mx-auto"
+            className="max-w-4xl mx-auto"
           >
-            <span className="inline-block px-4 py-1.5 bg-primary/20 text-primary rounded-full text-sm font-bold mb-6 border border-primary/30">
+            <span className="inline-block px-6 py-2 bg-primary/20 text-primary rounded-full text-sm font-black mb-8 border border-primary/30 uppercase tracking-widest backdrop-blur-sm">
               For Healthcare Providers
             </span>
-            <h1 className="text-4xl md:text-6xl font-black text-white mb-8 leading-tight">
+            <h1 className="text-5xl md:text-7xl font-black text-white mb-8 leading-tight tracking-tight">
               Grow Your Practice with <span className="text-primary">Apna Clinic</span>
             </h1>
-            <p className="text-xl text-slate-300 mb-10 leading-relaxed">
+            <p className="text-xl md:text-2xl text-slate-200 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
               Join India's fastest-growing healthcare network. Manage appointments, reach more patients, and build a digital-first clinic in minutes.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="xl" className="rounded-full shadow-2xl" onClick={() => window.location.href = '/signup'}>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Button size="xl" className="rounded-full shadow-2xl font-bold px-12 h-16 text-lg" onClick={() => window.location.href = '/signup'}>
                 Register Your Hospital
               </Button>
-              <Button size="xl" variant="outline" className="rounded-full border-white text-white hover:bg-white hover:text-slate-900">
-                Talk to Sales
+              <Button 
+                size="xl" 
+                variant="outline" 
+                className="rounded-full border-white text-white hover:bg-white hover:text-slate-900 font-bold px-12 h-16 text-lg backdrop-blur-sm"
+                onClick={() => window.location.href = '/support'}
+              >
+                Contact Support
               </Button>
             </div>
           </motion.div>
@@ -152,7 +167,8 @@ const PartnerWithUs = () => {
             <p className="text-sm text-muted-foreground font-medium">Setup Fee</p>
           </div>
         </div>
-      </section>
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 };

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Loader2, MapPin, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, MapPin, Plus, Trash2, Navigation } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -21,7 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import GoogleMapPicker from '@/components/GoogleMapPicker';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -71,14 +71,6 @@ const editSchema = z.object({
 
 type EditForm = z.infer<typeof editSchema>;
 
-function LocationPicker({ onPick }: { onPick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
 
 const EditProfile = () => {
   const navigate = useNavigate();
@@ -201,7 +193,14 @@ const EditProfile = () => {
     }
   }, [form.watch('fullAddress.address'), form.watch('fullAddress.city'), form.watch('fullAddress.state')]);
 
+  const [isLocationSelected, setIsLocationSelected] = useState(true); // Default to true because they already have a location
+
   const onSubmit = async (data: EditForm) => {
+    if (!isLocationSelected) {
+      toast({ title: 'Location Required', description: 'Please select location on map.', variant: 'destructive' });
+      setMapOpen(true);
+      return;
+    }
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
@@ -333,34 +332,29 @@ const EditProfile = () => {
                     <FormItem><FormLabel>Pincode *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
-                <div className="rounded-lg border border-border p-4 space-y-3">
+                <div className="rounded-lg border border-border p-4 space-y-3 bg-slate-50/50">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" /> Location
+                      <MapPin className="h-4 w-4 text-primary" /> Hospital Location
                     </h3>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(true)}>
-                      Select Location on Map
+                    <Button type="button" variant="outline" size="sm" className="h-8 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/5" onClick={() => setMapOpen(true)}>
+                      <Navigation className="h-3 w-3 mr-1" /> Select Location on Map
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <FormField control={form.control} name="location.lat" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Latitude</FormLabel>
-                        <FormControl><Input value={String(field.value ?? '')} readOnly /></FormControl>
+                        <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Latitude</FormLabel>
+                        <FormControl><Input value={String(field.value ?? '')} readOnly className="h-8 text-xs bg-white/50" /></FormControl>
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="location.lng" render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Longitude</FormLabel>
-                        <FormControl><Input value={String(field.value ?? '')} readOnly /></FormControl>
+                        <FormLabel className="text-[9px] font-bold uppercase text-muted-foreground">Longitude</FormLabel>
+                        <FormControl><Input value={String(field.value ?? '')} readOnly className="h-8 text-xs bg-white/50" /></FormControl>
                       </FormItem>
                     )} />
                   </div>
-                  {mapSrc ? (
-                    <div className="h-56 overflow-hidden rounded-lg border border-border bg-muted">
-                      <iframe width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen src={mapSrc}></iframe>
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
@@ -547,31 +541,37 @@ const EditProfile = () => {
       <Footer />
 
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Select Location on Map</DialogTitle>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+          <DialogHeader className="p-6 bg-white border-b">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Select Hospital Location
+            </DialogTitle>
           </DialogHeader>
-          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border relative">
-            <MapContainer 
-              key={`${lat}-${lng}`}
-              {...({
-                center: [Number(lat) || 20.5937, Number(lng) || 78.9629],
-                zoom: 13,
-                style: { height: '100%', width: '100%' }
-              } as any)}
-            >
-              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <LocationPicker
-                onPick={(a, b) => {
-                  form.setValue('location.lat', Number(a), { shouldValidate: true });
-                  form.setValue('location.lng', Number(b), { shouldValidate: true });
-                }}
-              />
-              <Marker position={[Number(lat) || 20.5937, Number(lng) || 78.9629] as any} />
-            </MapContainer>
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setMapOpen(false)}>Done</Button>
+          <div className="p-6 bg-slate-50">
+            <GoogleMapPicker 
+              initialLocation={{ 
+                lat: form.getValues().location.lat || 20.5937, 
+                lng: form.getValues().location.lng || 78.9629 
+              }}
+              onLocationSelect={(loc) => {
+                setIsLocationSelected(true);
+                form.setValue('location.lat', loc.lat);
+                form.setValue('location.lng', loc.lng);
+                form.setValue('fullAddress.address', loc.address);
+                form.setValue('fullAddress.city', loc.city);
+                form.setValue('fullAddress.state', loc.state);
+                form.setValue('fullAddress.pincode', loc.pincode);
+              }}
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button 
+                variant="default" 
+                className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+                onClick={() => setMapOpen(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Location
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

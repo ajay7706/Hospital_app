@@ -181,8 +181,21 @@ export default function HospitalDashboard() {
     finally { setDeletingDoctor(null); }
   };
 
+  const [isBranchLocationSelected, setIsBranchLocationSelected] = useState(false);
+
   const handleAddBranch = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isBranchLocationSelected) {
+      toast({ 
+        title: 'Branch Location Required', 
+        description: 'Please select the branch location on the map and confirm.', 
+        variant: 'destructive' 
+      });
+      setBranchMapOpen(true);
+      return;
+    }
+
     setProcessingBranch(true);
     try {
       const token = localStorage.getItem('token');
@@ -198,6 +211,7 @@ export default function HospitalDashboard() {
         ambulanceAvailable: false, emergency24x7: false, image: null,
         opdChargeType: 'hospitalDefault', opdCharge: ''
       });
+      setIsBranchLocationSelected(false);
       fetchInitialData();
 
     } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
@@ -971,6 +985,44 @@ export default function HospitalDashboard() {
         </div>
       </DialogContent>
     </Dialog>
+      <Dialog open={branchMapOpen} onOpenChange={setBranchMapOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+          <DialogHeader className="p-6 bg-white border-b">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Select Branch Location
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 bg-slate-50">
+            <GoogleMapPicker 
+              initialLocation={{ 
+                lat: branchForm.latitude || 20.5937, 
+                lng: branchForm.longitude || 78.9629 
+              }}
+              onLocationSelect={(loc) => {
+                setIsBranchLocationSelected(true);
+                setBranchForm(prev => ({
+                  ...prev,
+                  latitude: loc.lat,
+                  longitude: loc.lng,
+                  address: loc.address,
+                  city: loc.city,
+                  state: loc.state,
+                  pincode: loc.pincode
+                }));
+              }}
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button 
+                variant="default" 
+                className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+                onClick={() => setBranchMapOpen(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Branch Location
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
