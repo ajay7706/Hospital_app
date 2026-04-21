@@ -111,7 +111,7 @@ const hospitalSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  verificationStatus: {
+  approvalStatus: {
     type: String,
     enum: ["pending", "approved", "rejected"],
     default: "pending",

@@ -50,8 +50,12 @@ app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/doctors", require("./routes/doctorRoutes"));
 app.use("/api/branches", require("./routes/branchRoutes"));
-app.use("/api/otp", require("./routes/otpRoutes"));
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ msg: `Route ${req.originalUrl} not found` });
+});
 
-app.listen(process.env.PORT, () => {
-  console.log("Server running...");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}...`);
 });

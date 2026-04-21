@@ -392,45 +392,50 @@ const AdminDashboard = () => {
                             {h.approvalStatus}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button size="sm" variant="ghost" onClick={() => { 
-                            setSelectedHospital(h); 
-                            fetchHospitalBranches(h._id);
-                            setDocModalOpen(true); 
-                          }}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {h.approvalStatus === 'pending' && (
-                            <>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => { 
+                              setSelectedHospital(h); 
+                              fetchHospitalBranches(h._id);
+                              setDocModalOpen(true); 
+                            }}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+
+                            {h.approvalStatus !== 'approved' && (
                               <Button 
                                 size="sm" 
-                                variant="outline" 
-                                className="text-green-600" 
+                                variant="default" 
+                                className="bg-primary hover:bg-primary/90 text-white"
                                 isLoading={actionLoading === `approve-${h._id}`}
                                 onClick={() => handleAction(`/api/admin/hospital/${h._id}/approve`, 'PATCH', null, `approve-${h._id}`)}
                               >
                                 Approve
                               </Button>
+                            )}
+
+                            {h.approvalStatus !== 'rejected' && (
                               <Button 
                                 size="sm" 
                                 variant="outline" 
-                                className="text-red-600" 
+                                className="border-red-500 text-red-600 hover:bg-red-50"
                                 isLoading={actionLoading === `reject-${h._id}`}
                                 onClick={() => handleAction(`/api/admin/hospital/${h._id}/reject`, 'PATCH', null, `reject-${h._id}`)}
                               >
                                 Reject
                               </Button>
-                            </>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className={h.isDeleted ? 'text-green-600' : 'text-red-600'} 
-                            isLoading={actionLoading === `delete-${h._id}`}
-                            onClick={() => handleAction(`/api/admin/hospital/${h._id}`, 'DELETE', null, `delete-${h._id}`)}
-                          >
-                            {h.isDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                          </Button>
+                            )}
+
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className={h.isDeleted ? 'text-green-600' : 'text-red-600'} 
+                              isLoading={actionLoading === `delete-${h._id}`}
+                              onClick={() => handleAction(`/api/admin/hospital/${h._id}`, 'DELETE', null, `delete-${h._id}`)}
+                            >
+                              {h.isDeleted ? <RotateCcw className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

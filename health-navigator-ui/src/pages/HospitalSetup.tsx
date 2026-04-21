@@ -201,8 +201,15 @@ export default function HospitalSetup() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.msg || 'Failed to submit');
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+          const error = await res.json();
+          throw new Error(error.msg || 'Failed to submit');
+        } else {
+          const text = await res.text();
+          console.error("Server returned non-JSON error:", text);
+          throw new Error('Server error occurred. Please check console for details.');
+        }
       }
 
       const result = await res.json();

@@ -16,11 +16,17 @@ exports.addHospital = async (req, res) => {
 
     const { specialties, services, fullAddress, location, workingDays, appointmentSlots, ...otherHospitalData } = req.body;
 
-    const parsedAddress = typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress;
-    const parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
-    const parsedServices = typeof services === 'string' ? JSON.parse(services) : services;
-    const parsedWorkingDays = typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays;
-    const parsedAppointmentSlots = typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots;
+    let parsedAddress = {};
+    let parsedLocation = {};
+    let parsedServices = [];
+    let parsedWorkingDays = [];
+    let parsedAppointmentSlots = {};
+
+    try { if (fullAddress) parsedAddress = typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress; } catch (e) { console.error("Error parsing fullAddress:", e); }
+    try { if (location) parsedLocation = typeof location === 'string' ? JSON.parse(location) : location; } catch (e) { console.error("Error parsing location:", e); }
+    try { if (services) parsedServices = typeof services === 'string' ? JSON.parse(services) : services; } catch (e) { console.error("Error parsing services:", e); }
+    try { if (workingDays) parsedWorkingDays = typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays; } catch (e) { console.error("Error parsing workingDays:", e); }
+    try { if (appointmentSlots) parsedAppointmentSlots = typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots; } catch (e) { console.error("Error parsing appointmentSlots:", e); }
 
     const hospitalData = { 
       ...otherHospitalData, 
@@ -31,7 +37,9 @@ exports.addHospital = async (req, res) => {
       location: parsedLocation,
       workingDays: parsedWorkingDays || [],
       appointmentSlots: parsedAppointmentSlots || {},
-      verificationStatus: "pending",
+      latitude: parseFloat(otherHospitalData.latitude || parsedLocation.lat || 0),
+      longitude: parseFloat(otherHospitalData.longitude || parsedLocation.lng || 0),
+      approvalStatus: "pending",
       isVerified: false
     };
 
