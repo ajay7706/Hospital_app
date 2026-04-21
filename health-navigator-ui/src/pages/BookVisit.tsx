@@ -50,12 +50,7 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
-const timeSlots = [
-  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',
-  '11:00 AM', '11:30 AM', '12:00 PM', '02:00 PM',
-  '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM',
-  '04:30 PM', '05:00 PM',
-];
+const timeSlots = []; // Will be generated dynamically
 
 const BookVisit = () => {
   const [searchParams] = useSearchParams();
@@ -83,6 +78,35 @@ const BookVisit = () => {
   const [opdCharge, setOpdCharge] = useState(0);
   const [branchData, setBranchData] = useState<any>(null);
   const [bookingClosed, setBookingClosed] = useState(false);
+  const [occupancy, setOccupancy] = useState<Record<string, number>>({});
+  const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
+  const [slotLoading, setSlotLoading] = useState(false);
+
+  const generateSlots = (start: string, end: string): string[] => {
+    const slots: string[] = [];
+    let current = new Date(`2000-01-01T${start}:00`);
+    const stop = new Date(`2000-01-01T${end}:00`);
+    while (current < stop) {
+      slots.push(current.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
+      current = new Date(current.getTime() + 30 * 60000);
+    }
+    return slots;
+  };
+
+  const fetchOccupancy = async (date: Date) => {
+    if (!hospitalId) return;
+    try {
+      setSlotLoading(true);
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const res = await fetch(`${API_BASE}/api/appointments/slot-occupancy?hospitalId=${hospitalId}&branchId=${branchId || 'null'}&date=${dateStr}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOccupancy(data.occupancy || {});
+      }
+    } catch (err) {}
+    finally { setSlotLoading(false); }
+  };
 
   const fetchDetails = async () => {
     if (!hospitalId) return;
@@ -102,30 +126,33 @@ const BookVisit = () => {
       }
 
       if (hospRes.ok) {
-        const hospital = await hospRes.json();
-        let charge = hospital.opdCharge || 0;
+        const hData = await hospRes.json();
+        const hospital = hData.hospital || hData;
+        let charge = hospital?.opdCharge || 0;
+        let start = hospital?.startTime || '09:00';
+        let end = hospital?.endTime || '18:00';
         
         if (branchId) {
           const branchRes = await fetch(`${API_BASE}/api/branches/single/${branchId}`);
           if (branchRes.ok) {
             const branch = await branchRes.json();
             setBranchData(branch);
-            if (branch.opdChargeType === 'custom') {
-              charge = branch.opdCharge;
-            }
+            if (branch.opdChargeType === 'custom') charge = branch.opdCharge;
+            if (branch.startTime) start = branch.startTime;
+            if (branch.endTime) end = branch.endTime;
 
-            // Check if same-day booking is closed based on endTime
-            if (branch.endTime) {
-              const [h, m] = branch.endTime.split(':').map(Number);
-              const end = new Date();
-              end.setHours(h, m, 0, 0);
-              if (new Date() > end) {
-                setBookingClosed(true);
-              }
+            if (end) {
+              const [h, m] = end.split(':').map(Number);
+              const endDate = new Date();
+              endDate.setHours(h, m, 0, 0);
+              if (new Date() > endDate) setBookingClosed(true);
             }
           }
         }
         setOpdCharge(charge);
+        const slots = generateSlots(start, end);
+        setGeneratedSlots(slots);
+        fetchOccupancy(new Date());
       }
     } catch (err) {
       console.error('Failed to fetch details', err);
@@ -138,28 +165,33 @@ const BookVisit = () => {
     fetchDetails();
   }, [hospitalId, branchId]);
 
-
-  const getAvailableSlots = (selectedDate: Date | undefined) => {
-    if (!selectedDate) return timeSlots;
+  const getAvailableSlots = (selectedDate: Date | undefined): string[] => {
+    const slots = generatedSlots.length > 0 ? generatedSlots : generateSlots('09:00', '18:00');
+    if (!selectedDate) return slots;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const selectedStr = format(selectedDate, 'yyyy-MM-dd');
-    
-    if (selectedStr !== todayStr) return timeSlots;
-    
-    // Filter for today: only future slots
+    if (selectedStr !== todayStr) return slots;
     const now = new Date();
-    return timeSlots.filter(slot => {
-      const match = slot.match(/(\d+):(\d+)\s(AM|PM)/);
+    return slots.filter(slot => {
+      const match = slot.match(/(\d+):(\d+)\s(AM|PM)/i);
       if (!match) return true;
-      let [_, hours, minutes, period] = match;
-      let h = parseInt(hours);
+      let h = parseInt(match[1]);
+      const m = parseInt(match[2]);
+      const period = match[3].toUpperCase();
       if (period === 'PM' && h !== 12) h += 12;
       if (period === 'AM' && h === 12) h = 0;
-      
       const slotTime = new Date();
-      slotTime.setHours(h, parseInt(minutes), 0, 0);
+      slotTime.setHours(h, m, 0, 0);
       return slotTime > now;
     });
+  };
+
+  const MAX_PER_SLOT = 30;
+  const getSlotCount = (slot: string) => occupancy[slot] || 0;
+  const isSlotFull = (slot: string) => getSlotCount(slot) >= MAX_PER_SLOT;
+  const getNextAvailableSlot = (selectedDate: Date | undefined): string | null => {
+    const slots = getAvailableSlots(selectedDate);
+    return slots.find(s => !isSlotFull(s)) || null;
   };
 
   const isTodayDisabled = todayCount >= 300 || getAvailableSlots(new Date()).length === 0 || bookingClosed;
@@ -633,7 +665,11 @@ const BookVisit = () => {
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(d) => {
+                                field.onChange(d);
+                                if (d) fetchOccupancy(d);
+                                form.setValue('time', '');
+                              }}
                               disabled={(date) => {
                                 const today = new Date();
                                 today.setHours(0,0,0,0);
@@ -658,27 +694,61 @@ const BookVisit = () => {
                   <FormField
                     control={form.control}
                     name="time"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Appointment Time</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                          <FormControl>
-                            <SelectTrigger className="h-12">
-                              <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                              <SelectValue placeholder="Select time" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {getAvailableSlots(form.getValues('date')).map((slot) => (
-                              <SelectItem key={slot} value={slot}>
-                                {slot}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const selectedDate = form.getValues('date');
+                      const availableSlots = getAvailableSlots(selectedDate);
+                      const nextSlot = getNextAvailableSlot(selectedDate);
+                      return (
+                        <FormItem>
+                          <FormLabel className="flex items-center justify-between">
+                            <span>Appointment Time</span>
+                            {slotLoading && <span className="text-xs text-muted-foreground">Loading slots...</span>}
+                          </FormLabel>
+                          <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                            {availableSlots.map((slot) => {
+                              const count = getSlotCount(slot);
+                              const full = isSlotFull(slot);
+                              const selected = field.value === slot;
+                              const isNext = !full && slot === nextSlot && !field.value;
+                              return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  onClick={() => {
+                                    if (full) {
+                                      toast({ title: 'Slot Full', description: `This slot is full. ${nextSlot ? `Try ${nextSlot}` : 'All slots are full for this date.'}`, variant: 'destructive' });
+                                    } else {
+                                      field.onChange(slot);
+                                    }
+                                  }}
+                                  className={cn(
+                                    'relative text-left px-3 py-2 rounded-xl border text-xs font-semibold transition-all duration-150',
+                                    selected && 'bg-primary text-primary-foreground border-primary shadow-md scale-[1.02]',
+                                    full && !selected && 'bg-red-50 border-red-200 text-red-500 cursor-not-allowed opacity-80',
+                                    !full && !selected && 'bg-card border-border hover:border-primary/60 hover:bg-primary/5',
+                                    isNext && !selected && 'border-green-400 bg-green-50 text-green-700'
+                                  )}
+                                >
+                                  <div>{slot}</div>
+                                  <div className={cn('text-[10px] font-bold mt-0.5',
+                                    full ? 'text-red-500' : selected ? 'text-primary-foreground/70' : isNext ? 'text-green-600' : 'text-muted-foreground'
+                                  )}>
+                                    {full ? '🔴 FULL' : isNext ? `✅ ${count}/${MAX_PER_SLOT} (Suggested)` : `${count}/${MAX_PER_SLOT}`}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                            {availableSlots.length === 0 && (
+                              <p className="col-span-2 text-center text-sm text-muted-foreground py-4">No slots available for this date.</p>
+                            )}
+                          </div>
+                          {field.value && (
+                            <p className="text-xs text-primary font-semibold mt-1">✅ Selected: {field.value}</p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 

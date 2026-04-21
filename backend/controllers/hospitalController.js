@@ -14,19 +14,17 @@ exports.addHospital = async (req, res) => {
     console.log("Received addHospital request. Body:", req.body); 
     console.log("Uploaded Files:", req.files); 
 
-    const { specialties, services, fullAddress, location, workingDays, appointmentSlots, ...otherHospitalData } = req.body;
+    const { specialties, services, fullAddress, location, workingDays, ...otherHospitalData } = req.body;
 
     let parsedAddress = {};
     let parsedLocation = {};
     let parsedServices = [];
     let parsedWorkingDays = [];
-    let parsedAppointmentSlots = {};
 
     try { if (fullAddress) parsedAddress = typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress; } catch (e) { console.error("Error parsing fullAddress:", e); }
     try { if (location) parsedLocation = typeof location === 'string' ? JSON.parse(location) : location; } catch (e) { console.error("Error parsing location:", e); }
     try { if (services) parsedServices = typeof services === 'string' ? JSON.parse(services) : services; } catch (e) { console.error("Error parsing services:", e); }
     try { if (workingDays) parsedWorkingDays = typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays; } catch (e) { console.error("Error parsing workingDays:", e); }
-    try { if (appointmentSlots) parsedAppointmentSlots = typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots; } catch (e) { console.error("Error parsing appointmentSlots:", e); }
 
     const hospitalData = { 
       ...otherHospitalData, 
@@ -36,7 +34,8 @@ exports.addHospital = async (req, res) => {
       fullAddress: parsedAddress,
       location: parsedLocation,
       workingDays: parsedWorkingDays || [],
-      appointmentSlots: parsedAppointmentSlots || {},
+      startTime: otherHospitalData.startTime || '09:00',
+      endTime: otherHospitalData.endTime || '18:00',
       latitude: parseFloat(otherHospitalData.latitude || parsedLocation.lat || 0),
       longitude: parseFloat(otherHospitalData.longitude || parsedLocation.lng || 0),
       approvalStatus: "pending",
@@ -218,7 +217,7 @@ exports.updateHospitalProfile = async (req, res) => {
     console.log("Update Hospital Body:", req.body);
     console.log("Update Hospital Files:", req.files);
 
-    const { specialties, services, fullAddress, location, workingDays, appointmentSlots, gallery, ...otherHospitalData } = req.body;
+    const { specialties, services, fullAddress, location, workingDays, gallery, ...otherHospitalData } = req.body;
 
     let hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
@@ -229,7 +228,6 @@ exports.updateHospitalProfile = async (req, res) => {
     const parsedLocation = location ? (typeof location === 'string' ? JSON.parse(location) : location) : hospital.location;
     const parsedServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : hospital.services;
     const parsedWorkingDays = workingDays ? (typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays) : hospital.workingDays;
-    const parsedAppointmentSlots = appointmentSlots ? (typeof appointmentSlots === 'string' ? JSON.parse(appointmentSlots) : appointmentSlots) : hospital.appointmentSlots;
 
     const updateData = {
       ...otherHospitalData,
@@ -238,7 +236,8 @@ exports.updateHospitalProfile = async (req, res) => {
       fullAddress: parsedAddress,
       location: parsedLocation,
       workingDays: parsedWorkingDays,
-      appointmentSlots: parsedAppointmentSlots,
+      startTime: otherHospitalData.startTime || hospital.startTime || '09:00',
+      endTime: otherHospitalData.endTime || hospital.endTime || '18:00',
     };
 
     if (req.files) {

@@ -60,10 +60,8 @@ const editSchema = z.object({
   workingDays: z.array(z.string()).min(1, 'Select at least one day'),
   openingTime: z.string().min(1, 'Required'),
   closingTime: z.string().min(1, 'Required'),
-  appointmentSlots: z.object({
-    startTime: z.string().min(1, 'Required'),
-    endTime: z.string().min(1, 'Required'),
-  }),
+  startTime: z.string().min(1, 'Required'),
+  endTime: z.string().min(1, 'Required'),
   opdCharge: z.string().min(1, 'Required'),
   gstNumber: z.string().optional(),
 });
@@ -100,7 +98,8 @@ const EditProfile = () => {
       workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
       openingTime: '08:00',
       closingTime: '20:00',
-      appointmentSlots: { startTime: '09:00', endTime: '17:00' },
+      startTime: '09:00',
+      endTime: '18:00',
       opdCharge: '0',
       gstNumber: '',
     },
@@ -220,7 +219,8 @@ const EditProfile = () => {
       fd.append('workingDays', JSON.stringify(data.workingDays || []));
       fd.append('fullAddress', JSON.stringify(data.fullAddress));
       fd.append('location', JSON.stringify(data.location));
-      fd.append('appointmentSlots', JSON.stringify(data.appointmentSlots));
+      fd.append('startTime', data.startTime);
+      fd.append('endTime', data.endTime);
       fd.append('services', JSON.stringify(data.services || []));
       fd.append('specialties', (data.specialties || []).map(s => s.value).join(','));
       fd.append('opdCharge', data.opdCharge);
@@ -483,11 +483,11 @@ const EditProfile = () => {
                   )} />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField control={form.control} name="appointmentSlots.startTime" render={({ field }) => (
-                    <FormItem><FormLabel>Appointment From *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormField control={form.control} name="startTime" render={({ field }) => (
+                    <FormItem><FormLabel>Appointment Start Time *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
-                  <FormField control={form.control} name="appointmentSlots.endTime" render={({ field }) => (
-                    <FormItem><FormLabel>Appointment To *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormField control={form.control} name="endTime" render={({ field }) => (
+                    <FormItem><FormLabel>Appointment End Time *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
               </div>

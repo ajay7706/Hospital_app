@@ -41,15 +41,19 @@ exports.bookAppointment = async (req, res) => {
       maxQueue = 300; // Force 300 bookings limit per requirement
     }
 
-    const bookingCount = await Appointment.countDocuments({
+    const slotOccupancy = await Appointment.countDocuments({
       hospitalId,
       branchId: branchId || null,
-      date
+      date,
+      time
     });
 
     if (type !== "Emergency") {
+      if (slotOccupancy >= 30) {
+        return res.status(400).json({ msg: "This time slot is FULL. Please select another time." });
+      }
       if (bookingCount >= maxQueue) {
-        return res.status(400).json({ msg: branchId ? "Slot full for this branch on selected date." : "Slot full for hospital on selected date." });
+        return res.status(400).json({ msg: branchId ? "Daily limit full for this branch." : "Daily limit full for hospital." });
       }
     }
 
@@ -407,5 +411,29 @@ exports.trackAppointment = async (req, res) => {
   } catch (error) {
     console.error("Track Appointment Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+// Get Slot Occupancy
+exports.getSlotOccupancy = async (req, res) => {
+  try {
+    const { hospitalId, branchId, date } = req.query;
+    if (!hospitalId || !date) {
+      return res.status(400).json({ msg: "Hospital ID and Date are required" });
+    }
+
+    const appointments = await Appointment.find({
+      hospitalId,
+      branchId: branchId === 'null' ? null : (branchId || null),
+      date
+    }, 'time');
+
+    const occupancy = {};
+    appointments.forEach(apt => {
+      occupancy[apt.time] = (occupancy[apt.time] || 0) + 1;
+    });
+
+    res.json({ occupancy });
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
   }
 };

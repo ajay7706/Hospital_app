@@ -59,9 +59,17 @@ const hospitalSchema = new mongoose.Schema({
   workingDays: [String],
   openingTime: String,
   closingTime: String,
-  appointmentSlots: {
-    startTime: String,
-    endTime: String,
+  startTime: {
+    type: String,
+    default: "09:00",
+  },
+  endTime: {
+    type: String,
+    default: "18:00",
+  },
+  slotTime: {
+    type: String,
+    default: "30 min",
   },
   emergency24x7: {
     type: Boolean,

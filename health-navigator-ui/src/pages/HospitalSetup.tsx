@@ -43,6 +43,8 @@ const step1Schema = z.object({
   emergency24x7: z.boolean().default(false),
   openingTime: z.string().min(1, 'Required'),
   closingTime: z.string().min(1, 'Required'),
+  startTime: z.string().min(1, 'Required').default('09:00'),
+  endTime: z.string().min(1, 'Required').default('18:00'),
   workingDays: z.array(z.string()).min(1, 'Select at least one day'),
 });
 
@@ -97,6 +99,8 @@ export default function HospitalSetup() {
       emergency24x7: false,
       openingTime: '08:00',
       closingTime: '20:00',
+      startTime: '09:00',
+      endTime: '18:00',
       workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     }
   });
@@ -109,7 +113,6 @@ export default function HospitalSetup() {
       emergencyContactNumber: '',
       fullAddress: { address: '', city: '', state: '', pincode: '' },
       location: { lat: 20.5937, lng: 78.9629 }, // Default India
-      appointmentSlots: { startTime: '09:00', endTime: '17:00' },
     }
   });
 
@@ -198,7 +201,6 @@ export default function HospitalSetup() {
       formData.append('location', JSON.stringify(data2.location));
       formData.append('latitude', String(data2.latitude || data2.location.lat));
       formData.append('longitude', String(data2.longitude || data2.location.lng));
-      formData.append('appointmentSlots', JSON.stringify(data2.appointmentSlots));
       
       formData.append('licenseCertificate', licenseFile);
       formData.append('ownerIdProof', idProofFile);
@@ -354,6 +356,15 @@ export default function HospitalSetup() {
                       )} />
                       <FormField control={form1.control} name="closingTime" render={({ field }) => (
                         <FormItem><FormLabel>Closing Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage/></FormItem>
+                      )} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField control={form1.control} name="startTime" render={({ field }) => (
+                        <FormItem><FormLabel>Appointment Start Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage/></FormItem>
+                      )} />
+                      <FormField control={form1.control} name="endTime" render={({ field }) => (
+                        <FormItem><FormLabel>Appointment End Time</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage/></FormItem>
                       )} />
                     </div>
 

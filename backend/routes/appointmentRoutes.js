@@ -8,7 +8,8 @@ const {
   updateAppointmentStatus,
   checkAvailability,
   getNowServing,
-  trackAppointment
+  trackAppointment,
+  getSlotOccupancy
 } = require("../controllers/appointmentController");
 
 
@@ -23,5 +24,6 @@ router.put("/update/:id", protect, isHospitalBranchOrDoctor, updateAppointmentSt
 router.get("/now-serving", getNowServing);
 router.get("/track/:token", trackAppointment);
 router.get("/track-appointment", trackAppointment);
+router.get("/slot-occupancy", getSlotOccupancy);
 
 module.exports = router;
