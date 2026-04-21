@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Search, Users, Clock, AlertCircle, 
   ChevronRight, RefreshCcw, CheckCircle2,
-  BrainCircuit, Activity, Heart, Shield
+  BrainCircuit, Activity, Heart, Shield, Phone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
