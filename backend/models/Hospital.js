@@ -99,7 +99,11 @@ const hospitalSchema = new mongoose.Schema({
     type: String,
   }], // max 4 images
 
-  approvalStatus: {
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationStatus: {
     type: String,
     enum: ["pending", "approved", "rejected"],
     default: "pending",
@@ -120,9 +124,11 @@ const hospitalSchema = new mongoose.Schema({
   },
   gstNumber: {
     type: String,
+    required: true,
   },
   gstDocument: {
     type: String, // Cloudinary URL
+    required: true,
   },
 }, { timestamps: true });
 

@@ -130,33 +130,54 @@ export default function TrackAppointment() {
         <section className="container mx-auto px-4 py-20">
            <AnimatePresence mode="wait">
              {!appointment ? (
-                <motion.div 
-                  key="empty"
-                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 text-center"
-                >
-                   <div className="p-8 bg-card border border-border rounded-3xl">
-                      <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
-                         <BrainCircuit className="h-6 w-6" />
-                      </div>
-                      <h3 className="font-bold mb-2">Check Details</h3>
-                      <p className="text-sm text-muted-foreground">Approve hone ke baad hi tracking available hoti hai.</p>
-                   </div>
-                   <div className="p-8 bg-card border border-border rounded-3xl">
-                      <div className="h-12 w-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 mx-auto mb-4">
-                         <Activity className="h-6 w-6" />
-                      </div>
-                      <h3 className="font-bold mb-2">Live Token</h3>
-                      <p className="text-sm text-muted-foreground">Hospital me abhi kiska number chal raha hai, ye live dekhein.</p>
-                   </div>
-                   <div className="p-8 bg-card border border-border rounded-3xl">
-                      <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto mb-4">
-                         <Heart className="h-6 w-6" />
-                      </div>
-                      <h3 className="font-bold mb-2">Stay Updated</h3>
-                      <p className="text-sm text-muted-foreground">Kahin se bhi apni bari ka wait karein aur time save karein.</p>
-                   </div>
-                </motion.div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center"
+            >
+              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
+                <BrainCircuit className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Instant Status</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Track your queue position and live status in real-time from anywhere.
+              </p>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center"
+            >
+              <div className="mx-auto w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <Activity className="h-8 w-8 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Live Token</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                View the current token number being served at the hospital branch.
+              </p>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="bg-card p-8 rounded-[2rem] border border-border shadow-sm text-center"
+            >
+              <div className="mx-auto w-16 h-16 bg-cta/10 rounded-2xl flex items-center justify-center mb-6">
+                <Heart className="h-8 w-8 text-cta" />
+              </div>
+              <h3 className="text-xl font-bold mb-3">Save Time</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Wait comfortably from your home and avoid long hospital queues.
+              </p>
+            </motion.div>
+          </div>
              ) : (
                 <motion.div 
                    key="result"

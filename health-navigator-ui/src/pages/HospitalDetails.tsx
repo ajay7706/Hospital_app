@@ -411,7 +411,7 @@ const HospitalDetails = () => {
                     <h2 className="mb-6 flex items-center gap-2 text-xl font-bold text-foreground">
                       <Building2 className="h-6 w-6 text-primary" /> Our Branches
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-4 sm:gap-6">
                       {branches.slice(0, 10).map((branch: any) => (
                         <BranchCard 
                           key={branch._id} 

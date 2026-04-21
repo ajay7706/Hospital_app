@@ -47,7 +47,8 @@ const step1Schema = z.object({
 });
 
 const step2Schema = z.object({
-  hospitalLicenseNumber: z.string().min(2, 'Required'),
+  hospitalLicenseNumber: z.string().min(6, 'License number must be at least 6 characters'),
+  gstNumber: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Enter valid GST number'),
   emergencyContactNumber: z.string().min(10, 'Required'),
   fullAddress: z.object({
     address: z.string().min(5, 'Required'),
@@ -84,6 +85,7 @@ export default function HospitalSetup() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [gstFile, setGstFile] = useState<File | null>(null);
 
   const form1 = useForm<z.infer<typeof step1Schema>>({
     resolver: zodResolver(step1Schema),
@@ -108,6 +110,7 @@ export default function HospitalSetup() {
     resolver: zodResolver(step2Schema),
     defaultValues: {
       hospitalLicenseNumber: '',
+      gstNumber: '',
       emergencyContactNumber: '',
       fullAddress: { address: '', city: '', state: '', pincode: '' },
       location: { lat: 20.5937, lng: 78.9629 }, // Default India
@@ -157,8 +160,8 @@ export default function HospitalSetup() {
   }, [form2.watch('fullAddress.address'), form2.watch('fullAddress.city'), form2.watch('fullAddress.state')]);
 
   const onSubmit = async (data2: z.infer<typeof step2Schema>) => {
-    if (!licenseFile || !idProofFile) {
-      toast({ title: 'Error', description: 'Please upload license and ID proof', variant: 'destructive' });
+    if (!licenseFile || !idProofFile || !gstFile) {
+      toast({ title: 'Error', description: 'Please upload all required documents (License, ID Proof, and GST Certificate)', variant: 'destructive' });
       return;
     }
 
@@ -182,6 +185,7 @@ export default function HospitalSetup() {
 
       // Append Step 2 data
       formData.append('hospitalLicenseNumber', data2.hospitalLicenseNumber);
+      formData.append('gstNumber', data2.gstNumber);
       formData.append('emergencyContactNumber', data2.emergencyContactNumber);
       formData.append('fullAddress', JSON.stringify(data2.fullAddress));
       formData.append('location', JSON.stringify(data2.location));
@@ -189,6 +193,7 @@ export default function HospitalSetup() {
       
       formData.append('licenseCertificate', licenseFile);
       formData.append('ownerIdProof', idProofFile);
+      formData.append('gstDocument', gstFile);
 
       const res = await fetch(`${API_BASE}/api/hospitals/add`, {
         method: 'POST',
@@ -363,10 +368,15 @@ export default function HospitalSetup() {
                   <form onSubmit={form2.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={form2.control} name="hospitalLicenseNumber" render={({ field }) => (
-                        <FormItem><FormLabel>License Number *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>
+                        <FormItem><FormLabel>License Number *</FormLabel><FormControl><Input placeholder="Enter License No." {...field} /></FormControl><FormMessage/></FormItem>
                       )} />
+                      <FormField control={form2.control} name="gstNumber" render={({ field }) => (
+                        <FormItem><FormLabel>GST Number *</FormLabel><FormControl><Input placeholder="22AAAAA0000A1Z5" {...field} /></FormControl><FormMessage/></FormItem>
+                      )} />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
                       <FormField control={form2.control} name="emergencyContactNumber" render={({ field }) => (
-                        <FormItem><FormLabel>Emergency Number *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage/></FormItem>
+                        <FormItem><FormLabel>Emergency Contact Number *</FormLabel><FormControl><Input placeholder="Enter Phone" {...field} /></FormControl><FormMessage/></FormItem>
                       )} />
                     </div>
 
@@ -437,14 +447,18 @@ export default function HospitalSetup() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <FormLabel>License Certificate (PDF/Img) *</FormLabel>
-                        <Input type="file" accept=".pdf,image/*" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">License Certificate *</FormLabel>
+                        <Input type="file" accept=".pdf,image/*" className="h-10 text-xs" onChange={(e) => setLicenseFile(e.target.files?.[0] || null)} />
                       </div>
                       <div className="space-y-2">
-                        <FormLabel>Owner ID Proof (Img) *</FormLabel>
-                        <Input type="file" accept="image/*" onChange={(e) => setIdProofFile(e.target.files?.[0] || null)} />
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">GST Certificate *</FormLabel>
+                        <Input type="file" accept=".pdf,image/*" className="h-10 text-xs" onChange={(e) => setGstFile(e.target.files?.[0] || null)} />
+                      </div>
+                      <div className="space-y-2">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Owner ID Proof *</FormLabel>
+                        <Input type="file" accept="image/*" className="h-10 text-xs" onChange={(e) => setIdProofFile(e.target.files?.[0] || null)} />
                       </div>
                     </div>
 

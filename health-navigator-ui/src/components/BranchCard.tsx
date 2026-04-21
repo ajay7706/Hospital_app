@@ -19,7 +19,7 @@ export const BranchCard = ({ branch, hospital, onEmergencyClick }: BranchCardPro
       {/* Image Section */}
       <Link 
         to={`/branch-details?id=${branch._id}`} 
-        className="relative w-full h-[150px] overflow-hidden shrink-0"
+        className="relative w-full h-[220px] overflow-hidden shrink-0"
       >
         <img 
           src={branch.image || '/assets/hospital-1.jpg'} 

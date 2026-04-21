@@ -31,7 +31,8 @@ exports.addHospital = async (req, res) => {
       location: parsedLocation,
       workingDays: parsedWorkingDays || [],
       appointmentSlots: parsedAppointmentSlots || {},
-      approvalStatus: "pending" 
+      verificationStatus: "pending",
+      isVerified: false
     };
 
     if (req.files) {
