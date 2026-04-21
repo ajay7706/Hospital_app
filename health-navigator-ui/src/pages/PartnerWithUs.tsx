@@ -7,15 +7,16 @@ const PartnerWithUs = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative h-[60vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[75vh] flex items-center justify-center overflow-hidden">
         {/* Background Image with Dark Overlay */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80" 
+            src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=2000" 
             alt="Healthcare partnership" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 via-slate-900/60 to-slate-900/80" />
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[6px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         </div>
 
         <div className="container mx-auto px-4 relative z-10 text-center">
