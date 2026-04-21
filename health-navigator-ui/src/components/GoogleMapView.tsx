@@ -1,11 +1,5 @@
 import React from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
-import { Loader2 } from 'lucide-react';
-
-const containerStyle = {
-  width: '100%',
-  height: '350px'
-};
+import { MapPin } from 'lucide-react';
 
 interface GoogleMapViewProps {
   lat: number;
@@ -14,35 +8,32 @@ interface GoogleMapViewProps {
 }
 
 const GoogleMapView: React.FC<GoogleMapViewProps> = ({ lat, lng, zoom = 15 }) => {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
-  
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey
-  });
+  const openInMaps = () => {
+    window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+  };
 
-  const center = { lat, lng };
-
-  if (!isLoaded) return <div className="h-[350px] flex items-center justify-center bg-muted rounded-2xl"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  // Use free OpenStreetMap embed iframe — no API key needed
+  const osmUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.005},${lat - 0.005},${lng + 0.005},${lat + 0.005}&layer=mapnik&marker=${lat},${lng}`;
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={zoom}
-        options={{
-          streetViewControl: false,
-          mapTypeControl: false,
-          fullscreenControl: true,
-          draggable: false,
-          scrollwheel: false,
-          disableDefaultUI: true,
-          zoomControl: true
-        }}
+    <div className="rounded-2xl overflow-hidden border border-border shadow-sm relative group">
+      <iframe
+        src={osmUrl}
+        width="100%"
+        height="320"
+        style={{ border: 0 }}
+        title="Branch Location Map"
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+      {/* Open in Google Maps button overlay */}
+      <button
+        onClick={openInMaps}
+        className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-md hover:bg-white transition border border-slate-200"
       >
-        <Marker position={center} />
-      </GoogleMap>
+        <MapPin className="h-3.5 w-3.5 text-red-500" />
+        Open in Google Maps
+      </button>
     </div>
   );
 };

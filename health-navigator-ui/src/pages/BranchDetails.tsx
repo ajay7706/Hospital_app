@@ -196,7 +196,7 @@ const BranchDetails = () => {
               <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin className="h-4 w-4" /> {branch.address}, {branch.city}</div>
             </div>
             <div className="mt-6 md:mt-0">
-               <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`}>
+               <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.hospitalName || '')}`}>
                 <Button variant="cta" size="lg" className="h-14 px-8 text-lg font-bold shadow-xl w-full md:w-auto">Book Visit Now</Button>
                </Link>
             </div>
@@ -231,6 +231,23 @@ const BranchDetails = () => {
                   <h2 className="text-xl font-bold">About {branch.branchName}</h2>
                   <p className="mt-3 text-muted-foreground leading-relaxed">{branch.about || `${branch.branchName} is a state-of-the-art facility in ${branch.city} providing exceptional care.`}</p>
                 </div>
+
+                {/* Map Location Card - Moved here */}
+                {(branch.latitude || (branch.location && typeof branch.location !== 'string' && branch.location.lat)) && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <h3 className="mb-4 text-lg font-bold flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" /> Location on Map
+                    </h3>
+                    <GoogleMapView 
+                      lat={branch.latitude || branch.location.lat} 
+                      lng={branch.longitude || branch.location.lng} 
+                    />
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Live Verified Location
+                    </div>
+                  </div>
+                )}
                 {doctors.length > 0 && (
                   <div className="rounded-2xl border bg-card p-6 shadow-sm">
                     <h2 className="mb-4 text-lg font-bold flex items-center gap-2"><Activity className="h-5 w-5 text-primary" /> Our Doctors</h2>
@@ -269,23 +286,6 @@ const BranchDetails = () => {
                     <div className="flex gap-3 text-sm"><Phone className="h-5 w-5 text-primary" /> <div><p className="font-semibold">Phone</p><p className="text-muted-foreground">{branch.phone}</p></div></div>
                   </div>
                 </div>
-
-                {/* Map Location Card */}
-                {(branch.latitude || (branch.location && typeof branch.location !== 'string' && branch.location.lat)) && (
-                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-                    <h3 className="mb-4 text-lg font-bold flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" /> Location on Map
-                    </h3>
-                    <GoogleMapView 
-                      lat={branch.latitude || branch.location.lat} 
-                      lng={branch.longitude || branch.location.lng} 
-                    />
-                    <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-                      Live Verified Location
-                    </div>
-                  </div>
-                )}
 
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                   <h3 className="mb-4 text-lg font-bold flex items-center gap-2">

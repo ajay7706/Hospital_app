@@ -83,7 +83,7 @@ export const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-card/95 backdrop-blur-md">
+      <nav className="sticky top-0 z-50 w-full bg-card/95 backdrop-blur-md">
         {/* ... existing nav content ... */}
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:h-20">
           {/* Logo */}

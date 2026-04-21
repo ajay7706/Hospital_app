@@ -86,7 +86,7 @@ export const BranchCard = ({ branch, hospital, onEmergencyClick }: BranchCardPro
             >
               <Phone className="mr-1 h-3 w-3" /> Call
             </Button>
-            <Link to={`/book?id=${hospital._id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.name || '')}`} className="w-full">
+            <Link to={`/book?id=${hospital._id || hospital.id}&branchId=${branch._id}&branchName=${encodeURIComponent(branch.branchName)}&branchAddress=${encodeURIComponent(branch.address)}&hospitalName=${encodeURIComponent(hospital.hospitalName || hospital.name || '')}`} className="w-full">
               <Button size="sm" className="w-full h-9 text-[11px] sm:text-xs font-bold shadow-sm hover:shadow-md transition-all">
                 Book
               </Button>
