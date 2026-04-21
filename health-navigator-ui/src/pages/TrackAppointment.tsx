@@ -16,25 +16,35 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function TrackAppointment() {
   const { toast } = useToast();
-  const [query, setQuery] = useState('');
+  const [tokenNo, setTokenNo] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [appointment, setAppointment] = useState<any>(null);
   const [trackingData, setTrackingData] = useState<any>(null);
 
   const handleTrack = async () => {
-    if (!query) {
-      toast({ title: 'Please enter ID or Phone', variant: 'destructive' });
+    if (!phone && !tokenNo) {
+      toast({ title: 'Please enter Token or Phone', variant: 'destructive' });
       return;
     }
     
-    const searchQuery = query.trim();
-    const isPhone = /^\d{10}$/.test(searchQuery);
-    const finalParam = isPhone ? `phone=${searchQuery}` : `token=${searchQuery}`;
+    const searchToken = tokenNo.trim();
+    const searchPhone = phone.trim();
+    
+    let queryParams = '';
+    if (searchToken && searchPhone) {
+      queryParams = `tokenNumber=${searchToken}&phone=${searchPhone}`;
+    } else if (searchPhone) {
+      queryParams = `phone=${searchPhone}`;
+    } else {
+      // If only token is provided, we can try token query but backend might need ID
+      queryParams = `token=${searchToken}`;
+    }
 
     setLoading(true);
     setAppointment(null);
     try {
-      const res = await fetch(`${API_BASE}/api/appointments/track?${finalParam}`);
+      const res = await fetch(`${API_BASE}/api/appointments/track?${queryParams}`);
       const data = await res.json();
       if (res.ok) {
         setAppointment(data.appointment);
@@ -42,14 +52,14 @@ export default function TrackAppointment() {
       } else {
         toast({ 
           title: 'Not Found', 
-          description: data.message || 'No appointment found with given details', 
+          description: data.message || 'No appointment found. Please check your details.', 
           variant: 'destructive' 
         });
       }
     } catch (err) {
       toast({ 
         title: 'Request failed', 
-        description: 'No appointment found. Please check your number or ID.',
+        description: 'No appointment found. Please check your number or Token.',
         variant: 'destructive' 
       });
     } finally {
@@ -62,7 +72,7 @@ export default function TrackAppointment() {
     if (!appointment) return;
     const interval = setInterval(handleTrack, 30000);
     return () => clearInterval(interval);
-  }, [appointment?._id]);
+  }, [appointment?.tokenNumber]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -74,32 +84,43 @@ export default function TrackAppointment() {
            <div className="absolute -top-24 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" />
            <div className="absolute -bottom-24 -right-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl animate-pulse-slow" />
 
-           <div className="container mx-auto max-w-2xl relative z-10 text-center">
+           <div className="container mx-auto max-w-3xl relative z-10 text-center">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                  <Badge variant="outline" className="mb-4 bg-background px-4 py-1 text-primary border-primary/20 shadow-sm">
                    Live Tracking System
                  </Badge>
                  <h1 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
-                   Track Your <span className="text-primary">Appointment</span>
+                   Track Your <span className="text-primary">Status</span>
                  </h1>
                  <p className="text-muted-foreground text-lg mb-10 font-medium">
-                   Apne appointment ka status, live token number aur line me apni position dekhein real-time me.
+                   Apna phone number aur token number dalein status check karne ke liye.
                  </p>
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="flex flex-col sm:flex-row gap-3 p-2 bg-card border border-border rounded-3xl shadow-xl shadow-primary/5">
-                 <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="Enter Appointment ID or Phone Number" 
-                      className="h-14 pl-12 pr-4 border-none bg-transparent text-lg focus-visible:ring-0 shadow-none"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleTrack()}
-                    />
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="p-4 bg-card border border-border rounded-[2rem] shadow-xl shadow-primary/5">
+                 <div className="grid md:grid-cols-2 gap-4">
+                   <div className="relative">
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input 
+                        placeholder="Token Number (e.g. 5)" 
+                        className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted/30 text-lg font-bold"
+                        value={tokenNo}
+                        onChange={(e) => setTokenNo(e.target.value)}
+                      />
+                   </div>
+                   <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Input 
+                        placeholder="Phone Number" 
+                        className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted/30 text-lg font-bold"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleTrack()}
+                      />
+                   </div>
                  </div>
-                 <Button onClick={handleTrack} className="h-14 px-10 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" disabled={loading}>
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Track Now'}
+                 <Button onClick={handleTrack} className="w-full mt-4 h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" disabled={loading}>
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin" /> : 'Track Status Now'}
                  </Button>
               </motion.div>
            </div>

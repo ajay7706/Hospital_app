@@ -347,16 +347,20 @@ exports.getNowServing = async (req, res) => {
 // Track Appointment
 exports.trackAppointment = async (req, res) => {
   try {
-    const { token, phone } = req.query;
+    const { token, phone, tokenNumber } = req.query;
     let appointment;
     
-    if (token) {
-      // Try tracking by ID (token)
+    if (tokenNumber && phone) {
+      // Precise search by Token Number + Phone
+      const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
+      appointment = await Appointment.findOne({ 
+        tokenNumber: parseInt(tokenNumber), 
+        phone: searchPhone 
+      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+    } else if (token) {
+      // Legacy/Alternative: Track by ID (token string)
       if (mongoose.Types.ObjectId.isValid(token)) {
         appointment = await Appointment.findById(token).populate("hospitalId branchId");
-      } else {
-        // Fallback for custom token numbers if any, but usually it's the ID
-        appointment = await Appointment.findOne({ tokenNumber: token }).populate("hospitalId branchId");
       }
     } else if (phone) {
       // Find latest appointment by phone
