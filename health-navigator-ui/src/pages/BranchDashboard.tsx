@@ -5,8 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import {
   Calendar, Users, Ambulance, Building2, ArrowRight,
   Activity, AlertOctagon, CheckCircle2, Clock, XCircle, Phone,
-  CalendarDays, Loader2, RefreshCw,
+  CalendarDays, Loader2, RefreshCw, MapPin, Navigation
 } from 'lucide-react';
+import GoogleMapPicker from '@/components/GoogleMapPicker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
@@ -44,6 +47,7 @@ export default function BranchDashboard() {
   const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingDoctor, setSavingDoctor] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
@@ -168,6 +172,7 @@ export default function BranchDashboard() {
   const emergencyApts = appointments.filter(a => a.type === 'Emergency');
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cta/5 text-foreground flex flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-card/80 backdrop-blur border-r border-border p-6 flex flex-col md:h-screen md:sticky top-0 z-10">
@@ -615,6 +620,14 @@ export default function BranchDashboard() {
                    const emergency24x7 = (form.querySelector('input[name="emergency24x7"]') as HTMLInputElement)?.checked;
                    fd.set('emergency24x7', emergency24x7 ? 'true' : 'false');
 
+                   // Handle address and coordinates
+                   fd.append('latitude', String(branch.latitude || 20.5937));
+                   fd.append('longitude', String(branch.longitude || 78.9629));
+                   fd.append('city', branch.city || '');
+                   fd.append('state', branch.state || '');
+                   fd.append('pincode', branch.pincode || '');
+                   fd.append('address', branch.address || '');
+
                    // Handle gallery and services
                    fd.append('existingGallery', JSON.stringify(branch.gallery || []));
                    fd.append('services', JSON.stringify(branch.services || []));
@@ -658,6 +671,32 @@ export default function BranchDashboard() {
                           <div className="relative">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             <input name="emergencyContactNumber" defaultValue={branch?.emergencyContactNumber} className="w-full border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm bg-background focus:ring-2 focus:ring-primary/20 transition-all" placeholder="+91 88888 77777" />
+                          </div>
+                        </div>
+
+                        <div className="p-5 border border-dashed border-primary/30 rounded-2xl bg-primary/5 space-y-4">
+                          <div className="flex items-center justify-between">
+                             <h4 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
+                               <MapPin className="h-3 w-3" /> Branch Location
+                             </h4>
+                             <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/10" onClick={() => setMapOpen(true)}>
+                               <Navigation className="h-3 w-3 mr-1" /> Update on Map
+                             </Button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                             <div className="space-y-1">
+                               <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">City</label>
+                               <Input value={branch?.city || ''} readOnly className="h-9 text-xs bg-white/60" />
+                             </div>
+                             <div className="space-y-1">
+                               <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">Pincode</label>
+                               <Input value={branch?.pincode || ''} readOnly className="h-9 text-xs bg-white/60" />
+                             </div>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">Detailed Address</label>
+                            <Input value={branch?.address || ''} readOnly className="h-9 text-xs bg-white/60" />
                           </div>
                         </div>
                         <div className="flex items-center gap-4 p-4 rounded-2xl border bg-red-50/40 border-red-100 shadow-sm transition-all hover:shadow-md">
@@ -814,5 +853,41 @@ export default function BranchDashboard() {
         </AnimatePresence>
       </main>
     </div>
+    
+    <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+        <DialogHeader className="p-6 bg-white border-b">
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" /> Update Branch Location
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-6 bg-slate-50">
+          <GoogleMapPicker 
+            initialLocation={{ lat: branch?.latitude || 20.5937, lng: branch?.longitude || 78.9629 }}
+            onLocationSelect={(loc) => {
+              setBranch({
+                ...branch,
+                latitude: loc.lat,
+                longitude: loc.lng,
+                address: loc.address,
+                city: loc.city,
+                state: loc.state,
+                pincode: loc.pincode
+              });
+            }}
+          />
+          <div className="mt-6 flex justify-end gap-3">
+            <Button 
+              variant="default" 
+              className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+              onClick={() => setMapOpen(false)}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Location Update
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

@@ -15,6 +15,7 @@ import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import { BranchCard } from '@/components/BranchCard';
+import GoogleMapView from '@/components/GoogleMapView';
  
 // Service icon helper function
 const getServiceIcon = (title: string = "") => {
@@ -560,13 +561,30 @@ const HospitalDetails = () => {
                   </div>
                 </div>
 
+                {/* Map Location Card */}
+                {(hospital.latitude || hospital.location?.lat) && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                      <MapPin className="h-5 w-5 text-primary" /> Location on Map
+                    </h2>
+                    <GoogleMapView 
+                      lat={hospital.latitude || hospital.location?.lat} 
+                      lng={hospital.longitude || hospital.location?.lng} 
+                    />
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Live Verified Location
+                    </div>
+                  </div>
+                )}
+
                 {/* Book CTA Card */}
                 <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-center shadow-sm">
                   <h3 className="text-lg font-bold text-foreground">Ready to Visit?</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Book your appointment now and get expert care from our specialists.
                   </p>
-                  <Link to={`/book?id=${hospital._id}&name=${encodeURIComponent(hospital.name || '')}&location=${encodeURIComponent(hospital.location || '')}`}>
+                  <Link to={`/book?id=${hospital._id}&name=${encodeURIComponent(hospital.hospitalName || hospital.name || '')}&location=${encodeURIComponent(hospital.fullAddress?.address || hospital.city || hospital.location || '')}`}>
                     <Button variant="cta" size="lg" className="mt-4 w-full shadow-md">
                       Book Appointment
                     </Button>

@@ -91,6 +91,14 @@ const hospitalSchema = new mongoose.Schema({
     lat: { type: Number, required: true },
     lng: { type: Number, required: true },
   },
+  latitude: {
+    type: Number,
+    required: true,
+  },
+  longitude: {
+    type: Number,
+    required: true,
+  },
   emergencyContactNumber: {
     type: String,
     required: true,

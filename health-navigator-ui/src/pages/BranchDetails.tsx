@@ -13,6 +13,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import GoogleMapView from '@/components/GoogleMapView';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -268,6 +269,24 @@ const BranchDetails = () => {
                     <div className="flex gap-3 text-sm"><Phone className="h-5 w-5 text-primary" /> <div><p className="font-semibold">Phone</p><p className="text-muted-foreground">{branch.phone}</p></div></div>
                   </div>
                 </div>
+
+                {/* Map Location Card */}
+                {(branch.latitude || (branch.location && typeof branch.location !== 'string' && branch.location.lat)) && (
+                  <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                    <h3 className="mb-4 text-lg font-bold flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" /> Location on Map
+                    </h3>
+                    <GoogleMapView 
+                      lat={branch.latitude || branch.location.lat} 
+                      lng={branch.longitude || branch.location.lng} 
+                    />
+                    <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Live Verified Location
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
                   <h3 className="mb-4 text-lg font-bold flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" /> Working Day & Hour

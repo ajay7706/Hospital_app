@@ -18,6 +18,22 @@ const branchSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  state: {
+    type: String,
+    required: true,
+  },
+  pincode: {
+    type: String,
+    required: true,
+  },
+  latitude: {
+    type: Number,
+    required: true,
+  },
+  longitude: {
+    type: Number,
+    required: true,
+  },
   phone: {
     type: String,
     required: true,

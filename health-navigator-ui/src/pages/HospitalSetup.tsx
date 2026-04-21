@@ -19,9 +19,9 @@ import {
 } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  Loader2, ArrowRight, ArrowLeft, MapPin, Plus, Trash2
+  Loader2, ArrowRight, ArrowLeft, MapPin, Plus, Trash2, CheckCircle2, Navigation
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import GoogleMapPicker from '@/components/GoogleMapPicker';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -60,20 +60,15 @@ const step2Schema = z.object({
     lat: z.number(),
     lng: z.number(),
   }),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   appointmentSlots: z.object({
     startTime: z.string().min(1, 'Required'),
     endTime: z.string().min(1, 'Required'),
   }),
 });
 
-function LocationPicker({ onPick }: { onPick: (lat: number, lng: number) => void }) {
-  useMapEvents({
-    click(e) {
-      onPick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
+
 
 export default function HospitalSetup() {
   const navigate = useNavigate();
@@ -189,6 +184,8 @@ export default function HospitalSetup() {
       formData.append('emergencyContactNumber', data2.emergencyContactNumber);
       formData.append('fullAddress', JSON.stringify(data2.fullAddress));
       formData.append('location', JSON.stringify(data2.location));
+      formData.append('latitude', String(data2.latitude || data2.location.lat));
+      formData.append('longitude', String(data2.longitude || data2.location.lng));
       formData.append('appointmentSlots', JSON.stringify(data2.appointmentSlots));
       
       formData.append('licenseCertificate', licenseFile);
@@ -380,58 +377,52 @@ export default function HospitalSetup() {
                       )} />
                     </div>
 
-                    <div className="space-y-4 border p-4 rounded-lg">
-                      <h3 className="font-semibold text-sm">Full Address</h3>
-                      <FormField control={form2.control} name="fullAddress.address" render={({ field }) => (
-                        <FormItem><FormControl><Input placeholder="Street Address" {...field} /></FormControl></FormItem>
-                      )} />
-                      <div className="grid grid-cols-3 gap-2">
-                        <FormField control={form2.control} name="fullAddress.city" render={({ field }) => (
-                          <FormItem><FormControl><Input placeholder="City" {...field} /></FormControl></FormItem>
-                        )} />
-                        <FormField control={form2.control} name="fullAddress.state" render={({ field }) => (
-                          <FormItem><FormControl><Input placeholder="State" {...field} /></FormControl></FormItem>
-                        )} />
-                        <FormField control={form2.control} name="fullAddress.pincode" render={({ field }) => (
-                          <FormItem><FormControl><Input placeholder="Pincode" {...field} /></FormControl></FormItem>
-                        )} />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-border p-4 space-y-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-semibold text-sm flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-primary" /> Location
-                        </h3>
-                        <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(true)}>
-                          Select Location on Map
+                    <div className="rounded-2xl border border-border bg-slate-50/50 p-6 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-800">Hospital Location</h3>
+                            <p className="text-[10px] text-muted-foreground font-medium">Select precise location for patients</p>
+                          </div>
+                        </div>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-9 border-primary/20 text-primary hover:bg-primary/5 font-bold"
+                          onClick={() => setMapOpen(true)}
+                        >
+                          <Navigation className="h-3.5 w-3.5 mr-1.5" /> Select Location on Map
                         </Button>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField
-                          control={form2.control}
-                          name="location.lat"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Latitude</FormLabel>
-                              <FormControl>
-                                <Input value={String(field.value ?? '')} readOnly />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form2.control}
-                          name="location.lng"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs">Longitude</FormLabel>
-                              <FormControl>
-                                <Input value={String(field.value ?? '')} readOnly />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField control={form2.control} name="location.lat" render={({ field }) => (
+                          <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Latitude</FormLabel><FormControl><Input value={String(field.value ?? '')} readOnly className="bg-white/50" /></FormControl></FormItem>
+                        )} />
+                        <FormField control={form2.control} name="location.lng" render={({ field }) => (
+                          <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Longitude</FormLabel><FormControl><Input value={String(field.value ?? '')} readOnly className="bg-white/50" /></FormControl></FormItem>
+                        )} />
+                      </div>
+
+                      <div className="space-y-4 pt-2 border-t border-slate-200">
+                        <FormField control={form2.control} name="fullAddress.address" render={({ field }) => (
+                          <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Detailed Address *</FormLabel><FormControl><Input placeholder="Building, Street, Area" {...field} className="bg-white" /></FormControl><FormMessage/></FormItem>
+                        )} />
+                        <div className="grid grid-cols-3 gap-4">
+                          <FormField control={form2.control} name="fullAddress.city" render={({ field }) => (
+                            <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">City</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form2.control} name="fullAddress.state" render={({ field }) => (
+                            <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">State</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl></FormItem>
+                          )} />
+                          <FormField control={form2.control} name="fullAddress.pincode" render={({ field }) => (
+                            <FormItem><FormLabel className="text-xs font-bold uppercase text-muted-foreground">Pincode</FormLabel><FormControl><Input {...field} className="bg-white" /></FormControl></FormItem>
+                          )} />
+                        </div>
                       </div>
                     </div>
 
@@ -482,41 +473,35 @@ export default function HospitalSetup() {
       </div>
 
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Select Location on Map</DialogTitle>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+          <DialogHeader className="p-6 bg-white border-b">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" /> Select Hospital Location
+            </DialogTitle>
           </DialogHeader>
-          <div className="h-[420px] w-full overflow-hidden rounded-lg border border-border relative">
-            {(() => {
-              const MapContainerAny = MapContainer as any;
-              const MarkerAny = Marker as any;
-              return (
-                <MapContainerAny
-                  key={`${form2.getValues('location.lat')}-${form2.getValues('location.lng')}`}
-                  center={[
-                    Number(form2.getValues('location.lat')) || 20.5937, 
-                    Number(form2.getValues('location.lng')) || 78.9629
-                  ]}
-                  zoom={13}
-                  style={{ height: '100%', width: '100%' }}
-                >
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <LocationPicker
-                    onPick={(lat, lng) => {
-                      form2.setValue('location.lat', Number(lat), { shouldValidate: true });
-                      form2.setValue('location.lng', Number(lng), { shouldValidate: true });
-                    }}
-                  />
-                  <MarkerAny position={[
-                    Number(form2.watch('location.lat')) || 20.5937, 
-                    Number(form2.watch('location.lng')) || 78.9629
-                  ]} />
-                </MapContainerAny>
-              );
-            })()}
-          </div>
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setMapOpen(false)}>Done</Button>
+          <div className="p-6 bg-slate-50">
+            <GoogleMapPicker 
+              initialLocation={form2.getValues().location}
+              onLocationSelect={(loc) => {
+                form2.setValue('location.lat', loc.lat);
+                form2.setValue('location.lng', loc.lng);
+                form2.setValue('latitude', loc.lat);
+                form2.setValue('longitude', loc.lng);
+                form2.setValue('fullAddress.address', loc.address);
+                form2.setValue('fullAddress.city', loc.city);
+                form2.setValue('fullAddress.state', loc.state);
+                form2.setValue('fullAddress.pincode', loc.pincode);
+              }}
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button 
+                variant="default" 
+                className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+                onClick={() => setMapOpen(false)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Location
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

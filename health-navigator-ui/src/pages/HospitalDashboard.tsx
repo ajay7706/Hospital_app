@@ -5,8 +5,10 @@ import {
   Calendar, Users, Phone, Building2, Ambulance, User,
   Settings, Image as ImageIcon, Activity, ArrowRight,
   Search, Trash2, MapPin, AlertOctagon, Loader2,
-  ShieldCheck, Users2, CheckCircle2, CalendarDays, XCircle,
+  ShieldCheck, Users2, CheckCircle2, CalendarDays, XCircle, Navigation
 } from 'lucide-react';
+import GoogleMapPicker from '@/components/GoogleMapPicker';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -64,7 +66,9 @@ export default function HospitalDashboard() {
   // Forms States
   const [doctorForm, setDoctorForm] = useState({ name: '', email: '', password: '', specialization: '', experience: '', image: null as File | null });
   const [branchForm, setBranchForm] = useState({ 
-    branchName: '', address: '', city: '', phone: '', specialties: '', 
+    branchName: '', address: '', city: '', state: '', pincode: '',
+    latitude: 20.5937, longitude: 78.9629,
+    phone: '', specialties: '', 
     ambulanceAvailable: false, emergency24x7: false, image: null as File | null,
     opdChargeType: 'hospitalDefault', opdCharge: ''
   });
@@ -81,6 +85,7 @@ export default function HospitalDashboard() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [deletingDoctor, setDeletingDoctor] = useState<string | null>(null);
   const [deletingBranch, setDeletingBranch] = useState<string | null>(null);
+  const [branchMapOpen, setBranchMapOpen] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -187,7 +192,9 @@ export default function HospitalDashboard() {
       if (!res.ok) throw new Error(await readErrorMessage(res));
       toast({ title: 'Branch added successfully' });
       setBranchForm({ 
-        branchName: '', address: '', city: '', phone: '', specialties: '', 
+        branchName: '', address: '', city: '', state: '', pincode: '',
+        latitude: 20.5937, longitude: 78.9629,
+        phone: '', specialties: '', 
         ambulanceAvailable: false, emergency24x7: false, image: null,
         opdChargeType: 'hospitalDefault', opdCharge: ''
       });
@@ -325,6 +332,7 @@ export default function HospitalDashboard() {
   );
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-cta/5 text-foreground flex flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="w-full md:w-72 bg-card/70 backdrop-blur border-r border-border p-6 flex flex-col h-auto md:h-screen md:sticky top-0 z-10 overflow-y-auto">
@@ -753,8 +761,37 @@ export default function HospitalDashboard() {
                     <h3 className="text-xl font-bold mb-6">Add New Branch</h3>
                     <form onSubmit={handleAddBranch} className="space-y-4">
                       <Input placeholder="Branch Name" value={branchForm.branchName} onChange={e => setBranchForm({...branchForm, branchName: e.target.value})} required />
-                      <Input placeholder="City (e.g. Lucknow, Kanpur)" value={branchForm.city} onChange={e => setBranchForm({...branchForm, city: e.target.value})} required />
-                      <Input placeholder="Address" value={branchForm.address} onChange={e => setBranchForm({...branchForm, address: e.target.value})} required />
+                      
+                      <div className="p-3 border border-dashed border-primary/30 rounded-xl bg-primary/5 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest">Branch Location</p>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/10"
+                            onClick={() => setBranchMapOpen(true)}
+                          >
+                            <Navigation className="h-3 w-3 mr-1" /> Select on Map
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                           <div className="space-y-1">
+                             <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">City</label>
+                             <Input placeholder="City" value={branchForm.city} readOnly className="h-8 text-xs bg-background/50" />
+                           </div>
+                           <div className="space-y-1">
+                             <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">Pincode</label>
+                             <Input placeholder="Pincode" value={branchForm.pincode} readOnly className="h-8 text-xs bg-background/50" />
+                           </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-bold text-muted-foreground uppercase px-1">Full Address</label>
+                          <Input placeholder="Select location to auto-fill address" value={branchForm.address} readOnly className="h-8 text-xs bg-background/50" />
+                        </div>
+                      </div>
+
                       <Input placeholder="Phone Number" value={branchForm.phone} onChange={e => setBranchForm({...branchForm, phone: e.target.value})} required />
                       <Input placeholder="Specialties (e.g. Heart, Eye)" value={branchForm.specialties} onChange={e => setBranchForm({...branchForm, specialties: e.target.value})} />
                       
@@ -899,5 +936,41 @@ export default function HospitalDashboard() {
         </AnimatePresence>
       </main>
     </div>
+    
+    <Dialog open={branchMapOpen} onOpenChange={setBranchMapOpen}>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none rounded-[2rem]">
+        <DialogHeader className="p-6 bg-white border-b">
+          <DialogTitle className="text-xl font-bold flex items-center gap-2">
+            <MapPin className="h-5 w-5 text-primary" /> Select Branch Location
+          </DialogTitle>
+        </DialogHeader>
+        <div className="p-6 bg-slate-50">
+          <GoogleMapPicker 
+            initialLocation={{ lat: branchForm.latitude, lng: branchForm.longitude }}
+            onLocationSelect={(loc) => {
+              setBranchForm({
+                ...branchForm,
+                latitude: loc.lat,
+                longitude: loc.lng,
+                address: loc.address,
+                city: loc.city,
+                state: loc.state,
+                pincode: loc.pincode
+              });
+            }}
+          />
+          <div className="mt-6 flex justify-end gap-3">
+            <Button 
+              variant="default" 
+              className="rounded-full px-8 h-11 font-bold shadow-lg shadow-primary/20"
+              onClick={() => setBranchMapOpen(false)}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" /> Confirm Branch Location
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
