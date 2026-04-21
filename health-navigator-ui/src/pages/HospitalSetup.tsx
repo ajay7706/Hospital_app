@@ -492,7 +492,7 @@ export default function HospitalSetup() {
               center={[
                 Number(form2.getValues('location.lat')) || 20.5937, 
                 Number(form2.getValues('location.lng')) || 78.9629
-              ]}
+              ] as any}
               zoom={13}
               style={{ height: '100%', width: '100%' }}
             >
@@ -506,7 +506,7 @@ export default function HospitalSetup() {
               <Marker position={[
                 Number(form2.watch('location.lat')) || 20.5937, 
                 Number(form2.watch('location.lng')) || 78.9629
-              ]} />
+              ] as any} />
             </MapContainer>
           </div>
           <div className="flex justify-end gap-3">
