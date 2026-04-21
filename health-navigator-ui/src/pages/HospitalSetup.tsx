@@ -481,7 +481,10 @@ export default function HospitalSetup() {
           </DialogHeader>
           <div className="p-6 bg-slate-50">
             <GoogleMapPicker 
-              initialLocation={form2.getValues().location}
+              initialLocation={{ 
+                lat: form2.getValues().location.lat || 20.5937, 
+                lng: form2.getValues().location.lng || 78.9629 
+              }}
               onLocationSelect={(loc) => {
                 form2.setValue('location.lat', loc.lat);
                 form2.setValue('location.lng', loc.lng);
