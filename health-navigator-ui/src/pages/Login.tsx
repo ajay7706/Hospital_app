@@ -40,23 +40,34 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
-    const loginData = { ...data };
-    if (/^\d{10}$/.test(loginData.identifier)) {
-      loginData.identifier = `+91${loginData.identifier}`;
+    let { identifier, password } = data;
+    
+    // Auto prepend +91 for 10-digit phone numbers
+    if (/^\d{10}$/.test(identifier)) {
+      identifier = `+91${identifier}`;
+    } else if (/^\d+$/.test(identifier) && !identifier.startsWith('+91')) {
+      // For any other digit-only string that doesn't start with +91
+      identifier = `+91${identifier}`;
     }
 
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({ identifier, password }),
       });
 
       if (!response.ok) {
         const error = await response.json();
+        let errorMsg = error.message || 'Invalid credentials';
+        
+        if (response.status === 401) errorMsg = "Invalid phone number or password";
+        if (response.status === 404) errorMsg = "User not found";
+        if (response.status === 400) errorMsg = "Please enter valid details";
+
         toast({
           title: 'Login failed',
-          description: error.message || 'Invalid credentials',
+          description: errorMsg,
           variant: 'destructive',
         });
         setIsLoading(false);

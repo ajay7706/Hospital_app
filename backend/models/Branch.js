@@ -82,6 +82,10 @@ const branchSchema = new mongoose.Schema({
   emergencyContactNumber: {
     type: String,
   },
+  slotTime: {
+    type: String,
+    default: "15 min",
+  },
   services: [
     {
       title: String,

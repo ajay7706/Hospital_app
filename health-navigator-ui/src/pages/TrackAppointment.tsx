@@ -28,27 +28,28 @@ export default function TrackAppointment() {
     }
     
     const searchQuery = query.trim();
-    const finalQuery = /^\d{10}$/.test(searchQuery) ? `+91${searchQuery}` : searchQuery;
+    const isPhone = /^\d{10}$/.test(searchQuery);
+    const finalParam = isPhone ? `phone=${searchQuery}` : `token=${searchQuery}`;
 
     setLoading(true);
     setAppointment(null);
     try {
-      const res = await fetch(`${API_BASE}/api/appointments/track-appointment?query=${finalQuery}`);
+      const res = await fetch(`${API_BASE}/api/appointments/track?${finalParam}`);
       const data = await res.json();
       if (res.ok) {
         setAppointment(data.appointment);
         setTrackingData(data);
       } else {
         toast({ 
-          title: 'Error', 
-          description: data.msg || 'Invalid tracking ID or server issue', 
+          title: 'Not Found', 
+          description: data.message || 'No appointment found with given details', 
           variant: 'destructive' 
         });
       }
     } catch (err) {
       toast({ 
         title: 'Request failed', 
-        description: 'Invalid tracking ID or server issue',
+        description: 'No appointment found. Please check your number or ID.',
         variant: 'destructive' 
       });
     } finally {
@@ -168,7 +169,7 @@ export default function TrackAppointment() {
                             <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">Current Status</p>
                             <p className="text-xl font-black flex items-center gap-2">
                                {appointment.status === 'Completed' ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <Clock className="h-5 w-5 text-amber-400" />}
-                               {appointment.status}
+                               {appointment.status === 'Completed' ? 'Appointment Completed' : appointment.status}
                             </p>
                          </div>
                          <div className="space-y-1">
@@ -193,20 +194,24 @@ export default function TrackAppointment() {
                    <div className="grid md:grid-cols-2 gap-8">
                       <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
                          <h3 className="text-lg font-black mb-6 flex items-center gap-2">
-                            <Users className="h-5 w-5 text-primary" /> Appointment Info
+                            <Users className="h-5 w-5 text-primary" /> Appointment Details
                          </h3>
                          <div className="space-y-4">
                             <div className="flex justify-between items-center py-3 border-b border-border/50">
-                               <span className="text-muted-foreground font-medium">Doctor Requested</span>
-                               <span className="font-bold underline decoration-primary/20">{appointment.specialty || 'General'}</span>
+                               <span className="text-muted-foreground font-medium">Hospital / Branch</span>
+                               <span className="font-bold text-right text-sm">{appointment.hospitalName} <br/><span className="text-xs text-muted-foreground">({appointment.branchName})</span></span>
                             </div>
                             <div className="flex justify-between items-center py-3 border-b border-border/50">
                                <span className="text-muted-foreground font-medium">Assigned Doctor</span>
-                               <span className="font-bold">{appointment.assignedDoctorName || 'Not Assigned Yet'}</span>
+                               <span className="font-bold">{appointment.doctorName}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-3 border-b border-border/50">
+                               <span className="text-muted-foreground font-medium">Scheduled For</span>
+                               <span className="font-bold text-right text-sm">{appointment.appointmentDate} <br/><span className="text-xs text-muted-foreground">{appointment.time}</span></span>
                             </div>
                             <div className="flex justify-between items-center py-3">
-                               <span className="text-muted-foreground font-medium">OPD Charge</span>
-                               <span className="font-black text-lg">₹{appointment.opdCharge || 0}</span>
+                               <span className="text-muted-foreground font-medium">OPD Fee</span>
+                               <span className="font-black text-lg text-emerald-600">₹{appointment.opdFee || 0}</span>
                             </div>
                          </div>
                       </div>

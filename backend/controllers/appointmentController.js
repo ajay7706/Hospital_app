@@ -347,18 +347,28 @@ exports.getNowServing = async (req, res) => {
 // Track Appointment
 exports.trackAppointment = async (req, res) => {
   try {
-    const { query } = req.query; // phone or bookingId
+    const { token, phone } = req.query;
     let appointment;
     
-    if (mongoose.Types.ObjectId.isValid(query)) {
-      appointment = await Appointment.findById(query).populate("hospitalId branchId");
-    } else {
-      appointment = await Appointment.findOne({ phone: query })
+    if (token) {
+      // Try tracking by ID (token)
+      if (mongoose.Types.ObjectId.isValid(token)) {
+        appointment = await Appointment.findById(token).populate("hospitalId branchId");
+      } else {
+        // Fallback for custom token numbers if any, but usually it's the ID
+        appointment = await Appointment.findOne({ tokenNumber: token }).populate("hospitalId branchId");
+      }
+    } else if (phone) {
+      // Find latest appointment by phone
+      const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
+      appointment = await Appointment.findOne({ phone: searchPhone })
         .sort({ createdAt: -1 })
         .populate("hospitalId branchId");
     }
 
-    if (!appointment) return res.status(404).json({ msg: "Appointment not found" });
+    if (!appointment) {
+      return res.status(404).json({ message: "No appointment found with given details" });
+    }
 
     const tracker = await TokenTracker.findOne({
       hospitalId: appointment.hospitalId,
@@ -369,12 +379,29 @@ exports.trackAppointment = async (req, res) => {
     const nowServing = tracker ? tracker.currentToken : 1;
     const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
 
-    res.json({
-      appointment,
+    // Build the specific response requested
+    const response = {
+      patientName: appointment.patientName,
+      phone: appointment.phone,
+      status: appointment.status,
+      doctorName: appointment.assignedDoctorName || "To be assigned",
+      hospitalName: appointment.hospitalName,
+      branchName: appointment.branchId?.branchName || "Main",
+      opdFee: appointment.opdFee || 0,
+      appointmentDate: appointment.date,
+      time: appointment.time,
+      problem: appointment.problem,
+      paymentStatus: appointment.paymentStatus || "Pending",
       nowServing,
       peopleAhead
+    };
+
+    res.json({
+      appointment: response,
+      rawAppointment: appointment // kept for legacy if needed
     });
   } catch (error) {
-    res.status(500).json({ msg: "Server error", error: error.message });
+    console.error("Track Appointment Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

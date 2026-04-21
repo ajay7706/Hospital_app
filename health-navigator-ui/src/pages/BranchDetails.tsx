@@ -268,15 +268,20 @@ const BranchDetails = () => {
                     <div className="flex gap-3 text-sm"><Phone className="h-5 w-5 text-primary" /> <div><p className="font-semibold">Phone</p><p className="text-muted-foreground">{branch.phone}</p></div></div>
                   </div>
                 </div>
-                 <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-bold flex items-center gap-2"><Clock className="h-5 w-5 text-primary" /> Working Day & Hour</h3>
-                  <div className="space-y-3">
-                    {branch.emergency24x7 ? (
+                <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                  <h3 className="mb-4 text-lg font-bold flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" /> Working Day & Hour
+                  </h3>
+                  <div className="space-y-4">
+                    {branch.emergency24x7 && (
                       <div className="p-4 rounded-2xl bg-red-50 border border-red-100 text-red-700 font-bold text-center shadow-inner">
                         <Ambulance className="h-6 w-6 mx-auto mb-2 animate-bounce" />
-                        OPEN 24/7 (Emergency Available)
+                        24/7 Emergency Open
                       </div>
-                    ) : (
+                    )}
+                    
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">Working Days & Time</h4>
                       <div className="space-y-2">
                         {(branch.workingDays || []).map((day: string, idx: number) => (
                           <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2 border border-border/50">
@@ -292,15 +297,22 @@ const BranchDetails = () => {
                           <p className="text-xs text-muted-foreground italic text-center py-4">Contact for working hours</p>
                         )}
                       </div>
-                    )}
-                    {branch.startTime && branch.endTime && (
-                      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
-                        <span className="text-sm font-medium text-foreground">Appointment Slots</span>
-                        <span className="text-sm text-muted-foreground">
-                          {branch.startTime} - {branch.endTime}
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50">
+                      <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1 mb-3">Appointment Slots</h4>
+                      <div className="flex items-center justify-between rounded-lg bg-primary/5 border border-primary/10 px-4 py-3">
+                        <div className="flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                             <Clock className="h-4 w-4" />
+                           </div>
+                           <span className="text-sm font-bold text-foreground">Slot Duration</span>
+                        </div>
+                        <span className="text-sm font-black text-primary">
+                          {branch.slotTime || "15 min"}
                         </span>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
