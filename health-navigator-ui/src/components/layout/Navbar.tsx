@@ -24,6 +24,7 @@ const navLinks = [
 export const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchHighlighted, setIsSearchHighlighted] = useState(false);
   const [user, setUser] = useState<{ name?: string; email?: string; role?: string } | null>(null);
   const [hospitalLogo, setHospitalLogo] = useState<string | null>(null);
   const location = useLocation();
@@ -56,6 +57,14 @@ export const Navbar = () => {
       setUser(null);
       setHospitalLogo(null);
     }
+
+    const handleHighlight = () => {
+      setIsSearchHighlighted(true);
+      setTimeout(() => setIsSearchHighlighted(false), 2000);
+    };
+
+    window.addEventListener('highlight-search', handleHighlight);
+    return () => window.removeEventListener('highlight-search', handleHighlight);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -112,7 +121,9 @@ export const Navbar = () => {
                 <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search hospitals..."
-                  className="h-9 w-40 pl-8 text-sm lg:w-64 focus:w-72 transition-all"
+                  className={`h-9 w-40 pl-8 text-sm lg:w-64 focus:w-72 transition-all ${
+                    isSearchHighlighted ? 'ring-2 ring-primary ring-offset-2 animate-pulse scale-105 border-primary shadow-lg shadow-primary/20' : ''
+                  }`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />

@@ -1,25 +1,40 @@
 import { Search, Building2, CalendarCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const steps = [
   {
     icon: Search,
     title: 'Easy Search',
     description: 'Find hospitals easily by location and specialty.',
+    action: 'search'
   },
   {
     icon: Building2,
     title: 'Choose Hospital',
     description: 'Select & book from verified healthcare providers.',
+    path: '/hospitals'
   },
   {
     icon: CalendarCheck,
     title: 'Book Appointment',
     description: 'Get care with confirmed appointments.',
+    path: '/book'
   },
 ];
 
 export const HowItWorks = () => {
+  const navigate = useNavigate();
+
+  const handleStepClick = (step: any) => {
+    if (step.action === 'search') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.dispatchEvent(new CustomEvent('highlight-search'));
+    } else if (step.path) {
+      navigate(step.path);
+    }
+  };
+
   return (
     <section className="bg-card py-12">
       <div className="container mx-auto px-4">
@@ -31,13 +46,14 @@ export const HowItWorks = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="flex items-center gap-4 rounded-xl border border-border/50 bg-background p-6 shadow-sm"
+              onClick={() => handleStepClick(step)}
+              className="flex items-center gap-4 rounded-xl border border-border/50 bg-background p-6 shadow-sm cursor-pointer hover:shadow-md hover:border-primary/30 transition-all group"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <step.icon className="h-7 w-7 text-primary" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary group-hover:text-white transition-colors">
+                <step.icon className="h-7 w-7 text-primary group-hover:text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-foreground">{step.title}</h3>
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{step.title}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
               </div>
             </motion.div>

@@ -127,11 +127,11 @@ const Login = () => {
       {/* Left Panel - Branding */}
       <div className="hidden flex-1 bg-primary lg:flex lg:flex-col lg:justify-center lg:px-12">
         <div className="mx-auto max-w-md">
-          <Link to="/" className="mb-8 flex items-center gap-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground">
+          <Link to="/" className="mb-8 flex w-fit items-center gap-2 no-underline hover:no-underline">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
               <Plus className="h-7 w-7 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">Apna Clinic</span>
+            <span className="text-2xl font-bold text-white">Apna Clinic</span>
           </Link>
           <h1 className="text-3xl font-bold text-primary-foreground">
             Welcome back to your healthcare companion

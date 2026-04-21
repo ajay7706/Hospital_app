@@ -23,6 +23,8 @@ import RateAppointment from "./pages/RateAppointment";
 import PatientDashboard from "./pages/PatientDashboard";
 import TrackAppointment from "./pages/TrackAppointment";
 import BranchDetails from "./pages/BranchDetails";
+import AboutUs from "./pages/AboutUs";
+import PartnerWithUs from "./pages/PartnerWithUs";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ const App = () => (
           <Route path="/rate" element={<RateAppointment />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/partner" element={<PartnerWithUs />} />
           <Route path="/profile" element={<HospitalProfile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

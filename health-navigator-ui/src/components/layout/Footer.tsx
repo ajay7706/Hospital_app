@@ -3,12 +3,12 @@ import { Calendar, Facebook, Twitter, Linkedin, Youtube } from 'lucide-react';
 
 const footerLinks = {
   forHospitals: [
-    { name: 'Partner With Us', path: '/for-hospitals' },
-    { name: 'Doctor Login', path: '/doctor-login' },
+    { name: 'Partner With Us', path: '/partner' },
+    { name: 'Doctor Login', path: '/login' },
   ],
   aboutUs: [
     { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Contact', path: '/support' },
   ],
 };
 
@@ -27,10 +27,10 @@ export const Footer = () => {
           {/* Logo & Description */}
           <div className="lg:col-span-1">
             <Link to="/" className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground">
-                <Calendar className="h-5 w-5 text-primary" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-white">
+                <Calendar className="h-5 w-5" />
               </div>
-              <span className="text-xl font-bold">BookVisit</span>
+              <span className="text-xl font-bold">Apna Clinic</span>
             </Link>
             <p className="mt-4 text-sm text-primary-foreground/70">
               Find and book the best hospitals near you with AI-powered recommendations.
@@ -98,7 +98,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-primary-foreground/20 pt-8 md:flex-row">
           <p className="text-sm text-primary-foreground/70">
-            © {new Date().getFullYear()} BookVisit. All rights reserved.
+            © {new Date().getFullYear()} Apna Clinic. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link

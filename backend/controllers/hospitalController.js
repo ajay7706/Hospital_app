@@ -65,18 +65,19 @@ exports.addHospital = async (req, res) => {
     const hospital = await Hospital.create(hospitalData);
     await User.findByIdAndUpdate(req.user.id, { hospitalAdded: true });
     
-    // Send email to hospital owner that registration is pending
-    if (hospital.officialEmail) {
-      console.log(`Attempting to send pending email to: ${hospital.officialEmail}`);
-      await sendHospitalPendingEmail(hospital.officialEmail, hospital.hospitalName);
-    } else {
-      console.log("No official email found for hospital, skipping pending email.");
-    }
-
-    // Send WhatsApp notification for pending status
-    if (hospital.contactNumber) {
-      const waMessage = `Hello ${hospital.hospitalName}, your registration is UNDER REVIEW. We will notify you once approved within 24 hours. Thank you!`;
-      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+    // Send notifications safely (don't block the response)
+    try {
+      if (hospital.officialEmail) {
+        console.log(`Attempting to send pending email to: ${hospital.officialEmail}`);
+        await sendHospitalPendingEmail(hospital.officialEmail, hospital.hospitalName);
+      }
+      
+      if (hospital.contactNumber) {
+        const waMessage = `Hello ${hospital.hospitalName}, your registration is UNDER REVIEW. We will notify you once approved within 24 hours. Thank you!`;
+        await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+      }
+    } catch (notifError) {
+      console.error("Notification Error (skipping):", notifError.message);
     }
 
     res.status(201).json({ 
