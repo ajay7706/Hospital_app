@@ -167,6 +167,8 @@ const PartnerWithUs = () => {
             <p className="text-sm text-muted-foreground font-medium">Setup Fee</p>
           </div>
         </div>
+      </section>
+
       {/* Global Footer */}
       <Footer />
     </div>

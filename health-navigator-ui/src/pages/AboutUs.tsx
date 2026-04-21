@@ -148,6 +148,8 @@ const AboutUs = () => {
         >
           Find Your Doctor Today
         </button>
+      </section>
+
       {/* Global Footer */}
       <Footer />
     </div>
