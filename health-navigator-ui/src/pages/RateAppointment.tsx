@@ -64,7 +64,6 @@ export default function RateAppointment() {
       if (res.ok) {
         setSuccess(true);
         toast({ title: 'Thank you for your feedback!' });
-        setTimeout(() => navigate('/'), 3000);
       } else {
         setError(data.msg || 'Failed to submit review');
       }

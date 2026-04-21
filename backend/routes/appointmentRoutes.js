@@ -21,6 +21,7 @@ router.get("/availability", checkAvailability);
 router.put("/update/:id", protect, isHospitalBranchOrDoctor, updateAppointmentStatus);
 
 router.get("/now-serving", getNowServing);
+router.get("/track/:token", trackAppointment);
 router.get("/track-appointment", trackAppointment);
 
 module.exports = router;

@@ -278,16 +278,27 @@ const BranchDetails = () => {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {(branch.workingDays || []).length > 0 ? (
-                          (branch.workingDays || []).map((day: string) => (
-                            <div key={day} className="flex justify-between items-center text-sm py-2 px-3 rounded-lg bg-muted/30 border border-border/40">
-                              <span className="font-semibold text-foreground">{day}</span>
-                              <span className="text-primary font-medium">{branch.openingTime || '09:00'} - {branch.closingTime || '18:00'}</span>
-                            </div>
-                          ))
-                        ) : (
+                        {(branch.workingDays || []).map((day: string, idx: number) => (
+                          <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2 border border-border/50">
+                            <span className="text-sm font-medium text-foreground">{day}</span>
+                            <span className="text-sm text-muted-foreground">
+                              {branch.startTime && branch.endTime 
+                                ? `${branch.startTime} - ${branch.endTime}` 
+                                : `${branch.openingTime || '09:00'} - ${branch.closingTime || '18:00'}`}
+                            </span>
+                          </div>
+                        ))}
+                        {(branch.workingDays || []).length === 0 && (
                           <p className="text-xs text-muted-foreground italic text-center py-4">Contact for working hours</p>
-                        ) }
+                        )}
+                      </div>
+                    )}
+                    {branch.startTime && branch.endTime && (
+                      <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2.5">
+                        <span className="text-sm font-medium text-foreground">Appointment Slots</span>
+                        <span className="text-sm text-muted-foreground">
+                          {branch.startTime} - {branch.endTime}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -296,17 +307,17 @@ const BranchDetails = () => {
             </div>
           )}
           {activeTab === 'services' && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                {(branch.services && branch.services.length > 0) ? (
                  branch.services.map((service: any, i: number) => {
                    const Icon = getServiceIcon(service.title);
                    return (
-                     <div key={i} className="p-6 border rounded-2xl bg-card hover:shadow-md transition">
-                       <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4">
-                         <Icon className="h-6 w-6" />
+                     <div key={i} className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition hover:shadow-md">
+                       <div className="mx-auto mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                         <Icon className="h-7 w-7 text-primary" />
                        </div>
-                       <h3 className="text-lg font-bold mb-2">{service.title}</h3>
-                       <p className="text-sm text-muted-foreground">{service.description ? (service.description.length > 250 ? service.description.substring(0, 250) + '...' : service.description) : 'Comprehensive healthcare service'}</p>
+                       <h3 className="font-semibold text-foreground">{service.title || 'Service'}</h3>
+                       <p className="mt-1 text-sm text-muted-foreground">{service.description || 'Comprehensive healthcare service'}</p>
                      </div>
                    );
                  })

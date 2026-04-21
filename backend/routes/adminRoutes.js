@@ -46,6 +46,7 @@ router.delete("/review/:id", deleteReview);
 // Platform Settings
 router.get("/settings", getAdminSettings);
 router.patch("/settings", updateAdminSettings);
+router.put("/settings", updateAdminSettings);
 
 // Detailed Hospital Insights
 router.get("/hospital/:id/branches", getHospitalBranchesDetail);

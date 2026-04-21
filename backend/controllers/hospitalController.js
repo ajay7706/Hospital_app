@@ -588,16 +588,14 @@ exports.getAdminSettings = async (req, res) => {
 
 exports.updateAdminSettings = async (req, res) => {
   try {
-    let settings = await AdminSettings.findOne();
-    if (!settings) {
-      settings = new AdminSettings(req.body);
-    } else {
-      Object.assign(settings, req.body);
-    }
-    settings.updatedAt = Date.now();
-    await settings.save();
+    let settings = await AdminSettings.findOneAndUpdate(
+      {},
+      { $set: { ...req.body, updatedAt: Date.now() } },
+      { new: true, upsert: true, runValidators: true }
+    );
     res.json({ msg: "Settings updated successfully", settings });
   } catch (error) {
+    console.error("Update Admin Settings Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };

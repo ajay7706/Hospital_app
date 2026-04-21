@@ -40,11 +40,16 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
+    const loginData = { ...data };
+    if (/^\d{10}$/.test(loginData.identifier)) {
+      loginData.identifier = `+91${loginData.identifier}`;
+    }
+
     try {
       const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(loginData),
       });
 
       if (!response.ok) {

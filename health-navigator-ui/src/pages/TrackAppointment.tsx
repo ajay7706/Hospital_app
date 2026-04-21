@@ -26,19 +26,31 @@ export default function TrackAppointment() {
       toast({ title: 'Please enter ID or Phone', variant: 'destructive' });
       return;
     }
+    
+    const searchQuery = query.trim();
+    const finalQuery = /^\d{10}$/.test(searchQuery) ? `+91${searchQuery}` : searchQuery;
+
     setLoading(true);
     setAppointment(null);
     try {
-      const res = await fetch(`${API_BASE}/api/appointments/track?query=${query}`);
+      const res = await fetch(`${API_BASE}/api/appointments/track-appointment?query=${finalQuery}`);
       const data = await res.json();
       if (res.ok) {
         setAppointment(data.appointment);
         setTrackingData(data);
       } else {
-        toast({ title: 'Error', description: data.msg || 'Appointment not found', variant: 'destructive' });
+        toast({ 
+          title: 'Error', 
+          description: data.msg || 'Invalid tracking ID or server issue', 
+          variant: 'destructive' 
+        });
       }
     } catch (err) {
-      toast({ title: 'Request failed', variant: 'destructive' });
+      toast({ 
+        title: 'Request failed', 
+        description: 'Invalid tracking ID or server issue',
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }
