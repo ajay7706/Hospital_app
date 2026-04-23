@@ -16,14 +16,23 @@ exports.addBranch = async (req, res) => {
     if (branchCount >= 4) {
       return res.status(400).json({ msg: "Maximum 4 branches allowed" });
     }
-
-    const newBranch = await Branch.create({
+    const newBranch = new Branch({
       ...req.body,
       hospitalId: hospital._id,
-      image: req.file ? req.file.path : req.body.image,
+      image: req.files && req.files.image ? req.files.image[0].path : req.body.image,
       opdChargeType: req.body.opdChargeType || "hospitalDefault",
-      opdCharge: req.body.opdCharge || 0
+      opdCharge: req.body.opdCharge || 0,
+      govtSchemes: req.body.govtSchemes ? JSON.parse(req.body.govtSchemes) : [],
+      insurance: req.body.insurance ? JSON.parse(req.body.insurance) : { accepted: false, providers: [] },
+      labDetails: req.body.labDetails ? JSON.parse(req.body.labDetails) : { enabled: false, labName: '', images: [] },
+      medicalStore: req.body.medicalStore ? JSON.parse(req.body.medicalStore) : { enabled: false, images: [] }
     });
+
+    if (req.files) {
+      if (req.files.labImages) newBranch.labDetails.images = req.files.labImages.map(f => f.path);
+      if (req.files.medicalImages) newBranch.medicalStore.images = req.files.medicalImages.map(f => f.path);
+      await newBranch.save();
+    }
 
     res.status(201).json(newBranch);
   } catch (error) {
@@ -76,6 +85,19 @@ exports.updateBranch = async (req, res) => {
       } catch (e) { /* ignore */ }
     }
 
+    if (req.body.govtSchemes) {
+      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) {}
+    }
+    if (req.body.insurance) {
+      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) {}
+    }
+    if (req.body.labDetails) {
+      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) {}
+    }
+    if (req.body.medicalStore) {
+      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) {}
+    }
+
     // Handle files from upload.fields
     if (req.files) {
       if (req.files.image) {
@@ -85,6 +107,18 @@ exports.updateBranch = async (req, res) => {
         const newGalleryImages = req.files.gallery.map(f => f.path);
         const currentGallery = updateData.gallery || []; 
         updateData.gallery = [...currentGallery, ...newGalleryImages];
+      }
+      if (req.files.labImages) {
+        const newImages = req.files.labImages.map(f => f.path);
+        const currentImages = req.body.existingLabImages ? JSON.parse(req.body.existingLabImages) : (updateData.labDetails?.images || []);
+        if (!updateData.labDetails) updateData.labDetails = {};
+        updateData.labDetails.images = [...currentImages, ...newImages];
+      }
+      if (req.files.medicalImages) {
+        const newImages = req.files.medicalImages.map(f => f.path);
+        const currentImages = req.body.existingMedicalImages ? JSON.parse(req.body.existingMedicalImages) : (updateData.medicalStore?.images || []);
+        if (!updateData.medicalStore) updateData.medicalStore = {};
+        updateData.medicalStore.images = [...currentImages, ...newImages];
       }
     }
 

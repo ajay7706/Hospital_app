@@ -2,7 +2,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
-import { Star, MapPin, Phone, Mail, Building2, ArrowLeft, Clock, Shield, Heart, Syringe, Ambulance, Activity } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Building2, ArrowLeft, Clock, Shield, Heart, Syringe, Ambulance, Activity, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getAllHospitals } from '@/lib/hospitalStore';
 import api from '@/lib/api';
@@ -33,7 +33,7 @@ const HospitalDetails = () => {
   const hospitalId = searchParams.get('id');
   const [hospital, setHospital] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'facilities' | 'reviews'>('overview');
   
   // Review state
   const { toast } = useToast();
@@ -312,8 +312,8 @@ const HospitalDetails = () => {
 
         {/* Tabs */}
         <div className="border-b border-border bg-card">
-          <div className="container mx-auto flex gap-0 px-4">
-            {(['overview', 'services', 'reviews'] as const).map((tab) => (
+          <div className="container mx-auto flex gap-0 px-4 overflow-x-auto no-scrollbar">
+            {(['overview', 'services', 'facilities', 'reviews'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -594,31 +594,154 @@ const HospitalDetails = () => {
             </motion.div>
           )}
 
-          {/* Services Tab */}
-          {activeTab === 'services' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {hospital.services && hospital.services.length > 0 ? (
-                hospital.services.map((service: any, i: number) => {
-                  const IconComponent = getServiceIcon(service.title);
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                      className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition hover:shadow-md"
-                    >
-                      <div className="mx-auto mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                        <IconComponent className="h-7 w-7 text-primary" />
+          {/* Facilities Tab */}
+          {activeTab === 'facilities' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 pb-12">
+              {/* Govt Schemes & Insurance */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Govt Schemes */}
+                {hospital.govtSchemes && hospital.govtSchemes.length > 0 && (
+                  <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
+                        <Shield className="h-6 w-6" />
                       </div>
-                      <h3 className="font-semibold text-foreground">{service.title || 'Service'}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{service.description || 'Comprehensive healthcare service'}</p>
-                    </motion.div>
-                  );
-                })
-              ) : (
-                <div className="col-span-full py-10 text-center text-muted-foreground">
-                  No services available.
+                      Government Schemes
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {hospital.govtSchemes.map((scheme: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          <span className="text-sm font-semibold">{scheme}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Insurance */}
+                {hospital.insurance?.accepted && (
+                  <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Heart className="h-6 w-6" />
+                      </div>
+                      Insurance Partners
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {hospital.insurance.providers?.map((provider: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="text-sm font-semibold">{provider}</span>
+                        </div>
+                      ))}
+                      {(!hospital.insurance.providers || hospital.insurance.providers.length === 0) && (
+                        <div className="col-span-full p-4 rounded-2xl bg-muted/30 border border-dashed border-border/50 text-center text-sm text-muted-foreground italic">
+                          Multiple Insurance Providers Accepted
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lab & Diagnostics Section */}
+              {hospital.labDetails?.enabled && (
+                <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2">
+                    <div className="p-8 lg:p-12 space-y-6">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest">
+                        Advanced Diagnostics
+                      </div>
+                      <h2 className="text-3xl font-black tracking-tight">{hospital.labDetails.labName || 'In-house Lab Center'}</h2>
+                      <p className="text-muted-foreground leading-relaxed">
+                        We offer a comprehensive range of laboratory tests and diagnostic services with state-of-the-art equipment and highly trained staff. Get accurate results delivered directly to your profile.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> NABL Accredited
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Digital Reports
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Expert Radiologists
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-muted relative h-[300px] lg:h-auto">
+                      {hospital.labDetails.images?.length > 0 ? (
+                        <Swiper
+                          modules={[Autoplay, Pagination]}
+                          pagination={{ clickable: true }}
+                          autoplay={{ delay: 3000 }}
+                          loop={hospital.labDetails.images.length > 1}
+                          className="h-full w-full"
+                        >
+                          {hospital.labDetails.images.map((img: string, i: number) => (
+                            <SwiperSlide key={i}>
+                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE}/${img}`} alt="Lab" className="h-full w-full object-cover" />
+                            </SwiperSlide>
+                          ))}
+                        </Swiper>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-muted/50">
+                          <Syringe className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Medical Store Section */}
+              {hospital.medicalStore?.enabled && (
+                <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex-row-reverse">
+                    <div className="bg-muted relative h-[300px] lg:h-auto lg:order-1">
+                      {hospital.medicalStore.images?.length > 0 ? (
+                        <Swiper
+                          modules={[Autoplay, Pagination]}
+                          pagination={{ clickable: true }}
+                          autoplay={{ delay: 3500 }}
+                          loop={hospital.medicalStore.images.length > 1}
+                          className="h-full w-full"
+                        >
+                          {hospital.medicalStore.images.map((img: string, i: number) => (
+                            <SwiperSlide key={i}>
+                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE}/${img}`} alt="Pharmacy" className="h-full w-full object-cover" />
+                            </SwiperSlide>
+                          ))}
+                        </Swiper>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-muted/50">
+                          <Activity className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-8 lg:p-12 space-y-6 lg:order-2">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cta/10 text-cta text-xs font-bold uppercase tracking-widest">
+                        24/7 Pharmacy
+                      </div>
+                      <h2 className="text-3xl font-black tracking-tight">In-house Medical Store</h2>
+                      <p className="text-muted-foreground leading-relaxed">
+                        Our full-service pharmacy is conveniently located within the hospital premises, providing 24/7 access to essential medications, healthcare products, and expert pharmacist guidance.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                          <Clock className="h-5 w-5 text-cta" />
+                          <span className="text-sm font-semibold">24/7 Service</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                          <Ambulance className="h-5 w-5 text-cta" />
+                          <span className="text-sm font-semibold">Home Delivery</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </motion.div>

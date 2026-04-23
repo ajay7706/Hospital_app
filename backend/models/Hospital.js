@@ -146,6 +146,23 @@ const hospitalSchema = new mongoose.Schema({
     type: String, // Cloudinary URL
     required: true,
   },
+  govtSchemes: {
+    type: [String],
+    default: [],
+  },
+  insurance: {
+    accepted: { type: Boolean, default: false },
+    providers: { type: [String], default: [] },
+  },
+  labDetails: {
+    enabled: { type: Boolean, default: false },
+    labName: { type: String },
+    images: { type: [String], default: [] },
+  },
+  medicalStore: {
+    enabled: { type: Boolean, default: false },
+    images: { type: [String], default: [] },
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Hospital", hospitalSchema);

@@ -50,6 +50,17 @@ export default function BranchDashboard() {
   const [mapOpen, setMapOpen] = useState(false);
   const [isLocationSelected, setIsLocationSelected] = useState(true); // Default to true as it's an existing branch
 
+  // Healthcare Features States
+  const [govtSchemes, setGovtSchemes] = useState<string[]>([]);
+  const [insurance, setInsurance] = useState({ accepted: false, providers: [] as string[] });
+  const [labDetails, setLabDetails] = useState({ enabled: false, labName: '', images: [] as string[] });
+  const [medicalStore, setMedicalStore] = useState({ enabled: false, images: [] as string[] });
+  const [customScheme, setCustomScheme] = useState('');
+  const [customInsurance, setCustomInsurance] = useState('');
+  const [labImages, setLabImages] = useState<File[]>([]);
+  const [medicalImages, setMedicalImages] = useState<File[]>([]);
+  const [savingFacilities, setSavingFacilities] = useState(false);
+
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
     if (userData.role !== 'branch') { navigate('/login'); return; }
@@ -91,6 +102,12 @@ export default function BranchDashboard() {
       if (bResData.ok) {
         const bData = await bResData.json();
         setBranch(bData);
+        
+        // Sync healthcare features
+        setGovtSchemes(bData.govtSchemes || []);
+        setInsurance(bData.insurance || { accepted: false, providers: [] });
+        setLabDetails(bData.labDetails || { enabled: false, labName: '', images: [] });
+        setMedicalStore(bData.medicalStore || { enabled: false, images: [] });
       }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -152,6 +169,51 @@ export default function BranchDashboard() {
   const isLoading = (id: string, type: string) => updatingId === id && actionType === type;
   const anyLoading = (id: string) => updatingId === id;
 
+  const handleUpdateFacilities = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingFacilities(true);
+    try {
+      const fd = new FormData();
+      fd.append('govtSchemes', JSON.stringify(govtSchemes));
+      fd.append('insurance', JSON.stringify(insurance));
+      fd.append('labDetails', JSON.stringify(labDetails));
+      fd.append('medicalStore', JSON.stringify(medicalStore));
+      
+      fd.append('existingLabImages', JSON.stringify(labDetails.images));
+      fd.append('existingMedicalImages', JSON.stringify(medicalStore.images));
+
+      labImages.forEach(img => fd.append('labImages', img));
+      medicalImages.forEach(img => fd.append('medicalImages', img));
+
+      const res = await fetch(`${API_BASE}/api/branches/${branch._id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: fd
+      });
+      if (!res.ok) throw new Error(await readError(res));
+      toast({ title: 'Facilities updated successfully' });
+      setLabImages([]);
+      setMedicalImages([]);
+      fetchBranchData();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setSavingFacilities(false);
+    }
+  };
+
+  const removeFacilityImage = (type: 'lab' | 'medical', index: number) => {
+    if (type === 'lab') {
+      const newImages = [...labDetails.images];
+      newImages.splice(index, 1);
+      setLabDetails({ ...labDetails, images: newImages });
+    } else {
+      const newImages = [...medicalStore.images];
+      newImages.splice(index, 1);
+      setMedicalStore({ ...medicalStore, images: newImages });
+    }
+  };
+
   const SidebarItem = ({ icon: Icon, label, id }: any) => (
     <button
       onClick={() => setActiveTab(id)}
@@ -192,6 +254,7 @@ export default function BranchDashboard() {
           <SidebarItem icon={Calendar} label="Appointments" id="appointments" />
           <SidebarItem icon={Ambulance} label="Emergency" id="emergency" />
           <SidebarItem icon={Users} label="Doctors" id="doctors" />
+          <SidebarItem icon={CheckCircle2} label="Facilities" id="facilities" />
           <SidebarItem icon={Building2} label="Profile & Settings" id="settings" />
         </nav>
 
@@ -601,7 +664,166 @@ export default function BranchDashboard() {
               </div>
             )}
 
-            {/* ─── SETTINGS TAB ─────────────────────────── */}
+            {activeTab === 'facilities' && (
+              <div className="bg-card border border-border rounded-2xl p-6 shadow-sm max-w-4xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">Healthcare Facilities & Services</h3>
+                  <Button onClick={handleUpdateFacilities} disabled={savingFacilities}>
+                    {savingFacilities ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Save Branch Facilities
+                  </Button>
+                </div>
+
+                <div className="space-y-8">
+                  {/* Govt Schemes */}
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-sm text-primary uppercase tracking-wider">Govt Schemes Accepted</h4>
+                    <p className="text-[10px] text-muted-foreground italic mb-2">Note: If empty, will fallback to main hospital schemes.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        "Ayushman Bharat (PM-JAY)",
+                        "Ayushman Vay Vandana (70+)",
+                        "CGHS",
+                        "ESIC",
+                        "State Health Scheme",
+                        "BPL Scheme",
+                        "Jan Arogya Yojana",
+                        "Rashtriya Swasthya Bima Yojana (RSBY)"
+                      ].map(scheme => (
+                        <label key={scheme} className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                          <input 
+                            type="checkbox"
+                            checked={govtSchemes.includes(scheme)}
+                            onChange={(e) => {
+                              if (e.target.checked) setGovtSchemes([...govtSchemes, scheme]);
+                              else setGovtSchemes(govtSchemes.filter(s => s !== scheme));
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                          />
+                          <span className="text-xs">{scheme}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 max-w-md">
+                      <Input placeholder="+ Add Other Scheme" value={customScheme} onChange={e => setCustomScheme(e.target.value)} className="h-9 text-xs" />
+                      <Button size="sm" onClick={() => {
+                        if (!customScheme) return;
+                        if (!govtSchemes.some(s => s.toLowerCase() === customScheme.toLowerCase())) {
+                          setGovtSchemes([...govtSchemes, customScheme]);
+                        }
+                        setCustomScheme('');
+                      }}>Add</Button>
+                    </div>
+                  </div>
+
+                  {/* Insurance */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-sm text-primary uppercase tracking-wider">Insurance Partners</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">Branch Accepts Insurance?</span>
+                        <input type="checkbox" checked={insurance.accepted} onChange={(e) => setInsurance({...insurance, accepted: e.target.checked})} className="h-4 w-4" />
+                      </div>
+                    </div>
+                    {insurance.accepted && (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                          {[
+                            "Star Health",
+                            "HDFC ERGO",
+                            "ICICI Lombard",
+                            "New India Assurance",
+                            "Care Health Insurance"
+                          ].map(provider => (
+                            <label key={provider} className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                              <input 
+                                type="checkbox"
+                                checked={insurance.providers.includes(provider)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setInsurance({...insurance, providers: [...insurance.providers, provider]});
+                                  else setInsurance({...insurance, providers: insurance.providers.filter(p => p !== provider)});
+                                }}
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                              />
+                              <span className="text-xs">{provider}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <div className="flex gap-2 max-w-md">
+                          <Input placeholder="+ Add Other Provider" value={customInsurance} onChange={e => setCustomInsurance(e.target.value)} className="h-9 text-xs" />
+                          <Button size="sm" onClick={() => {
+                            if (!customInsurance) return;
+                            if (!insurance.providers.some(p => p.toLowerCase() === customInsurance.toLowerCase())) {
+                              setInsurance({...insurance, providers: [...insurance.providers, customInsurance]});
+                            }
+                            setCustomInsurance('');
+                          }}>Add</Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Lab */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-sm text-primary uppercase tracking-wider">Lab & Diagnostics</h4>
+                      <input type="checkbox" checked={labDetails.enabled} onChange={(e) => setLabDetails({...labDetails, enabled: e.target.checked})} className="h-4 w-4" />
+                    </div>
+                    {labDetails.enabled && (
+                      <div className="space-y-4">
+                        <Input placeholder="Lab Name (e.g. Branch X Lab)" value={labDetails.labName} onChange={e => setLabDetails({...labDetails, labName: e.target.value})} />
+                        <div className="space-y-3">
+                          <label className="text-xs font-bold text-muted-foreground uppercase">Branch Lab Images</label>
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                            {labDetails.images.map((img, i) => (
+                              <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
+                                <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
+                                <button 
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm"
+                                  onClick={() => removeFacilityImage('lab', i)}
+                                >
+                                  <XCircle className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <Input type="file" multiple accept="image/*" onChange={e => setLabImages(Array.from(e.target.files || []))} className="mt-2" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Medical Store */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-bold text-sm text-primary uppercase tracking-wider">Branch Medical Store</h4>
+                      <input type="checkbox" checked={medicalStore.enabled} onChange={(e) => setMedicalStore({...medicalStore, enabled: e.target.checked})} className="h-4 w-4" />
+                    </div>
+                    {medicalStore.enabled && (
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold text-muted-foreground uppercase">Medical Store Images</label>
+                        <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                          {medicalStore.images.map((img, i) => (
+                            <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
+                              <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
+                              <button 
+                                type="button"
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm"
+                                onClick={() => removeFacilityImage('medical', i)}
+                              >
+                                <XCircle className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <Input type="file" multiple accept="image/*" onChange={e => setMedicalImages(Array.from(e.target.files || []))} className="mt-2" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             {activeTab === 'settings' && (
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
                 <h3 className="text-xl font-bold mb-6 text-foreground">Branch Identity & Operational Settings</h3>

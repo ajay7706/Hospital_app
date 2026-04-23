@@ -10,12 +10,18 @@ const {
   updateBranch
 } = require("../controllers/branchController");
 
-router.post("/add", protect, isHospital, upload.single("image"), addBranch);
+router.post("/add", protect, isHospital, upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'labImages', maxCount: 10 },
+  { name: 'medicalImages', maxCount: 10 }
+]), addBranch);
 router.get("/details/:id", getBranchById);
 router.get("/:hospitalId", getBranchesByHospital);
 router.put("/:id", protect, isHospitalOrBranch, upload.fields([
   { name: 'image', maxCount: 1 },
-  { name: 'gallery', maxCount: 10 }
+  { name: 'gallery', maxCount: 10 },
+  { name: 'labImages', maxCount: 10 },
+  { name: 'medicalImages', maxCount: 10 }
 ]), updateBranch);
 router.delete("/:id", protect, isHospital, deleteBranch);
 

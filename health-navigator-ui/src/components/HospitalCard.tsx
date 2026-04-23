@@ -40,7 +40,31 @@ export const HospitalCard = ({ hospital }: HospitalCardProps) => {
             <span className="truncate">{hospital.location}</span>
           </div>
           
-          {/* Tags */}
+          {/* Healthcare Feature Tags */}
+          <div className="flex flex-wrap gap-1.5 mb-2.5">
+            {hospital.govtSchemes?.length > 0 && (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[9px] font-bold px-1.5 py-0">
+                🟢 Govt Scheme
+              </Badge>
+            )}
+            {hospital.insurance?.accepted && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] font-bold px-1.5 py-0">
+                🔵 Insurance
+              </Badge>
+            )}
+            {hospital.labDetails?.enabled && (
+              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 text-[9px] font-bold px-1.5 py-0">
+                🧪 Lab
+              </Badge>
+            )}
+            {hospital.medicalStore?.enabled && (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-100 text-[9px] font-bold px-1.5 py-0">
+                💊 Medical
+              </Badge>
+            )}
+          </div>
+
+          {/* Legacy Tags */}
           <div className="flex flex-wrap gap-1.5 mb-2.5">
             {hospital.ambulanceAvailable && (
               <Badge variant="outline" className="bg-red-50 text-red-600 border-red-100 text-[9px] uppercase font-bold tracking-wider px-1.5 py-0">

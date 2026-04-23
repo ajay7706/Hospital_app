@@ -26,6 +26,17 @@ exports.addHospital = async (req, res) => {
     try { if (services) parsedServices = typeof services === 'string' ? JSON.parse(services) : services; } catch (e) { console.error("Error parsing services:", e); }
     try { if (workingDays) parsedWorkingDays = typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays; } catch (e) { console.error("Error parsing workingDays:", e); }
 
+    const { govtSchemes, insurance, labDetails, medicalStore } = req.body;
+    let parsedGovtSchemes = [];
+    let parsedInsurance = { accepted: false, providers: [] };
+    let parsedLabDetails = { enabled: false, labName: '', images: [] };
+    let parsedMedicalStore = { enabled: false, images: [] };
+
+    try { if (govtSchemes) parsedGovtSchemes = typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes; } catch (e) {}
+    try { if (insurance) parsedInsurance = typeof insurance === 'string' ? JSON.parse(insurance) : insurance; } catch (e) {}
+    try { if (labDetails) parsedLabDetails = typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails; } catch (e) {}
+    try { if (medicalStore) parsedMedicalStore = typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore; } catch (e) {}
+
     const hospitalData = { 
       ...otherHospitalData, 
       userId: req.user.id,
@@ -38,6 +49,10 @@ exports.addHospital = async (req, res) => {
       endTime: otherHospitalData.endTime || '18:00',
       latitude: parseFloat(otherHospitalData.latitude || parsedLocation.lat || 0),
       longitude: parseFloat(otherHospitalData.longitude || parsedLocation.lng || 0),
+      govtSchemes: parsedGovtSchemes,
+      insurance: parsedInsurance,
+      labDetails: parsedLabDetails,
+      medicalStore: parsedMedicalStore,
       approvalStatus: "pending",
       isVerified: false
     };
@@ -49,6 +64,8 @@ exports.addHospital = async (req, res) => {
       if (req.files.ownerIdProof) hospitalData.ownerIdProof = req.files.ownerIdProof[0].path;
       if (req.files.gstDocument) hospitalData.gstDocument = req.files.gstDocument[0].path;
       if (req.files.gallery) hospitalData.gallery = req.files.gallery.map(file => file.path);
+      if (req.files.labImages) hospitalData.labDetails.images = req.files.labImages.map(file => file.path);
+      if (req.files.medicalImages) hospitalData.medicalStore.images = req.files.medicalImages.map(file => file.path);
     }
     
     // Fallbacks if provided in body instead of files
@@ -229,6 +246,12 @@ exports.updateHospitalProfile = async (req, res) => {
     const parsedServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : hospital.services;
     const parsedWorkingDays = workingDays ? (typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays) : hospital.workingDays;
 
+    const { govtSchemes, insurance, labDetails, medicalStore, existingLabImages, existingMedicalImages } = req.body;
+    let parsedGovtSchemes = govtSchemes ? (typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes) : hospital.govtSchemes;
+    let parsedInsurance = insurance ? (typeof insurance === 'string' ? JSON.parse(insurance) : insurance) : hospital.insurance;
+    let parsedLabDetails = labDetails ? (typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails) : hospital.labDetails;
+    let parsedMedicalStore = medicalStore ? (typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore) : hospital.medicalStore;
+
     const updateData = {
       ...otherHospitalData,
       specialties: specialties ? (Array.isArray(specialties) ? specialties : specialties.split(',').map(s => s.trim())) : hospital.specialties,
@@ -238,6 +261,10 @@ exports.updateHospitalProfile = async (req, res) => {
       workingDays: parsedWorkingDays,
       startTime: otherHospitalData.startTime || hospital.startTime || '09:00',
       endTime: otherHospitalData.endTime || hospital.endTime || '18:00',
+      govtSchemes: parsedGovtSchemes,
+      insurance: parsedInsurance,
+      labDetails: parsedLabDetails,
+      medicalStore: parsedMedicalStore,
     };
 
     if (req.files) {
@@ -252,8 +279,18 @@ exports.updateHospitalProfile = async (req, res) => {
         const currentGallery = Array.isArray(gallery) ? gallery : (typeof gallery === 'string' ? JSON.parse(gallery) : hospital.gallery);
         updateData.gallery = [...currentGallery, ...newImages].slice(0, 8);
       }
-    } else if (gallery) {
-       updateData.gallery = Array.isArray(gallery) ? gallery : JSON.parse(gallery);
+      if (req.files.labImages) {
+        const newImages = req.files.labImages.map(file => file.path);
+        const currentImages = existingLabImages ? (typeof existingLabImages === 'string' ? JSON.parse(existingLabImages) : existingLabImages) : hospital.labDetails.images;
+        updateData.labDetails.images = [...currentImages, ...newImages];
+      }
+      if (req.files.medicalImages) {
+        const newImages = req.files.medicalImages.map(file => file.path);
+        const currentImages = existingMedicalImages ? (typeof existingMedicalImages === 'string' ? JSON.parse(existingMedicalImages) : existingMedicalImages) : hospital.medicalStore.images;
+        updateData.medicalStore.images = [...currentImages, ...newImages];
+      }
+    } else {
+      if (gallery) updateData.gallery = Array.isArray(gallery) ? gallery : JSON.parse(gallery);
     }
 
     if (!hospital.navbarIcon && updateData.hospitalLogo && !updateData.navbarIcon) {

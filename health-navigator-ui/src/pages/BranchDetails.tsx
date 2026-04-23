@@ -3,7 +3,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, Phone, Mail, Building2, ArrowLeft, Clock, Shield, Heart, Syringe, Ambulance, Activity } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Building2, ArrowLeft, Clock, Shield, Heart, Syringe, Ambulance, Activity, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import { useState, useEffect } from 'react';
@@ -33,7 +33,7 @@ const BranchDetails = () => {
   const [branch, setBranch] = useState<any>(null);
   const [hospital, setHospital] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'services' | 'facilities' | 'reviews'>('overview');
   
   const { toast } = useToast();
   const [reviewsData, setReviewsData] = useState<{ reviews: any[], averageRating: number, totalReviews: number }>({ reviews: [], averageRating: 0, totalReviews: 0 });
@@ -205,7 +205,7 @@ const BranchDetails = () => {
 
         <div className="border-b bg-card">
           <div className="container mx-auto flex px-4">
-            {['overview', 'services', 'reviews'].map((tab) => (
+            {['overview', 'services', 'facilities', 'reviews'].map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab as any)} className={`relative px-6 py-4 text-sm font-medium capitalize ${activeTab === tab ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
                 {tab}
                 {activeTab === tab && <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
@@ -357,6 +357,152 @@ const BranchDetails = () => {
                )}
             </div>
           )}
+          {/* Facilities Tab with Inheritance */}
+          {activeTab === 'facilities' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12 pb-12">
+              {/* Govt Schemes & Insurance */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Govt Schemes */}
+                {((branch.govtSchemes && branch.govtSchemes.length > 0) || (hospital?.govtSchemes && hospital.govtSchemes.length > 0)) && (
+                  <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
+                        <Shield className="h-6 w-6" />
+                      </div>
+                      Government Schemes
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(branch.govtSchemes?.length > 0 ? branch.govtSchemes : hospital.govtSchemes).map((scheme: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          <span className="text-sm font-semibold">{scheme}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Insurance */}
+                {(branch.insurance?.accepted || hospital?.insurance?.accepted) && (
+                  <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
+                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
+                      <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                        <Heart className="h-6 w-6" />
+                      </div>
+                      Insurance Partners
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(branch.insurance?.accepted ? branch.insurance.providers : hospital.insurance.providers)?.map((provider: string, i: number) => (
+                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span className="text-sm font-semibold">{provider}</span>
+                        </div>
+                      ))}
+                      {(!(branch.insurance?.accepted ? branch.insurance.providers : hospital.insurance.providers)?.length) && (
+                        <div className="col-span-full p-4 rounded-2xl bg-muted/30 border border-dashed border-border/50 text-center text-sm text-muted-foreground italic">
+                          Multiple Insurance Providers Accepted
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Lab & Diagnostics Section */}
+              {(branch.labDetails?.enabled || hospital?.labDetails?.enabled) && (
+                <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2">
+                    <div className="p-8 lg:p-12 space-y-6">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest">
+                        {branch.labDetails?.enabled ? 'Branch Lab Unit' : 'Hospital Central Lab'}
+                      </div>
+                      <h2 className="text-3xl font-black tracking-tight">
+                        {branch.labDetails?.enabled ? branch.labDetails.labName : (hospital.labDetails.labName || 'Diagnostic Center')}
+                      </h2>
+                      <p className="text-muted-foreground leading-relaxed">
+                        We offer a comprehensive range of laboratory tests and diagnostic services with state-of-the-art equipment and highly trained staff. Get accurate results delivered directly to your profile.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> NABL Accredited
+                        </div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-muted relative h-[300px] lg:h-auto">
+                      {((branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images)?.length > 0) ? (
+                        <Swiper
+                          modules={[Autoplay, Pagination]}
+                          pagination={{ clickable: true }}
+                          autoplay={{ delay: 3000 }}
+                          loop={(branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images).length > 1}
+                          className="h-full w-full"
+                        >
+                          {(branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images).map((img: string, i: number) => (
+                            <SwiperSlide key={i}>
+                              <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} alt="Lab" className="h-full w-full object-cover" />
+                            </SwiperSlide>
+                          ))}
+                        </Swiper>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-muted/50">
+                          <Syringe className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Medical Store Section */}
+              {(branch.medicalStore?.enabled || hospital?.medicalStore?.enabled) && (
+                <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex-row-reverse">
+                    <div className="bg-muted relative h-[300px] lg:h-auto lg:order-1">
+                      {((branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images)?.length > 0) ? (
+                        <Swiper
+                          modules={[Autoplay, Pagination]}
+                          pagination={{ clickable: true }}
+                          autoplay={{ delay: 3500 }}
+                          loop={(branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images).length > 1}
+                          className="h-full w-full"
+                        >
+                          {(branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images).map((img: string, i: number) => (
+                            <SwiperSlide key={i}>
+                              <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} alt="Pharmacy" className="h-full w-full object-cover" />
+                            </SwiperSlide>
+                          ))}
+                        </Swiper>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-muted/50">
+                          <Activity className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-8 lg:p-12 space-y-6 lg:order-2">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cta/10 text-cta text-xs font-bold uppercase tracking-widest">
+                        {branch.medicalStore?.enabled ? 'Branch Pharmacy' : 'Hospital Central Pharmacy'}
+                      </div>
+                      <h2 className="text-3xl font-black tracking-tight">In-house Medical Store</h2>
+                      <p className="text-muted-foreground leading-relaxed">
+                        Our full-service pharmacy is conveniently located within the hospital premises, providing 24/7 access to essential medications, healthcare products, and expert pharmacist guidance.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                          <Clock className="h-5 w-5 text-cta" />
+                          <span className="text-sm font-semibold">24/7 Service</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {/* Reviews Tab */}
           {activeTab === 'reviews' && (
             <div className="max-w-2xl mx-auto space-y-6">
               <div className="space-y-4">

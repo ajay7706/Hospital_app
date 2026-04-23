@@ -21,7 +21,9 @@ const cpUpload = upload.fields([
   { name: 'licenseCertificate', maxCount: 1 },
   { name: 'ownerIdProof', maxCount: 1 },
   { name: 'gstDocument', maxCount: 1 },
-  { name: 'gallery', maxCount: 8 }
+  { name: 'gallery', maxCount: 8 },
+  { name: 'labImages', maxCount: 10 },
+  { name: 'medicalImages', maxCount: 10 }
 ]);
 
 // Hospital owner routes

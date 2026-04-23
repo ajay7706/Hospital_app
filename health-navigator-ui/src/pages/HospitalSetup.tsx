@@ -70,6 +70,40 @@ const step2Schema = z.object({
   }),
 });
 
+const step3Schema = z.object({
+  govtSchemes: z.array(z.string()).optional(),
+  insurance: z.object({
+    accepted: z.boolean().default(false),
+    providers: z.array(z.string()).optional(),
+  }),
+  labDetails: z.object({
+    enabled: z.boolean().default(false),
+    labName: z.string().optional(),
+  }),
+  medicalStore: z.object({
+    enabled: z.boolean().default(false),
+  }),
+});
+
+const GOVT_SCHEMES_MASTER = [
+  "Ayushman Bharat (PM-JAY)",
+  "Ayushman Vay Vandana (70+)",
+  "CGHS",
+  "ESIC",
+  "State Health Scheme",
+  "BPL Scheme",
+  "Jan Arogya Yojana",
+  "Rashtriya Swasthya Bima Yojana (RSBY)"
+];
+
+const INSURANCE_PROVIDERS_MASTER = [
+  "Star Health",
+  "HDFC ERGO",
+  "ICICI Lombard",
+  "New India Assurance",
+  "Care Health Insurance"
+];
+
 
 
 export default function HospitalSetup() {
@@ -83,6 +117,8 @@ export default function HospitalSetup() {
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [gstFile, setGstFile] = useState<File | null>(null);
+  const [labImages, setLabImages] = useState<File[]>([]);
+  const [medicalImages, setMedicalImages] = useState<File[]>([]);
 
   const form1 = useForm<z.infer<typeof step1Schema>>({
     resolver: zodResolver(step1Schema),
@@ -116,6 +152,19 @@ export default function HospitalSetup() {
     }
   });
 
+  const form3 = useForm<z.infer<typeof step3Schema>>({
+    resolver: zodResolver(step3Schema),
+    defaultValues: {
+      govtSchemes: [],
+      insurance: { accepted: false, providers: [] },
+      labDetails: { enabled: false, labName: '' },
+      medicalStore: { enabled: false },
+    }
+  });
+
+  const [customScheme, setCustomScheme] = useState('');
+  const [customInsurance, setCustomInsurance] = useState('');
+
   const servicesArray = useFieldArray({
     control: form1.control,
     name: 'services',
@@ -127,6 +176,18 @@ export default function HospitalSetup() {
       return;
     }
     setStep(2);
+  };
+
+  const onNextToStep3 = (data: z.infer<typeof step2Schema>) => {
+    if (!isLocationSelected) {
+      toast({ title: 'Location Required', description: 'Please select location on map', variant: 'destructive' });
+      return;
+    }
+    if (!licenseFile || !idProofFile || !gstFile) {
+      toast({ title: 'Files Required', description: 'Please upload all required documents', variant: 'destructive' });
+      return;
+    }
+    setStep(3);
   };
 
   const geocodeAddress = async (fullAddress: string) => {
@@ -159,7 +220,8 @@ export default function HospitalSetup() {
 
   const [isLocationSelected, setIsLocationSelected] = useState(false);
 
-  const onSubmit = async (data2: z.infer<typeof step2Schema>) => {
+  const onSubmit = async (data3: z.infer<typeof step3Schema>) => {
+    const data2 = form2.getValues();
     if (!isLocationSelected) {
       toast({ 
         title: 'Location Required', 
@@ -178,20 +240,19 @@ export default function HospitalSetup() {
     setIsLoading(true);
     try {
       const data1 = form1.getValues();
+      const data3 = form3.getValues();
 
       const formData = new FormData();
       
       // Append Step 1 data
       Object.entries(data1).forEach(([key, value]) => {
-        if (key === 'workingDays') {
+        if (key === 'workingDays' || key === 'services') {
           formData.append(key, JSON.stringify(value));
-        } else if (key === 'services') {
-          formData.append(key, JSON.stringify(value || []));
         } else {
           formData.append(key, value as any);
         }
       });
-      formData.append('hospitalLogo', logoFile);
+      formData.append('hospitalLogo', logoFile!);
 
       // Append Step 2 data
       formData.append('hospitalLicenseNumber', data2.hospitalLicenseNumber);
@@ -202,9 +263,18 @@ export default function HospitalSetup() {
       formData.append('latitude', String(data2.latitude || data2.location.lat));
       formData.append('longitude', String(data2.longitude || data2.location.lng));
       
-      formData.append('licenseCertificate', licenseFile);
-      formData.append('ownerIdProof', idProofFile);
-      formData.append('gstDocument', gstFile);
+      formData.append('licenseCertificate', licenseFile!);
+      formData.append('ownerIdProof', idProofFile!);
+      formData.append('gstDocument', gstFile!);
+
+      // Append Step 3 data
+      formData.append('govtSchemes', JSON.stringify(data3.govtSchemes));
+      formData.append('insurance', JSON.stringify(data3.insurance));
+      formData.append('labDetails', JSON.stringify(data3.labDetails));
+      formData.append('medicalStore', JSON.stringify(data3.medicalStore));
+
+      labImages.forEach(img => formData.append('labImages', img));
+      medicalImages.forEach(img => formData.append('medicalImages', img));
 
       const res = await fetch(`${API_BASE}/api/hospitals/add`, {
         method: 'POST',
@@ -249,10 +319,14 @@ export default function HospitalSetup() {
           <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= 1 ? 'bg-primary text-white' : 'bg-muted'}`}>1</div>
           <div className={`h-1 w-16 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`}></div>
           <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= 2 ? 'bg-primary text-white' : 'bg-muted'}`}>2</div>
+          <div className={`h-1 w-16 ${step >= 3 ? 'bg-primary' : 'bg-muted'}`}></div>
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= 3 ? 'bg-primary text-white' : 'bg-muted'}`}>3</div>
         </div>
 
         <div className="bg-card p-8 rounded-2xl shadow-sm border">
-          <h2 className="text-2xl font-bold mb-6">{step === 1 ? 'Basic Information' : 'Verification & Details'}</h2>
+          <h2 className="text-2xl font-bold mb-6">
+            {step === 1 ? 'Basic Information' : step === 2 ? 'Verification & Details' : 'Facilities & Services'}
+          </h2>
           
           <AnimatePresence mode="wait">
             {step === 1 && (
@@ -392,7 +466,7 @@ export default function HospitalSetup() {
             {step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <Form {...form2}>
-                  <form onSubmit={form2.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={form2.handleSubmit(onNextToStep3)} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <FormField control={form2.control} name="hospitalLicenseNumber" render={({ field }) => (
                         <FormItem><FormLabel>License Number *</FormLabel><FormControl><Input placeholder="Enter License No." {...field} /></FormControl><FormMessage/></FormItem>
@@ -485,13 +559,159 @@ export default function HospitalSetup() {
 
                     <div className="flex gap-4 mt-6">
                       <Button type="button" variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Button>
+                      <Button type="button" className="flex-1" size="lg" onClick={form2.handleSubmit(onNextToStep3)}>
+                        Next <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <Form {...form3}>
+                  <form onSubmit={form3.handleSubmit(onSubmit)} className="space-y-6">
+                    {/* Govt Schemes */}
+                    <div className="space-y-4">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500" /> Govt Schemes
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {GOVT_SCHEMES_MASTER.map(scheme => (
+                          <label key={scheme} className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                            <Checkbox 
+                              checked={form3.watch('govtSchemes')?.includes(scheme)}
+                              onCheckedChange={(checked) => {
+                                const current = form3.getValues('govtSchemes') || [];
+                                if (checked) form3.setValue('govtSchemes', [...current, scheme]);
+                                else form3.setValue('govtSchemes', current.filter(s => s !== scheme));
+                              }}
+                            />
+                            <span className="text-sm">{scheme}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="+ Add Other Scheme" 
+                          value={customScheme} 
+                          onChange={(e) => setCustomScheme(e.target.value)}
+                        />
+                        <Button type="button" onClick={() => {
+                          if (!customScheme) return;
+                          const current = form3.getValues('govtSchemes') || [];
+                          if (!current.some(s => s.toLowerCase() === customScheme.toLowerCase())) {
+                            form3.setValue('govtSchemes', [...current, customScheme]);
+                          }
+                          setCustomScheme('');
+                        }}>Add</Button>
+                      </div>
+                    </div>
+
+                    {/* Insurance */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" /> Insurance
+                        </h3>
+                        <FormField control={form3.control} name="insurance.accepted" render={({ field }) => (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Insurance Accepted</span>
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                          </div>
+                        )} />
+                      </div>
+
+                      {form3.watch('insurance.accepted') && (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            {INSURANCE_PROVIDERS_MASTER.map(provider => (
+                              <label key={provider} className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                                <Checkbox 
+                                  checked={form3.watch('insurance.providers')?.includes(provider)}
+                                  onCheckedChange={(checked) => {
+                                    const current = form3.getValues('insurance.providers') || [];
+                                    if (checked) form3.setValue('insurance.providers', [...current, provider]);
+                                    else form3.setValue('insurance.providers', current.filter(p => p !== provider));
+                                  }}
+                                />
+                                <span className="text-sm">{provider}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input 
+                              placeholder="+ Add Other Provider" 
+                              value={customInsurance} 
+                              onChange={(e) => setCustomInsurance(e.target.value)}
+                            />
+                            <Button type="button" onClick={() => {
+                              if (!customInsurance) return;
+                              const current = form3.getValues('insurance.providers') || [];
+                              if (!current.some(p => p.toLowerCase() === customInsurance.toLowerCase())) {
+                                form3.setValue('insurance.providers', [...current, customInsurance]);
+                              }
+                              setCustomInsurance('');
+                            }}>Add</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Lab & Diagnostics */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-purple-500" /> Lab & Diagnostics
+                        </h3>
+                        <FormField control={form3.control} name="labDetails.enabled" render={({ field }) => (
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        )} />
+                      </div>
+
+                      {form3.watch('labDetails.enabled') && (
+                        <div className="space-y-4">
+                          <FormField control={form3.control} name="labDetails.labName" render={({ field }) => (
+                            <FormItem><FormLabel>Lab Name</FormLabel><FormControl><Input placeholder="Internal Lab Name" {...field} /></FormControl></FormItem>
+                          )} />
+                          <div className="space-y-2">
+                            <FormLabel>Lab Images (Slider)</FormLabel>
+                            <Input type="file" multiple accept="image/*" onChange={(e) => setLabImages(Array.from(e.target.files || []))} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Medical Store */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-red-500" /> Medical Store
+                        </h3>
+                        <FormField control={form3.control} name="medicalStore.enabled" render={({ field }) => (
+                          <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                        )} />
+                      </div>
+
+                      {form3.watch('medicalStore.enabled') && (
+                        <div className="space-y-2">
+                          <FormLabel>Medical Store Images (Slider)</FormLabel>
+                          <Input type="file" multiple accept="image/*" onChange={(e) => setMedicalImages(Array.from(e.target.files || []))} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-4 mt-8 pt-4 border-t">
+                      <Button type="button" variant="outline" onClick={() => setStep(2)}><ArrowLeft className="mr-2 h-4 w-4" /> Back</Button>
                       <Button 
                         type="submit" 
-                        className="flex-1" 
+                        className="flex-1 bg-primary text-primary-foreground font-bold" 
                         size="lg"
-                        isLoading={isLoading}
+                        disabled={isLoading}
                       >
-                        Save & Continue
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                        Complete Registration
                       </Button>
                     </div>
                   </form>
