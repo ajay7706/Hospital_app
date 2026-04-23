@@ -157,10 +157,13 @@ const hospitalSchema = new mongoose.Schema({
   labDetails: {
     enabled: { type: Boolean, default: false },
     labName: { type: String },
+    sample_pickup: { type: Boolean, default: false },
     images: { type: [String], default: [] },
   },
   medicalStore: {
     enabled: { type: Boolean, default: false },
+    open_24_7: { type: Boolean, default: false },
+    home_delivery: { type: Boolean, default: false },
     images: { type: [String], default: [] },
   },
 }, { timestamps: true });

@@ -47,22 +47,22 @@ export const BranchCard = ({ branch, hospital, onEmergencyClick }: BranchCardPro
           
           {/* Healthcare Feature Tags */}
           <div className="flex flex-wrap gap-1.5 mb-2.5">
-            {(branch.govtSchemes?.length > 0 || hospital.govtSchemes?.length > 0) && (
+            {branch.govtSchemes?.length > 0 && (
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-100 text-[9px] font-bold px-1.5 py-0">
                 🟢 Govt Scheme
               </Badge>
             )}
-            {(branch.insurance?.accepted || hospital.insurance?.accepted) && (
+            {branch.insurance?.accepted && (
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 text-[9px] font-bold px-1.5 py-0">
                 🔵 Insurance
               </Badge>
             )}
-            {(branch.labDetails?.enabled || hospital.labDetails?.enabled) && (
+            {branch.labDetails?.enabled && (
               <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 text-[9px] font-bold px-1.5 py-0">
                 🧪 Lab
               </Badge>
             )}
-            {(branch.medicalStore?.enabled || hospital.medicalStore?.enabled) && (
+            {branch.medicalStore?.enabled && (
               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-100 text-[9px] font-bold px-1.5 py-0">
                 💊 Medical
               </Badge>

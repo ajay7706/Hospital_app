@@ -62,6 +62,10 @@ const Hospitals = () => {
           emergency24x7: h.emergency24x7 || false,
           ambulanceAvailable: h.ambulanceAvailable || false,
           opdCharge: h.opdCharge || 0,
+          govtSchemes: h.govtSchemes || [],
+          insurance: h.insurance || { accepted: false },
+          labDetails: h.labDetails || { enabled: false },
+          medicalStore: h.medicalStore || { enabled: false }
         }));
 
         setHospitals(mapped);

@@ -338,9 +338,9 @@ const BranchDetails = () => {
             </div>
           )}
           {activeTab === 'services' && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-               {((branch.services && branch.services.length > 0) || (hospital?.services && hospital.services.length > 0)) ? (
-                 (branch.services?.length > 0 ? branch.services : hospital.services).map((service: any, i: number) => {
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pb-12">
+               {branch.services && branch.services.length > 0 ? (
+                 branch.services.map((service: any, i: number) => {
                    const Icon = getServiceIcon(service.title);
                    return (
                      <div key={i} className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition hover:shadow-md">
@@ -353,7 +353,7 @@ const BranchDetails = () => {
                    );
                  })
                ) : (
-                 <div className="text-center py-20 text-muted-foreground col-span-full">No services listed yet for this branch.</div>
+                 <div className="text-center py-20 text-muted-foreground col-span-full">No specific services listed yet for this branch.</div>
                )}
             </div>
           )}
@@ -363,7 +363,7 @@ const BranchDetails = () => {
               {/* Govt Schemes & Insurance */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Govt Schemes */}
-                {((branch.govtSchemes && branch.govtSchemes.length > 0) || (hospital?.govtSchemes && hospital.govtSchemes.length > 0)) && (
+                {branch.govtSchemes && branch.govtSchemes.length > 0 && (
                   <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                       <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
@@ -372,7 +372,7 @@ const BranchDetails = () => {
                       Government Schemes
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(branch.govtSchemes?.length > 0 ? branch.govtSchemes : hospital.govtSchemes).map((scheme: string, i: number) => (
+                      {branch.govtSchemes.map((scheme: string, i: number) => (
                         <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
                           <div className="h-2 w-2 rounded-full bg-green-500" />
                           <span className="text-sm font-semibold">{scheme}</span>
@@ -383,7 +383,7 @@ const BranchDetails = () => {
                 )}
 
                 {/* Insurance */}
-                {(branch.insurance?.accepted || hospital?.insurance?.accepted) && (
+                {branch.insurance?.accepted && (
                   <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                       <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
@@ -392,13 +392,13 @@ const BranchDetails = () => {
                       Insurance Partners
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {(branch.insurance?.accepted ? branch.insurance.providers : hospital.insurance.providers)?.map((provider: string, i: number) => (
+                      {branch.insurance.providers?.map((provider: string, i: number) => (
                         <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
                           <div className="h-2 w-2 rounded-full bg-blue-500" />
                           <span className="text-sm font-semibold">{provider}</span>
                         </div>
                       ))}
-                      {(!(branch.insurance?.accepted ? branch.insurance.providers : hospital.insurance.providers)?.length) && (
+                      {(!branch.insurance.providers || branch.insurance.providers.length === 0) && (
                         <div className="col-span-full p-4 rounded-2xl bg-muted/30 border border-dashed border-border/50 text-center text-sm text-muted-foreground italic">
                           Multiple Insurance Providers Accepted
                         </div>
@@ -409,38 +409,46 @@ const BranchDetails = () => {
               </div>
 
               {/* Lab & Diagnostics Section */}
-              {(branch.labDetails?.enabled || hospital?.labDetails?.enabled) && (
+              {branch.labDetails?.enabled && (
                 <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
                   <div className="grid grid-cols-1 lg:grid-cols-2">
                     <div className="p-8 lg:p-12 space-y-6">
                       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest">
-                        {branch.labDetails?.enabled ? 'Branch Lab Unit' : 'Hospital Central Lab'}
+                        Branch Lab Unit
                       </div>
                       <h2 className="text-3xl font-black tracking-tight">
-                        {branch.labDetails?.enabled ? branch.labDetails.labName : (hospital.labDetails.labName || 'Diagnostic Center')}
+                        {branch.labDetails.labName || 'Diagnostic Center'}
                       </h2>
                       <p className="text-muted-foreground leading-relaxed">
                         We offer a comprehensive range of laboratory tests and diagnostic services with state-of-the-art equipment and highly trained staff. Get accurate results delivered directly to your profile.
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> NABL Accredited
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Certified Laboratory
                         </div>
                         <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Accurate Reports
                         </div>
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Govt. Approved
+                        </div>
+                        {branch.labDetails.sample_pickup && (
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="bg-muted relative h-[300px] lg:h-auto">
-                      {((branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images)?.length > 0) ? (
+                      {branch.labDetails.images?.length > 0 ? (
                         <Swiper
                           modules={[Autoplay, Pagination]}
                           pagination={{ clickable: true }}
                           autoplay={{ delay: 3000 }}
-                          loop={(branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images).length > 1}
+                          loop={branch.labDetails.images.length > 1}
                           className="h-full w-full"
                         >
-                          {(branch.labDetails?.enabled ? branch.labDetails.images : hospital.labDetails.images).map((img: string, i: number) => (
+                          {branch.labDetails.images.map((img: string, i: number) => (
                             <SwiperSlide key={i}>
                               <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} alt="Lab" className="h-full w-full object-cover" />
                             </SwiperSlide>
@@ -457,19 +465,19 @@ const BranchDetails = () => {
               )}
 
               {/* Medical Store Section */}
-              {(branch.medicalStore?.enabled || hospital?.medicalStore?.enabled) && (
+              {branch.medicalStore?.enabled && (
                 <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
                   <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex-row-reverse">
                     <div className="bg-muted relative h-[300px] lg:h-auto lg:order-1">
-                      {((branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images)?.length > 0) ? (
+                      {branch.medicalStore.images?.length > 0 ? (
                         <Swiper
                           modules={[Autoplay, Pagination]}
                           pagination={{ clickable: true }}
                           autoplay={{ delay: 3500 }}
-                          loop={(branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images).length > 1}
+                          loop={branch.medicalStore.images.length > 1}
                           className="h-full w-full"
                         >
-                          {(branch.medicalStore?.enabled ? branch.medicalStore.images : hospital.medicalStore.images).map((img: string, i: number) => (
+                          {branch.medicalStore.images.map((img: string, i: number) => (
                             <SwiperSlide key={i}>
                               <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} alt="Pharmacy" className="h-full w-full object-cover" />
                             </SwiperSlide>
@@ -483,17 +491,25 @@ const BranchDetails = () => {
                     </div>
                     <div className="p-8 lg:p-12 space-y-6 lg:order-2">
                       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cta/10 text-cta text-xs font-bold uppercase tracking-widest">
-                        {branch.medicalStore?.enabled ? 'Branch Pharmacy' : 'Hospital Central Pharmacy'}
+                        Branch Pharmacy
                       </div>
                       <h2 className="text-3xl font-black tracking-tight">In-house Medical Store</h2>
                       <p className="text-muted-foreground leading-relaxed">
-                        Our full-service pharmacy is conveniently located within the hospital premises, providing 24/7 access to essential medications, healthcare products, and expert pharmacist guidance.
+                        Our full-service pharmacy is conveniently located within the hospital premises, providing access to essential medications and healthcare products.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
-                          <Clock className="h-5 w-5 text-cta" />
-                          <span className="text-sm font-semibold">24/7 Service</span>
-                        </div>
+                        {branch.medicalStore.open_24_7 && (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                            <Clock className="h-5 w-5 text-cta" />
+                            <span className="text-sm font-semibold">24/7 Service</span>
+                          </div>
+                        )}
+                        {branch.medicalStore.home_delivery && (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                            <Ambulance className="h-5 w-5 text-cta" />
+                            <span className="text-sm font-semibold">Home Delivery</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

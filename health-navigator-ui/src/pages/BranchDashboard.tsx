@@ -55,8 +55,8 @@ export default function BranchDashboard() {
   // Healthcare Features States
   const [govtSchemes, setGovtSchemes] = useState<string[]>([]);
   const [insurance, setInsurance] = useState({ accepted: false, providers: [] as string[] });
-  const [labDetails, setLabDetails] = useState({ enabled: false, labName: '', images: [] as string[] });
-  const [medicalStore, setMedicalStore] = useState({ enabled: false, images: [] as string[] });
+  const [labDetails, setLabDetails] = useState({ enabled: false, labName: '', sample_pickup: false, images: [] as string[] });
+  const [medicalStore, setMedicalStore] = useState({ enabled: false, open_24_7: false, home_delivery: false, images: [] as string[] });
   const [customScheme, setCustomScheme] = useState('');
   const [customInsurance, setCustomInsurance] = useState('');
   const [labImages, setLabImages] = useState<File[]>([]);
@@ -108,8 +108,8 @@ export default function BranchDashboard() {
         // Sync healthcare features
         setGovtSchemes(bData.govtSchemes || []);
         setInsurance(bData.insurance || { accepted: false, providers: [] });
-        setLabDetails(bData.labDetails || { enabled: false, labName: '', images: [] });
-        setMedicalStore(bData.medicalStore || { enabled: false, images: [] });
+        setLabDetails(bData.labDetails || { enabled: false, labName: '', sample_pickup: false, images: [] });
+        setMedicalStore(bData.medicalStore || { enabled: false, open_24_7: false, home_delivery: false, images: [] });
       }
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -774,15 +774,26 @@ export default function BranchDashboard() {
                     </div>
                     {labDetails.enabled && (
                       <div className="space-y-4">
-                        <Input placeholder="Lab Name (e.g. Branch X Lab)" value={labDetails.labName} onChange={e => setLabDetails({...labDetails, labName: e.target.value})} />
+                        <Input placeholder="Lab Name (e.g. Apollo Lab Center)" value={labDetails.labName} onChange={e => setLabDetails({ ...labDetails, labName: e.target.value })} />
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="sample_pickup" 
+                            checked={labDetails.sample_pickup} 
+                            onCheckedChange={(val) => setLabDetails({ ...labDetails, sample_pickup: !!val })} 
+                          />
+                          <label htmlFor="sample_pickup" className="text-xs font-medium leading-none">
+                            Home Sample Pickup Available
+                          </label>
+                        </div>
+
                         <div className="space-y-3">
-                          <label className="text-xs font-bold text-muted-foreground uppercase">Branch Lab Images</label>
+                          <label className="text-xs font-bold text-muted-foreground uppercase">Current Images</label>
                           <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
                             {labDetails.images.map((img, i) => (
                               <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
                                 <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
-                                <button 
-                                  type="button"
+                                <button
                                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm"
                                   onClick={() => removeFacilityImage('lab', i)}
                                 >
@@ -804,26 +815,51 @@ export default function BranchDashboard() {
                       <input type="checkbox" checked={medicalStore.enabled} onChange={(e) => setMedicalStore({...medicalStore, enabled: e.target.checked})} className="h-4 w-4" />
                     </div>
                     {medicalStore.enabled && (
-                      <div className="space-y-3">
-                        <label className="text-xs font-bold text-muted-foreground uppercase">Medical Store Images</label>
-                        <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-                          {medicalStore.images.map((img, i) => (
-                            <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
-                              <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
-                              <button 
-                                type="button"
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm"
-                                onClick={() => removeFacilityImage('medical', i)}
-                              >
-                                <XCircle className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-6 p-4 bg-muted/30 rounded-xl">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="open_24_7" 
+                              checked={medicalStore.open_24_7} 
+                              onCheckedChange={(val) => setMedicalStore({ ...medicalStore, open_24_7: !!val })} 
+                            />
+                            <label htmlFor="open_24_7" className="text-xs font-medium leading-none">
+                              Open 24/7
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="home_delivery" 
+                              checked={medicalStore.home_delivery} 
+                              onCheckedChange={(val) => setMedicalStore({ ...medicalStore, home_delivery: !!val })} 
+                            />
+                            <label htmlFor="home_delivery" className="text-xs font-medium leading-none">
+                              Home Delivery Available
+                            </label>
+                          </div>
                         </div>
-                        <Input type="file" multiple accept="image/*" onChange={e => setMedicalImages(Array.from(e.target.files || []))} className="mt-2" />
+
+                        <div className="space-y-3">
+                          <label className="text-xs font-bold text-muted-foreground uppercase">Medical Store Images</label>
+                          <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                            {medicalStore.images.map((img, i) => (
+                              <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
+                                <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
+                                <button 
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm"
+                                  onClick={() => removeFacilityImage('medical', i)}
+                                >
+                                  <XCircle className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <Input type="file" multiple accept="image/*" onChange={e => setMedicalImages(Array.from(e.target.files || []))} className="mt-2" />
+                        </div>
                       </div>
                     )}
-                    </div>
+                  </div>
 
                     {/* Services Management */}
                     <div className="space-y-4 pt-6 border-t">

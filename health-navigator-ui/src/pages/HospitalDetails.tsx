@@ -682,17 +682,19 @@ const HospitalDetails = () => {
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> NABL Accredited
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Certified Laboratory
                         </div>
                         <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Accurate Reports
                         </div>
                         <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Digital Reports
+                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Govt. Approved
                         </div>
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" /> Expert Radiologists
-                        </div>
+                        {hospital.labDetails.sample_pickup && (
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="bg-muted relative h-[300px] lg:h-auto">
@@ -747,21 +749,25 @@ const HospitalDetails = () => {
                     </div>
                     <div className="p-8 lg:p-12 space-y-6 lg:order-2">
                       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cta/10 text-cta text-xs font-bold uppercase tracking-widest">
-                        24/7 Pharmacy
+                        Pharmacy Services
                       </div>
                       <h2 className="text-3xl font-black tracking-tight">In-house Medical Store</h2>
                       <p className="text-muted-foreground leading-relaxed">
                         Our full-service pharmacy is conveniently located within the hospital premises, providing 24/7 access to essential medications, healthcare products, and expert pharmacist guidance.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
-                          <Clock className="h-5 w-5 text-cta" />
-                          <span className="text-sm font-semibold">24/7 Service</span>
-                        </div>
-                        <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
-                          <Ambulance className="h-5 w-5 text-cta" />
-                          <span className="text-sm font-semibold">Home Delivery</span>
-                        </div>
+                        {hospital.medicalStore.open_24_7 && (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                            <Clock className="h-5 w-5 text-cta" />
+                            <span className="text-sm font-semibold">24/7 Service</span>
+                          </div>
+                        )}
+                        {hospital.medicalStore.home_delivery && (
+                          <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                            <Ambulance className="h-5 w-5 text-cta" />
+                            <span className="text-sm font-semibold">Home Delivery</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
