@@ -592,6 +592,7 @@ const HospitalDetails = () => {
                 </div>
               </div>
             </motion.div>
+          )}
           {/* Services Tab */}
           {activeTab === 'services' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pb-12">
