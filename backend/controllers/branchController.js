@@ -47,112 +47,97 @@ exports.addBranch = async (req, res) => {
 
 exports.updateBranch = async (req, res) => {
   try {
+    const { id } = req.params;
+    console.log(`Update request for branch ${id} by user ${req.user.id} (${req.user.role})`);
+
     let hospitalId;
     if (req.user.role === 'hospital') {
       const hospital = await Hospital.findOne({ userId: req.user.id });
-      if (!hospital) return res.status(404).json({ msg: "Hospital not found" });
+      if (!hospital) return res.status(404).json({ msg: "Hospital profile not found" });
       hospitalId = hospital._id;
     } else if (req.user.role === 'branch') {
       hospitalId = req.user.hospitalId;
-      // Ensure branch staff only updates their own branch
-      if (req.params.id !== req.user.branchId.toString()) {
-        console.error("Branch ID mismatch:", { paramId: req.params.id, userBranchId: req.user.branchId });
-        return res.status(403).json({ msg: "Access denied. You can only update your own branch." });
+      if (!req.user.branchId || id !== req.user.branchId.toString()) {
+        console.error("Authorization failed: Branch ID mismatch or missing.");
+        return res.status(403).json({ msg: "Not authorized to update this branch" });
       }
     } else {
-      return res.status(403).json({ msg: "Not authorized" });
+      return res.status(403).json({ msg: "Unauthorized role" });
     }
+
+    const branch = await Branch.findOne({ _id: id, hospitalId });
+    if (!branch) return res.status(404).json({ msg: "Branch not found or does not belong to your hospital" });
 
     const updateData = { ...req.body };
 
-    // Convert checkbox "on"/"true" strings to Booleans for Mongoose
-    if (req.body.emergency24x7 !== undefined) {
-      updateData.emergency24x7 = req.body.emergency24x7 === 'on' || req.body.emergency24x7 === 'true' || req.body.emergency24x7 === true;
-    }
-    if (req.body.ambulanceAvailable !== undefined) {
-      updateData.ambulanceAvailable = req.body.ambulanceAvailable === 'on' || req.body.ambulanceAvailable === 'true' || req.body.ambulanceAvailable === true;
-    }
-    
-    // Parse JSON strings from FormData
-    if (req.body.workingDays) {
-      try { updateData.workingDays = JSON.parse(req.body.workingDays); } catch (e) { /* ignore */ }
-    }
-    
+    // Helper to safely parse JSON or return original/default
+    const tryParse = (val, fallback) => {
+      if (!val) return fallback;
+      if (typeof val !== 'string') return val;
+      try { return JSON.parse(val); } catch (e) { 
+        console.error("JSON Parse Error:", e.message, "Value:", val);
+        return fallback; 
+      }
+    };
+
+    // Parse complex fields
+    if (req.body.govtSchemes) updateData.govtSchemes = tryParse(req.body.govtSchemes, []);
+    if (req.body.insurance) updateData.insurance = tryParse(req.body.insurance, { accepted: false, providers: [] });
+    if (req.body.labDetails) updateData.labDetails = tryParse(req.body.labDetails, { enabled: false, labName: '', images: [] });
+    if (req.body.medicalStore) updateData.medicalStore = tryParse(req.body.medicalStore, { enabled: false, images: [] });
+    if (req.body.services) updateData.services = tryParse(req.body.services, []);
+    if (req.body.workingDays) updateData.workingDays = tryParse(req.body.workingDays, []);
+
+    // Handle Booleans from FormData
+    const toBool = (val) => val === 'true' || val === 'on' || val === true;
+    if (req.body.emergency24x7 !== undefined) updateData.emergency24x7 = toBool(req.body.emergency24x7);
+    if (req.body.ambulanceAvailable !== undefined) updateData.ambulanceAvailable = toBool(req.body.ambulanceAvailable);
+
+    // Handle Image Gallery
     if (req.body.existingGallery) {
-      try { 
-        updateData.gallery = JSON.parse(req.body.existingGallery); 
-      } catch (e) { /* ignore */ }
+      updateData.gallery = tryParse(req.body.existingGallery, branch.gallery || []);
     }
 
-    if (req.body.services) {
-      try { 
-        updateData.services = JSON.parse(req.body.services); 
-      } catch (e) { /* ignore */ }
-    }
-
-    if (req.body.govtSchemes) {
-      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); delete updateData.govtSchemes; }
-    }
-    if (req.body.insurance) {
-      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); delete updateData.insurance; }
-    }
-    if (req.body.labDetails) {
-      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); }
-    }
-    if (req.body.medicalStore) {
-      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); }
-    }
-    if (req.body.govtSchemes) {
-      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); }
-    }
-    if (req.body.insurance) {
-      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); }
-    }
-    if (req.body.services) {
-      try { updateData.services = JSON.parse(req.body.services); } catch (e) { console.error("Error parsing services:", e); }
-    }
-    if (req.body.specialties) {
-      updateData.specialties = req.body.specialties;
-    }
-
-    // Handle files from upload.fields
+    // Handle File Uploads
     if (req.files) {
       if (req.files.image) {
         updateData.image = req.files.image[0].path;
       }
+      
       if (req.files.gallery) {
-        const newGalleryImages = req.files.gallery.map(f => f.path);
-        const currentGallery = updateData.gallery || []; 
-        updateData.gallery = [...currentGallery, ...newGalleryImages];
+        const newImgs = req.files.gallery.map(f => f.path);
+        updateData.gallery = [...(updateData.gallery || branch.gallery || []), ...newImgs];
       }
+
       if (req.files.labImages) {
-        const newImages = req.files.labImages.map(f => f.path);
-        let currentImages = [];
-        try {
-          currentImages = req.body.existingLabImages ? JSON.parse(req.body.existingLabImages) : (updateData.labDetails?.images || []);
-        } catch (e) { console.error("Error parsing existingLabImages:", e); currentImages = []; }
-        updateData.labDetails = { ...(updateData.labDetails || {}), images: [...currentImages, ...newImages] };
+        const newImgs = req.files.labImages.map(f => f.path);
+        const existing = tryParse(req.body.existingLabImages, updateData.labDetails?.images || branch.labDetails?.images || []);
+        if (!updateData.labDetails) updateData.labDetails = branch.labDetails ? JSON.parse(JSON.stringify(branch.labDetails)) : { enabled: false, images: [] };
+        updateData.labDetails.images = [...existing, ...newImgs];
       }
+
       if (req.files.medicalImages) {
-        const newImages = req.files.medicalImages.map(f => f.path);
-        let currentImages = [];
-        try {
-          currentImages = req.body.existingMedicalImages ? JSON.parse(req.body.existingMedicalImages) : (updateData.medicalStore?.images || []);
-        } catch (e) { console.error("Error parsing existingMedicalImages:", e); currentImages = []; }
-        updateData.medicalStore = { ...(updateData.medicalStore || {}), images: [...currentImages, ...newImages] };
+        const newImgs = req.files.medicalImages.map(f => f.path);
+        const existing = tryParse(req.body.existingMedicalImages, updateData.medicalStore?.images || branch.medicalStore?.images || []);
+        if (!updateData.medicalStore) updateData.medicalStore = branch.medicalStore ? JSON.parse(JSON.stringify(branch.medicalStore)) : { enabled: false, images: [] };
+        updateData.medicalStore.images = [...existing, ...newImgs];
       }
     }
 
-    const branch = await Branch.findOne({ _id: req.params.id, hospitalId: hospitalId });
-    if (!branch) return res.status(404).json({ msg: "Branch not found" });
-
+    // Update and Save
     branch.set(updateData);
     const updatedBranch = await branch.save();
     
+    console.log(`Branch ${id} updated successfully`);
     res.json(updatedBranch);
+
   } catch (error) {
     console.error("Update Branch Error:", error);
-    res.status(500).json({ msg: "Server error", error: error.message });
+    res.status(500).json({ 
+      msg: "Internal Server Error", 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
