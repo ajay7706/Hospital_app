@@ -10,20 +10,35 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'hospital_app',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'webp'],
+  params: async (req, file) => {
+    const isPDF = file.mimetype === 'application/pdf';
+    return {
+      folder: 'hospital_app',
+      format: isPDF ? 'pdf' : 'jpg', // Convert images to jpg for consistency
+      resource_type: 'auto',
+      public_id: `${file.fieldname}-${Date.now()}`,
+      transformation: isPDF ? [] : [{ quality: 'auto', fetch_format: 'auto' }]
+    };
   },
 });
 
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (allowedTypes.includes(file.mimetype)) {
+    const allowedMimeTypes = [
+      'image/jpeg', 
+      'image/png', 
+      'image/webp', 
+      'image/jpg',
+      'application/pdf'
+    ];
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPG, PNG, WEBP, and PDF are allowed.'), false);
+      const error = new Error('Invalid file type. Only JPG, PNG, WEBP, and PDF are allowed.');
+      error.status = 400; // Hint for error handler
+      cb(error, false);
     }
   },
   limits: {
@@ -32,3 +47,4 @@ const upload = multer({
 });
 
 module.exports = { cloudinary, upload };
+
