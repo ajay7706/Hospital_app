@@ -64,6 +64,15 @@ const editSchema = z.object({
   endTime: z.string().min(1, 'Required'),
   opdCharge: z.string().min(1, 'Required'),
   gstNumber: z.string().optional(),
+  labDetails: z.object({
+    enabled: z.boolean().default(false),
+    labName: z.string().optional(),
+    images: z.array(z.string()).default([]),
+  }).optional(),
+  medicalStore: z.object({
+    enabled: z.boolean().default(false),
+    images: z.array(z.string()).default([]),
+  }).optional(),
 });
 
 
@@ -78,6 +87,8 @@ const EditProfile = () => {
   const [hospitalLogoFile, setHospitalLogoFile] = useState<File | null>(null);
   const [navbarIconFile, setNavbarIconFile] = useState<File | null>(null);
   const [gstDocumentFile, setGstDocumentFile] = useState<File | null>(null);
+  const [labImages, setLabImages] = useState<File[]>([]);
+  const [medicalImages, setMedicalImages] = useState<File[]>([]);
 
 
   const form = useForm<EditForm>({
@@ -102,6 +113,8 @@ const EditProfile = () => {
       endTime: '18:00',
       opdCharge: '0',
       gstNumber: '',
+      labDetails: { enabled: false, labName: '', images: [] },
+      medicalStore: { enabled: false, images: [] },
     },
   });
 
@@ -151,9 +164,12 @@ const EditProfile = () => {
           workingDays: Array.isArray(data.workingDays) ? data.workingDays : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
           openingTime: data.openingTime || '08:00',
           closingTime: data.closingTime || '20:00',
-          appointmentSlots: data.appointmentSlots || { startTime: '09:00', endTime: '17:00' },
+          startTime: data.appointmentSlots?.startTime || data.startTime || '09:00',
+          endTime: data.appointmentSlots?.endTime || data.endTime || '18:00',
           opdCharge: String(data.opdCharge || 0),
           gstNumber: data.gstNumber || '',
+          labDetails: data.labDetails || { enabled: false, labName: '', images: [] },
+          medicalStore: data.medicalStore || { enabled: false, images: [] },
         });
 
       } catch (err: any) {
@@ -230,6 +246,14 @@ const EditProfile = () => {
       if (hospitalLogoFile) fd.append('hospitalLogo', hospitalLogoFile);
       if (navbarIconFile) fd.append('navbarIcon', navbarIconFile);
       if (gstDocumentFile) fd.append('gstDocument', gstDocumentFile);
+
+      fd.append('labDetails', JSON.stringify(data.labDetails));
+      fd.append('medicalStore', JSON.stringify(data.medicalStore));
+      fd.append('existingLabImages', JSON.stringify(data.labDetails?.images || []));
+      fd.append('existingMedicalImages', JSON.stringify(data.medicalStore?.images || []));
+
+      labImages.forEach(img => fd.append('labImages', img));
+      medicalImages.forEach(img => fd.append('medicalImages', img));
 
 
       const res = await fetch(`${API_BASE}/api/hospitals/update`, {
@@ -489,6 +513,82 @@ const EditProfile = () => {
                   <FormField control={form.control} name="endTime" render={({ field }) => (
                     <FormItem><FormLabel>Appointment End Time *</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-primary flex items-center gap-2">
+                   Facilities (Lab & Medical)
+                </h2>
+                <div className="rounded-2xl border border-border bg-card p-6 space-y-6 shadow-sm">
+                  {/* Lab */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <FormLabel className="text-base">Lab & Diagnostics</FormLabel>
+                      <Checkbox 
+                        checked={form.watch('labDetails.enabled')} 
+                        onCheckedChange={(val) => form.setValue('labDetails.enabled', !!val)} 
+                      />
+                    </div>
+                    {form.watch('labDetails.enabled') && (
+                      <div className="space-y-4 pt-2">
+                        <FormField control={form.control} name="labDetails.labName" render={({ field }) => (
+                          <FormItem><FormLabel>Lab Name</FormLabel><FormControl><Input {...field} placeholder="Apollo Lab Center" /></FormControl></FormItem>
+                        )} />
+                        <div className="space-y-2">
+                          <FormLabel className="text-xs">Existing Lab Images</FormLabel>
+                          <div className="grid grid-cols-4 gap-2">
+                            {form.watch('labDetails.images')?.map((img, i) => (
+                              <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
+                                <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
+                                <button type="button" className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm" onClick={() => {
+                                  const current = form.getValues('labDetails.images') || [];
+                                  form.setValue('labDetails.images', current.filter((_, idx) => idx !== i));
+                                }}>
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <FormLabel className="text-xs mt-2 block">Upload New Images</FormLabel>
+                          <Input type="file" multiple accept="image/*" onChange={e => setLabImages(Array.from(e.target.files || []))} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Medical Store */}
+                  <div className="space-y-4 pt-6 border-t">
+                    <div className="flex justify-between items-center">
+                      <FormLabel className="text-base">In-house Medical Store</FormLabel>
+                      <Checkbox 
+                        checked={form.watch('medicalStore.enabled')} 
+                        onCheckedChange={(val) => form.setValue('medicalStore.enabled', !!val)} 
+                      />
+                    </div>
+                    {form.watch('medicalStore.enabled') && (
+                      <div className="space-y-4 pt-2">
+                        <div className="space-y-2">
+                          <FormLabel className="text-xs">Existing Medical Images</FormLabel>
+                          <div className="grid grid-cols-4 gap-2">
+                            {form.watch('medicalStore.images')?.map((img, i) => (
+                              <div key={i} className="relative aspect-square rounded-lg border bg-muted overflow-hidden group">
+                                <img src={img.startsWith('http') ? img : `${API_BASE}/${img}`} className="h-full w-full object-cover" />
+                                <button type="button" className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition shadow-sm" onClick={() => {
+                                  const current = form.getValues('medicalStore.images') || [];
+                                  form.setValue('medicalStore.images', current.filter((_, idx) => idx !== i));
+                                }}>
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <FormLabel className="text-xs mt-2 block">Upload New Images</FormLabel>
+                          <Input type="file" multiple accept="image/*" onChange={e => setMedicalImages(Array.from(e.target.files || []))} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
