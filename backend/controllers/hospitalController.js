@@ -281,16 +281,29 @@ exports.updateHospitalProfile = async (req, res) => {
     if (specialties) {
       updateData.specialties = Array.isArray(specialties) ? specialties : specialties.split(',').map((s) => s.trim());
     }
-    if (services) updateData.services = safeParse(services, hospital.services);
-    if (fullAddress) updateData.fullAddress = safeParse(fullAddress, hospital.fullAddress);
-    if (location) updateData.location = safeParse(location, hospital.location);
-    if (workingDays) updateData.workingDays = safeParse(workingDays, hospital.workingDays);
-    if (govtSchemes) updateData.govtSchemes = safeParse(govtSchemes, hospital.govtSchemes);
-    if (insurance) updateData.insurance = safeParse(insurance, hospital.insurance);
-    
-    // Lab & Medical (Special handling for nested images)
-    updateData.labDetails = safeParse(labDetails, hospital.labDetails ? hospital.labDetails.toObject() : { enabled: false, images: [] });
-    updateData.medicalStore = safeParse(medicalStore, hospital.medicalStore ? hospital.medicalStore.toObject() : { enabled: false, images: [] });
+    if (services) updateData.services = safeParse(services, hospital.services || []);
+    if (fullAddress) updateData.fullAddress = safeParse(fullAddress, hospital.fullAddress || {});
+    if (location) updateData.location = safeParse(location, hospital.location || {});
+    if (workingDays) updateData.workingDays = safeParse(workingDays, hospital.workingDays || []);
+    if (govtSchemes) updateData.govtSchemes = safeParse(govtSchemes, hospital.govtSchemes || []);
+    if (insurance) updateData.insurance = safeParse(insurance, hospital.insurance || { accepted: false, providers: [] });
+
+    // Lab and Medical Store
+    let lab = safeParse(labDetails, null);
+    if (!lab && hospital.labDetails) {
+      try {
+        lab = JSON.parse(JSON.stringify(hospital.labDetails));
+      } catch (e) { lab = null; }
+    }
+    updateData.labDetails = lab || { enabled: false, labName: '', images: [] };
+
+    let medical = safeParse(medicalStore, null);
+    if (!medical && hospital.medicalStore) {
+      try {
+        medical = JSON.parse(JSON.stringify(hospital.medicalStore));
+      } catch (e) { medical = null; }
+    }
+    updateData.medicalStore = medical || { enabled: false, images: [] };
 
     // 3. File Uploads
     if (req.files) {
