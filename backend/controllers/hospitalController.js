@@ -267,7 +267,7 @@ exports.updateHospitalProfile = async (req, res) => {
     });
 
     // 2. Parsed JSON Fields
-    const safeParse = (data: any, fallback: any) => {
+    const safeParse = (data, fallback) => {
       if (!data) return fallback;
       if (typeof data !== 'string') return data;
       try {
