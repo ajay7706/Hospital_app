@@ -22,11 +22,16 @@ exports.addBranch = async (req, res) => {
       image: req.files && req.files.image ? req.files.image[0].path : req.body.image,
       opdChargeType: req.body.opdChargeType || "hospitalDefault",
       opdCharge: req.body.opdCharge || 0,
-      govtSchemes: req.body.govtSchemes ? JSON.parse(req.body.govtSchemes) : [],
-      insurance: req.body.insurance ? JSON.parse(req.body.insurance) : { accepted: false, providers: [] },
-      labDetails: req.body.labDetails ? JSON.parse(req.body.labDetails) : { enabled: false, labName: '', images: [] },
-      medicalStore: req.body.medicalStore ? JSON.parse(req.body.medicalStore) : { enabled: false, images: [] }
+      govtSchemes: [],
+      insurance: { accepted: false, providers: [] },
+      labDetails: { enabled: false, labName: '', images: [] },
+      medicalStore: { enabled: false, images: [] }
     });
+
+    try { if (req.body.govtSchemes) newBranch.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); }
+    try { if (req.body.insurance) newBranch.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); }
+    try { if (req.body.labDetails) newBranch.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); }
+    try { if (req.body.medicalStore) newBranch.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); }
 
     if (req.files) {
       if (req.files.labImages) newBranch.labDetails.images = req.files.labImages.map(f => f.path);
@@ -86,16 +91,16 @@ exports.updateBranch = async (req, res) => {
     }
 
     if (req.body.govtSchemes) {
-      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) {}
+      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); delete updateData.govtSchemes; }
     }
     if (req.body.insurance) {
-      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) {}
+      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); delete updateData.insurance; }
     }
     if (req.body.labDetails) {
-      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) {}
+      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); delete updateData.labDetails; }
     }
     if (req.body.medicalStore) {
-      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) {}
+      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); delete updateData.medicalStore; }
     }
 
     // Handle files from upload.fields
@@ -110,15 +115,19 @@ exports.updateBranch = async (req, res) => {
       }
       if (req.files.labImages) {
         const newImages = req.files.labImages.map(f => f.path);
-        const currentImages = req.body.existingLabImages ? JSON.parse(req.body.existingLabImages) : (updateData.labDetails?.images || []);
-        if (!updateData.labDetails) updateData.labDetails = {};
-        updateData.labDetails.images = [...currentImages, ...newImages];
+        let currentImages = [];
+        try {
+          currentImages = req.body.existingLabImages ? JSON.parse(req.body.existingLabImages) : (updateData.labDetails?.images || []);
+        } catch (e) { console.error("Error parsing existingLabImages:", e); currentImages = []; }
+        updateData.labDetails = { ...(updateData.labDetails || {}), images: [...currentImages, ...newImages] };
       }
       if (req.files.medicalImages) {
         const newImages = req.files.medicalImages.map(f => f.path);
-        const currentImages = req.body.existingMedicalImages ? JSON.parse(req.body.existingMedicalImages) : (updateData.medicalStore?.images || []);
-        if (!updateData.medicalStore) updateData.medicalStore = {};
-        updateData.medicalStore.images = [...currentImages, ...newImages];
+        let currentImages = [];
+        try {
+          currentImages = req.body.existingMedicalImages ? JSON.parse(req.body.existingMedicalImages) : (updateData.medicalStore?.images || []);
+        } catch (e) { console.error("Error parsing existingMedicalImages:", e); currentImages = []; }
+        updateData.medicalStore = { ...(updateData.medicalStore || {}), images: [...currentImages, ...newImages] };
       }
     }
 

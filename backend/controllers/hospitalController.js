@@ -32,10 +32,10 @@ exports.addHospital = async (req, res) => {
     let parsedLabDetails = { enabled: false, labName: '', images: [] };
     let parsedMedicalStore = { enabled: false, images: [] };
 
-    try { if (govtSchemes) parsedGovtSchemes = typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes; } catch (e) {}
-    try { if (insurance) parsedInsurance = typeof insurance === 'string' ? JSON.parse(insurance) : insurance; } catch (e) {}
-    try { if (labDetails) parsedLabDetails = typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails; } catch (e) {}
-    try { if (medicalStore) parsedMedicalStore = typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore; } catch (e) {}
+    try { if (govtSchemes) parsedGovtSchemes = typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes; } catch (e) { console.error("Error parsing govtSchemes:", e); }
+    try { if (insurance) parsedInsurance = typeof insurance === 'string' ? JSON.parse(insurance) : insurance; } catch (e) { console.error("Error parsing insurance:", e); }
+    try { if (labDetails) parsedLabDetails = typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails; } catch (e) { console.error("Error parsing labDetails:", e); }
+    try { if (medicalStore) parsedMedicalStore = typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore; } catch (e) { console.error("Error parsing medicalStore:", e); }
 
     const hospitalData = { 
       ...otherHospitalData, 
@@ -247,10 +247,18 @@ exports.updateHospitalProfile = async (req, res) => {
     const parsedWorkingDays = workingDays ? (typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays) : hospital.workingDays;
 
     const { govtSchemes, insurance, labDetails, medicalStore, existingLabImages, existingMedicalImages } = req.body;
-    let parsedGovtSchemes = govtSchemes ? (typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes) : hospital.govtSchemes;
-    let parsedInsurance = insurance ? (typeof insurance === 'string' ? JSON.parse(insurance) : insurance) : hospital.insurance;
-    let parsedLabDetails = labDetails ? (typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails) : hospital.labDetails;
-    let parsedMedicalStore = medicalStore ? (typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore) : hospital.medicalStore;
+    
+    let parsedGovtSchemes = hospital.govtSchemes;
+    try { if (govtSchemes) parsedGovtSchemes = typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes; } catch (e) { console.error("Error parsing govtSchemes:", e); }
+    
+    let parsedInsurance = hospital.insurance;
+    try { if (insurance) parsedInsurance = typeof insurance === 'string' ? JSON.parse(insurance) : insurance; } catch (e) { console.error("Error parsing insurance:", e); }
+    
+    let parsedLabDetails = hospital.labDetails ? (hospital.labDetails.toObject ? hospital.labDetails.toObject() : hospital.labDetails) : { enabled: false, images: [] };
+    try { if (labDetails) parsedLabDetails = typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails; } catch (e) { console.error("Error parsing labDetails:", e); }
+    
+    let parsedMedicalStore = hospital.medicalStore ? (hospital.medicalStore.toObject ? hospital.medicalStore.toObject() : hospital.medicalStore) : { enabled: false, images: [] };
+    try { if (medicalStore) parsedMedicalStore = typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore; } catch (e) { console.error("Error parsing medicalStore:", e); }
 
     const updateData = {
       ...otherHospitalData,
@@ -281,13 +289,19 @@ exports.updateHospitalProfile = async (req, res) => {
       }
       if (req.files.labImages) {
         const newImages = req.files.labImages.map(file => file.path);
-        const currentImages = existingLabImages ? (typeof existingLabImages === 'string' ? JSON.parse(existingLabImages) : existingLabImages) : hospital.labDetails.images;
-        updateData.labDetails.images = [...currentImages, ...newImages];
+        let currentImages = [];
+        try {
+          currentImages = existingLabImages ? (typeof existingLabImages === 'string' ? JSON.parse(existingLabImages) : existingLabImages) : (updateData.labDetails?.images || []);
+        } catch (e) { console.error("Error parsing existingLabImages:", e); currentImages = updateData.labDetails?.images || []; }
+        updateData.labDetails = { ...updateData.labDetails, images: [...currentImages, ...newImages] };
       }
       if (req.files.medicalImages) {
         const newImages = req.files.medicalImages.map(file => file.path);
-        const currentImages = existingMedicalImages ? (typeof existingMedicalImages === 'string' ? JSON.parse(existingMedicalImages) : existingMedicalImages) : hospital.medicalStore.images;
-        updateData.medicalStore.images = [...currentImages, ...newImages];
+        let currentImages = [];
+        try {
+          currentImages = existingMedicalImages ? (typeof existingMedicalImages === 'string' ? JSON.parse(existingMedicalImages) : existingMedicalImages) : (updateData.medicalStore?.images || []);
+        } catch (e) { console.error("Error parsing existingMedicalImages:", e); currentImages = updateData.medicalStore?.images || []; }
+        updateData.medicalStore = { ...updateData.medicalStore, images: [...currentImages, ...newImages] };
       }
     } else {
       if (gallery) updateData.gallery = Array.isArray(gallery) ? gallery : JSON.parse(gallery);
