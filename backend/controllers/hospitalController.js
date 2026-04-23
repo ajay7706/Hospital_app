@@ -293,15 +293,21 @@ exports.updateHospitalProfile = async (req, res) => {
 
       if (req.files.labImages) {
         const newImgs = req.files.labImages.map(f => f.path);
-        const existing = tryParse(req.body.existingLabImages) || (updateData.labDetails?.images) || (hospital.labDetails?.images) || [];
-        if (!updateData.labDetails) updateData.labDetails = tryParse(req.body.labDetails) || JSON.parse(JSON.stringify(hospital.labDetails)) || { enabled: false, images: [] };
+        const existing = tryParse(req.body.existingLabImages) || (hospital.labDetails?.images) || [];
+        
+        if (!updateData.labDetails) {
+          updateData.labDetails = tryParse(req.body.labDetails) || (hospital.labDetails ? JSON.parse(JSON.stringify(hospital.labDetails)) : { enabled: false, images: [] });
+        }
         updateData.labDetails.images = [...existing, ...newImgs];
       }
 
       if (req.files.medicalImages) {
         const newImgs = req.files.medicalImages.map(f => f.path);
-        const existing = tryParse(req.body.existingMedicalImages) || (updateData.medicalStore?.images) || (hospital.medicalStore?.images) || [];
-        if (!updateData.medicalStore) updateData.medicalStore = tryParse(req.body.medicalStore) || JSON.parse(JSON.stringify(hospital.medicalStore)) || { enabled: false, images: [] };
+        const existing = tryParse(req.body.existingMedicalImages) || (hospital.medicalStore?.images) || [];
+        
+        if (!updateData.medicalStore) {
+          updateData.medicalStore = tryParse(req.body.medicalStore) || (hospital.medicalStore ? JSON.parse(JSON.stringify(hospital.medicalStore)) : { enabled: false, images: [] });
+        }
         updateData.medicalStore.images = [...existing, ...newImgs];
       }
     }
