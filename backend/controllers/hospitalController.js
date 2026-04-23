@@ -338,8 +338,11 @@ exports.updateHospitalProfile = async (req, res) => {
       updateData.navbarIcon = updateData.hospitalLogo;
     }
 
-    hospital = await Hospital.findByIdAndUpdate(hospital._id, updateData, { new: true });
-    res.json({ msg: "Hospital profile updated", hospital });
+    // Apply updates
+    hospital.set(updateData);
+    const updatedHospital = await hospital.save();
+
+    res.json({ msg: "Hospital profile updated", hospital: updatedHospital });
   } catch (error) {
     console.error("Update Hospital Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });

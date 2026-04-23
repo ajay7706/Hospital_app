@@ -131,14 +131,13 @@ exports.updateBranch = async (req, res) => {
       }
     }
 
-    const branch = await Branch.findOneAndUpdate(
-      { _id: req.params.id, hospitalId: hospitalId },
-      updateData,
-      { returnDocument: 'after' }
-    );
-    
+    const branch = await Branch.findOne({ _id: req.params.id, hospitalId: hospitalId });
     if (!branch) return res.status(404).json({ msg: "Branch not found" });
-    res.json(branch);
+
+    branch.set(updateData);
+    const updatedBranch = await branch.save();
+    
+    res.json(updatedBranch);
   } catch (error) {
     console.error("Update Branch Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
