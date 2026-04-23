@@ -58,7 +58,16 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error("Unhandled Error:", err.stack);
+  console.error("Error Handler:", err.message);
+
+  // Multer Error Handling
+  if (err.message.includes("Invalid file type") || err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({
+      msg: err.message,
+      success: false
+    });
+  }
+
   res.status(err.status || 500).json({
     msg: "Internal Server Error",
     error: err.message
