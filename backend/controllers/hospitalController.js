@@ -234,77 +234,91 @@ exports.updateHospitalProfile = async (req, res) => {
     console.log("Update Hospital Body:", req.body);
     console.log("Update Hospital Files:", req.files);
 
-    const { specialties, services, fullAddress, location, workingDays, gallery, ...otherHospitalData } = req.body;
+    // Log for debugging (USER can check logs if needed)
+    console.log("Updating Hospital Profile. User ID:", req.user.id);
 
     let hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
       return res.status(404).json({ msg: "Hospital not found" });
     }
 
-    const parsedAddress = fullAddress ? (typeof fullAddress === 'string' ? JSON.parse(fullAddress) : fullAddress) : hospital.fullAddress;
-    const parsedLocation = location ? (typeof location === 'string' ? JSON.parse(location) : location) : hospital.location;
-    const parsedServices = services ? (typeof services === 'string' ? JSON.parse(services) : services) : hospital.services;
-    const parsedWorkingDays = workingDays ? (typeof workingDays === 'string' ? JSON.parse(workingDays) : workingDays) : hospital.workingDays;
+    const { 
+      specialties, services, fullAddress, location, workingDays, gallery,
+      govtSchemes, insurance, labDetails, medicalStore,
+      existingLabImages, existingMedicalImages,
+      ...unhandledData 
+    } = req.body;
 
-    const { govtSchemes, insurance, labDetails, medicalStore, existingLabImages, existingMedicalImages } = req.body;
-    
-    let parsedGovtSchemes = hospital.govtSchemes;
-    try { if (govtSchemes) parsedGovtSchemes = typeof govtSchemes === 'string' ? JSON.parse(govtSchemes) : govtSchemes; } catch (e) { console.error("Error parsing govtSchemes:", e); }
-    
-    let parsedInsurance = hospital.insurance;
-    try { if (insurance) parsedInsurance = typeof insurance === 'string' ? JSON.parse(insurance) : insurance; } catch (e) { console.error("Error parsing insurance:", e); }
-    
-    let parsedLabDetails = hospital.labDetails ? (hospital.labDetails.toObject ? hospital.labDetails.toObject() : hospital.labDetails) : { enabled: false, images: [] };
-    try { if (labDetails) parsedLabDetails = typeof labDetails === 'string' ? JSON.parse(labDetails) : labDetails; } catch (e) { console.error("Error parsing labDetails:", e); }
-    
-    let parsedMedicalStore = hospital.medicalStore ? (hospital.medicalStore.toObject ? hospital.medicalStore.toObject() : hospital.medicalStore) : { enabled: false, images: [] };
-    try { if (medicalStore) parsedMedicalStore = typeof medicalStore === 'string' ? JSON.parse(medicalStore) : medicalStore; } catch (e) { console.error("Error parsing medicalStore:", e); }
+    // Build update object explicitly to avoid junk data
+    const updateData = {};
 
-    const updateData = {
-      ...otherHospitalData,
-      specialties: specialties ? (Array.isArray(specialties) ? specialties : specialties.split(',').map(s => s.trim())) : hospital.specialties,
-      services: parsedServices,
-      fullAddress: parsedAddress,
-      location: parsedLocation,
-      workingDays: parsedWorkingDays,
-      startTime: otherHospitalData.startTime || hospital.startTime || '09:00',
-      endTime: otherHospitalData.endTime || hospital.endTime || '18:00',
-      govtSchemes: parsedGovtSchemes,
-      insurance: parsedInsurance,
-      labDetails: parsedLabDetails,
-      medicalStore: parsedMedicalStore,
+    // 1. Basic Fields (Strings/Numbers)
+    const basicFields = [
+      'hospitalName', 'adminName', 'contactNumber', 'officialEmail', 'description', 
+      'dailyCapacity', 'openingTime', 'closingTime', 'startTime', 'endTime', 
+      'slotTime', 'emergency24x7', 'ambulanceAvailable', 'hospitalLicenseNumber',
+      'emergencyContactNumber', 'branchCapacity', 'opdCharge', 'gstNumber',
+      'latitude', 'longitude'
+    ];
+    basicFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    // 2. Parsed JSON Fields
+    const safeParse = (data: any, fallback: any) => {
+      if (!data) return fallback;
+      if (typeof data !== 'string') return data;
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        console.error("JSON Parse Error:", e.message, "Data:", data);
+        return fallback;
+      }
     };
 
+    if (specialties) {
+      updateData.specialties = Array.isArray(specialties) ? specialties : specialties.split(',').map((s) => s.trim());
+    }
+    if (services) updateData.services = safeParse(services, hospital.services);
+    if (fullAddress) updateData.fullAddress = safeParse(fullAddress, hospital.fullAddress);
+    if (location) updateData.location = safeParse(location, hospital.location);
+    if (workingDays) updateData.workingDays = safeParse(workingDays, hospital.workingDays);
+    if (govtSchemes) updateData.govtSchemes = safeParse(govtSchemes, hospital.govtSchemes);
+    if (insurance) updateData.insurance = safeParse(insurance, hospital.insurance);
+    
+    // Lab & Medical (Special handling for nested images)
+    updateData.labDetails = safeParse(labDetails, hospital.labDetails ? hospital.labDetails.toObject() : { enabled: false, images: [] });
+    updateData.medicalStore = safeParse(medicalStore, hospital.medicalStore ? hospital.medicalStore.toObject() : { enabled: false, images: [] });
+
+    // 3. File Uploads
     if (req.files) {
       if (req.files.hospitalLogo) updateData.hospitalLogo = req.files.hospitalLogo[0].path;
       if (req.files.navbarIcon) updateData.navbarIcon = req.files.navbarIcon[0].path;
       if (req.files.licenseCertificate) updateData.licenseCertificate = req.files.licenseCertificate[0].path;
       if (req.files.ownerIdProof) updateData.ownerIdProof = req.files.ownerIdProof[0].path;
       if (req.files.gstDocument) updateData.gstDocument = req.files.gstDocument[0].path;
+      
       if (req.files.gallery) {
-        // Append new images to existing gallery, up to max 8
-        const newImages = req.files.gallery.map(file => file.path);
-        const currentGallery = Array.isArray(gallery) ? gallery : (typeof gallery === 'string' ? JSON.parse(gallery) : hospital.gallery);
+        const newImages = req.files.gallery.map((file) => file.path);
+        const currentGallery = safeParse(gallery, hospital.gallery || []);
         updateData.gallery = [...currentGallery, ...newImages].slice(0, 8);
       }
+      
       if (req.files.labImages) {
-        const newImages = req.files.labImages.map(file => file.path);
-        let currentImages = [];
-        try {
-          currentImages = existingLabImages ? (typeof existingLabImages === 'string' ? JSON.parse(existingLabImages) : existingLabImages) : (updateData.labDetails?.images || []);
-        } catch (e) { console.error("Error parsing existingLabImages:", e); currentImages = updateData.labDetails?.images || []; }
+        const newImages = req.files.labImages.map((file) => file.path);
+        const currentImages = safeParse(existingLabImages, updateData.labDetails?.images || []);
         updateData.labDetails = { ...updateData.labDetails, images: [...currentImages, ...newImages] };
       }
+      
       if (req.files.medicalImages) {
-        const newImages = req.files.medicalImages.map(file => file.path);
-        let currentImages = [];
-        try {
-          currentImages = existingMedicalImages ? (typeof existingMedicalImages === 'string' ? JSON.parse(existingMedicalImages) : existingMedicalImages) : (updateData.medicalStore?.images || []);
-        } catch (e) { console.error("Error parsing existingMedicalImages:", e); currentImages = updateData.medicalStore?.images || []; }
+        const newImages = req.files.medicalImages.map((file) => file.path);
+        const currentImages = safeParse(existingMedicalImages, updateData.medicalStore?.images || []);
         updateData.medicalStore = { ...updateData.medicalStore, images: [...currentImages, ...newImages] };
       }
     } else {
-      if (gallery) updateData.gallery = Array.isArray(gallery) ? gallery : JSON.parse(gallery);
+      if (gallery) updateData.gallery = safeParse(gallery, hospital.gallery);
     }
 
     if (!hospital.navbarIcon && updateData.hospitalLogo && !updateData.navbarIcon) {
