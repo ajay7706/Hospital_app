@@ -231,121 +231,100 @@ exports.getHospitalByUserId = async (req, res) => {
 // Update Hospital Profile
 exports.updateHospitalProfile = async (req, res) => {
   try {
-    console.log("Update Hospital Body:", req.body);
-    console.log("Update Hospital Files:", req.files);
-
-    // Log for debugging (USER can check logs if needed)
     console.log("Updating Hospital Profile. User ID:", req.user.id);
 
-    let hospital = await Hospital.findOne({ userId: req.user.id });
+    const hospital = await Hospital.findOne({ userId: req.user.id });
     if (!hospital) {
       return res.status(404).json({ msg: "Hospital not found" });
     }
 
-    const { 
-      specialties, services, fullAddress, location, workingDays, gallery,
-      govtSchemes, insurance, labDetails, medicalStore,
-      existingLabImages, existingMedicalImages,
-      ...unhandledData 
-    } = req.body;
-
-    // Build update object explicitly to avoid junk data
     const updateData = {};
 
-    // 1. Basic Fields (Strings/Numbers)
-    const basicFields = [
+    // 1. Basic Fields
+    const fields = [
       'hospitalName', 'adminName', 'contactNumber', 'officialEmail', 'description', 
       'dailyCapacity', 'openingTime', 'closingTime', 'startTime', 'endTime', 
       'slotTime', 'emergency24x7', 'ambulanceAvailable', 'hospitalLicenseNumber',
       'emergencyContactNumber', 'branchCapacity', 'opdCharge', 'gstNumber',
       'latitude', 'longitude'
     ];
-    basicFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
-      }
+    fields.forEach(f => {
+      if (req.body[f] !== undefined) updateData[f] = req.body[f];
     });
 
-    // 2. Parsed JSON Fields
-    const safeParse = (data, fallback) => {
-      if (!data) return fallback;
-      if (typeof data !== 'string') return data;
-      try {
-        return JSON.parse(data);
-      } catch (e) {
-        console.error("JSON Parse Error:", e.message, "Data:", data);
-        return fallback;
-      }
+    // 2. JSON Fields
+    const tryParse = (val) => {
+      if (!val) return null;
+      if (typeof val !== 'string') return val;
+      try { return JSON.parse(val); } catch (e) { return null; }
     };
 
-    if (specialties) {
-      updateData.specialties = Array.isArray(specialties) ? specialties : specialties.split(',').map((s) => s.trim());
+    if (req.body.specialties) {
+      updateData.specialties = Array.isArray(req.body.specialties) ? req.body.specialties : req.body.specialties.split(',').map(s => s.trim());
     }
-    if (services) updateData.services = safeParse(services, hospital.services || []);
-    if (fullAddress) updateData.fullAddress = safeParse(fullAddress, hospital.fullAddress || {});
-    if (location) updateData.location = safeParse(location, hospital.location || {});
-    if (workingDays) updateData.workingDays = safeParse(workingDays, hospital.workingDays || []);
-    if (govtSchemes) updateData.govtSchemes = safeParse(govtSchemes, hospital.govtSchemes || []);
-    if (insurance) updateData.insurance = safeParse(insurance, hospital.insurance || { accepted: false, providers: [] });
+    
+    if (req.body.services) updateData.services = tryParse(req.body.services);
+    if (req.body.fullAddress) updateData.fullAddress = tryParse(req.body.fullAddress);
+    if (req.body.location) updateData.location = tryParse(req.body.location);
+    if (req.body.workingDays) updateData.workingDays = tryParse(req.body.workingDays);
+    if (req.body.govtSchemes) updateData.govtSchemes = tryParse(req.body.govtSchemes);
+    if (req.body.insurance) updateData.insurance = tryParse(req.body.insurance);
 
-    // Lab and Medical Store
-    let lab = safeParse(labDetails, null);
-    if (!lab && hospital.labDetails) {
-      try {
-        lab = JSON.parse(JSON.stringify(hospital.labDetails));
-      } catch (e) { lab = null; }
-    }
-    updateData.labDetails = lab || { enabled: false, labName: '', images: [] };
+    // Facility Details (Special handling to merge images)
+    const lab = tryParse(req.body.labDetails);
+    if (lab) updateData.labDetails = lab;
 
-    let medical = safeParse(medicalStore, null);
-    if (!medical && hospital.medicalStore) {
-      try {
-        medical = JSON.parse(JSON.stringify(hospital.medicalStore));
-      } catch (e) { medical = null; }
-    }
-    updateData.medicalStore = medical || { enabled: false, images: [] };
+    const medical = tryParse(req.body.medicalStore);
+    if (medical) updateData.medicalStore = medical;
 
-    // 3. File Uploads
+    // 3. Files
     if (req.files) {
       if (req.files.hospitalLogo) updateData.hospitalLogo = req.files.hospitalLogo[0].path;
       if (req.files.navbarIcon) updateData.navbarIcon = req.files.navbarIcon[0].path;
       if (req.files.licenseCertificate) updateData.licenseCertificate = req.files.licenseCertificate[0].path;
       if (req.files.ownerIdProof) updateData.ownerIdProof = req.files.ownerIdProof[0].path;
       if (req.files.gstDocument) updateData.gstDocument = req.files.gstDocument[0].path;
-      
+
       if (req.files.gallery) {
-        const newImages = req.files.gallery.map((file) => file.path);
-        const currentGallery = safeParse(gallery, hospital.gallery || []);
-        updateData.gallery = [...currentGallery, ...newImages].slice(0, 8);
+        const newImgs = req.files.gallery.map(f => f.path);
+        const existing = tryParse(req.body.gallery) || hospital.gallery || [];
+        updateData.gallery = [...existing, ...newImgs].slice(0, 8);
       }
-      
+
       if (req.files.labImages) {
-        const newImages = req.files.labImages.map((file) => file.path);
-        const currentImages = safeParse(existingLabImages, updateData.labDetails?.images || []);
-        updateData.labDetails = { ...updateData.labDetails, images: [...currentImages, ...newImages] };
+        const newImgs = req.files.labImages.map(f => f.path);
+        const existing = tryParse(req.body.existingLabImages) || (updateData.labDetails?.images) || (hospital.labDetails?.images) || [];
+        if (!updateData.labDetails) updateData.labDetails = tryParse(req.body.labDetails) || JSON.parse(JSON.stringify(hospital.labDetails)) || { enabled: false, images: [] };
+        updateData.labDetails.images = [...existing, ...newImgs];
       }
-      
+
       if (req.files.medicalImages) {
-        const newImages = req.files.medicalImages.map((file) => file.path);
-        const currentImages = safeParse(existingMedicalImages, updateData.medicalStore?.images || []);
-        updateData.medicalStore = { ...updateData.medicalStore, images: [...currentImages, ...newImages] };
+        const newImgs = req.files.medicalImages.map(f => f.path);
+        const existing = tryParse(req.body.existingMedicalImages) || (updateData.medicalStore?.images) || (hospital.medicalStore?.images) || [];
+        if (!updateData.medicalStore) updateData.medicalStore = tryParse(req.body.medicalStore) || JSON.parse(JSON.stringify(hospital.medicalStore)) || { enabled: false, images: [] };
+        updateData.medicalStore.images = [...existing, ...newImgs];
       }
-    } else {
-      if (gallery) updateData.gallery = safeParse(gallery, hospital.gallery);
     }
 
     if (!hospital.navbarIcon && updateData.hospitalLogo && !updateData.navbarIcon) {
       updateData.navbarIcon = updateData.hospitalLogo;
     }
 
-    // Apply updates
-    hospital.set(updateData);
-    const updatedHospital = await hospital.save();
+    // Use findOneAndUpdate with runValidators: false to be safe
+    const updatedHospital = await Hospital.findOneAndUpdate(
+      { userId: req.user.id },
+      { $set: updateData },
+      { new: true, runValidators: false }
+    );
 
     res.json({ msg: "Hospital profile updated", hospital: updatedHospital });
   } catch (error) {
     console.error("Update Hospital Error:", error);
-    res.status(500).json({ msg: "Server error", error: error.message });
+    res.status(500).json({ 
+      msg: "Internal Server Error", 
+      error: error.message,
+      stack: error.stack 
+    });
   }
 };
 
