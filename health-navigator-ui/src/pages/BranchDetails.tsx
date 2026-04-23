@@ -339,8 +339,8 @@ const BranchDetails = () => {
           )}
           {activeTab === 'services' && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-               {(branch.services && branch.services.length > 0) ? (
-                 branch.services.map((service: any, i: number) => {
+               {((branch.services && branch.services.length > 0) || (hospital?.services && hospital.services.length > 0)) ? (
+                 (branch.services?.length > 0 ? branch.services : hospital.services).map((service: any, i: number) => {
                    const Icon = getServiceIcon(service.title);
                    return (
                      <div key={i} className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition hover:shadow-md">

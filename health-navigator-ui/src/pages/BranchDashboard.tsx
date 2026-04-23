@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Calendar, Users, Ambulance, Building2, ArrowRight,
-  Activity, AlertOctagon, CheckCircle2, Clock, XCircle, Phone,
-  CalendarDays, Loader2, RefreshCw, MapPin, Navigation
+  Activity, AlertOctagon, Search, Trash2, MapPin, Loader2,
+  ShieldCheck, Users2, CheckCircle2, CalendarDays, XCircle, Navigation, Plus, Clock, Phone, RefreshCw
 } from 'lucide-react';
 import GoogleMapPicker from '@/components/GoogleMapPicker';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from "@/lib/utils";
 
@@ -178,6 +180,7 @@ export default function BranchDashboard() {
       fd.append('insurance', JSON.stringify(insurance));
       fd.append('labDetails', JSON.stringify(labDetails));
       fd.append('medicalStore', JSON.stringify(medicalStore));
+      fd.append('services', JSON.stringify(branch?.services || []));
       
       fd.append('existingLabImages', JSON.stringify(labDetails.images));
       fd.append('existingMedicalImages', JSON.stringify(medicalStore.images));
@@ -365,8 +368,8 @@ export default function BranchDashboard() {
                         <p className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-xl">No active emergencies.</p>
                       )}
                     </div>
+                    </div>
                   </div>
-                </div>
               </>
             )}
 
@@ -820,9 +823,71 @@ export default function BranchDashboard() {
                         <Input type="file" multiple accept="image/*" onChange={e => setMedicalImages(Array.from(e.target.files || []))} className="mt-2" />
                       </div>
                     )}
+                    </div>
+
+                    {/* Services Management */}
+                    <div className="space-y-4 pt-6 border-t">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-sm text-primary uppercase tracking-wider">Branch Services</h4>
+                        <Button 
+                          type="button"
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setBranch({...branch, services: [...(branch.services || []), { title: '', description: '' }]})}
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Add Service
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {(branch?.services || []).map((svc: any, i: number) => (
+                          <div key={i} className="p-4 border rounded-xl bg-background/50 space-y-3 relative group">
+                            <button 
+                              type="button"
+                              className="absolute top-2 right-2 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                              onClick={() => {
+                                const newSvcs = branch.services.filter((_: any, index: number) => index !== i);
+                                setBranch({...branch, services: newSvcs});
+                              }}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Service Title</label>
+                              <Input 
+                                placeholder="e.g. Cardiology" 
+                                value={svc.title} 
+                                onChange={e => {
+                                  const newSvcs = [...branch.services];
+                                  newSvcs[i].title = e.target.value;
+                                  setBranch({...branch, services: newSvcs});
+                                }}
+                                className="h-9 text-xs"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Description</label>
+                              <textarea 
+                                placeholder="Brief description..." 
+                                value={svc.description} 
+                                onChange={e => {
+                                  const newSvcs = [...branch.services];
+                                  newSvcs[i].description = e.target.value;
+                                  setBranch({...branch, services: newSvcs});
+                                }}
+                                className="w-full border rounded-lg p-2 text-xs min-h-[60px] resize-none bg-background"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                        {(!branch?.services || branch.services.length === 0) && (
+                          <div className="col-span-full py-8 text-center border border-dashed rounded-xl text-muted-foreground text-xs italic">
+                            No services added for this branch yet.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
             )}
             {activeTab === 'settings' && (
               <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">

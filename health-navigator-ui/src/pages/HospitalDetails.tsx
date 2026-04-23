@@ -592,6 +592,28 @@ const HospitalDetails = () => {
                 </div>
               </div>
             </motion.div>
+          {/* Services Tab */}
+          {activeTab === 'services' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 pb-12">
+              {hospital.services && hospital.services.length > 0 ? (
+                hospital.services.map((service: any, i: number) => {
+                  const Icon = getServiceIcon(service.title);
+                  return (
+                    <div key={i} className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm transition hover:shadow-md">
+                      <div className="mx-auto mb-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                        <Icon className="h-7 w-7 text-primary" />
+                      </div>
+                      <h3 className="font-semibold text-foreground">{service.title || 'Service'}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{service.description || 'Comprehensive healthcare service'}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-20 text-muted-foreground col-span-full">
+                  No specific services listed yet.
+                </div>
+              )}
+            </motion.div>
           )}
 
           {/* Facilities Tab */}

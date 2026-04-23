@@ -97,10 +97,22 @@ exports.updateBranch = async (req, res) => {
       try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); delete updateData.insurance; }
     }
     if (req.body.labDetails) {
-      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); delete updateData.labDetails; }
+      try { updateData.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); }
     }
     if (req.body.medicalStore) {
-      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); delete updateData.medicalStore; }
+      try { updateData.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); }
+    }
+    if (req.body.govtSchemes) {
+      try { updateData.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); }
+    }
+    if (req.body.insurance) {
+      try { updateData.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); }
+    }
+    if (req.body.services) {
+      try { updateData.services = JSON.parse(req.body.services); } catch (e) { console.error("Error parsing services:", e); }
+    }
+    if (req.body.specialties) {
+      updateData.specialties = req.body.specialties;
     }
 
     // Handle files from upload.fields

@@ -26,6 +26,10 @@ export interface BackendHospital {
   branchCities?: string[];
   branchSpecialties?: string[];
   opdCharge?: number;
+  labDetails?: any;
+  medicalStore?: any;
+  govtSchemes?: string[];
+  insurance?: any;
 }
 
 function toLocal(h: BackendHospital, index: number) {
@@ -69,6 +73,10 @@ function toLocal(h: BackendHospital, index: number) {
     branchCities: h.branchCities || [],
     branchSpecialties: h.branchSpecialties || [],
     opdCharge: h.opdCharge || 0,
+    labDetails: h.labDetails,
+    medicalStore: h.medicalStore,
+    govtSchemes: h.govtSchemes,
+    insurance: h.insurance,
   };
 }
 
