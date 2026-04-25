@@ -781,7 +781,7 @@ export default function HospitalDashboard() {
                             {branch.specialties && (
                               <p className="text-[10px] text-primary font-medium mt-1 truncate">{branch.specialties}</p>
                             )}
-                            <div className="flex gap-2 mt-2">
+                            <div className="flex flex-wrap gap-2 mt-2">
                               {branch.ambulanceAvailable && (
                                 <div className="h-6 w-6 rounded bg-red-100 flex items-center justify-center text-red-600" title="Ambulance Available">
                                   <Ambulance className="h-4 w-4" />
@@ -790,6 +790,16 @@ export default function HospitalDashboard() {
                               {branch.emergency24x7 && (
                                 <div className="h-6 w-6 rounded bg-amber-100 flex items-center justify-center text-amber-600" title="24/7 Emergency">
                                   <Activity className="h-4 w-4" />
+                                </div>
+                              )}
+                              {branch.labDetails?.enabled && (
+                                <div className="h-6 w-6 rounded bg-purple-100 flex items-center justify-center text-purple-600" title="Lab Facility Available">
+                                  <Activity className="h-4 w-4 text-purple-600" />
+                                </div>
+                              )}
+                              {branch.medicalStore?.enabled && (
+                                <div className="h-6 w-6 rounded bg-blue-100 flex items-center justify-center text-blue-600" title="Medical Store Available">
+                                  <Activity className="h-4 w-4 text-blue-600" />
                                 </div>
                               )}
                             </div>

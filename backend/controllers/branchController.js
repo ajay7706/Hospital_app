@@ -16,31 +16,49 @@ exports.addBranch = async (req, res) => {
     if (branchCount >= 4) {
       return res.status(400).json({ msg: "Maximum 4 branches allowed" });
     }
-    const newBranch = new Branch({
+
+    // Safe parsing helper
+    const tryParse = (val, fallback) => {
+      if (!val) return fallback;
+      if (typeof val !== 'string') return val;
+      try { 
+        const parsed = JSON.parse(val); 
+        return parsed === null ? fallback : parsed;
+      } catch (e) { 
+        console.warn(`Failed to parse field: ${val}`, e.message);
+        return fallback; 
+      }
+    };
+
+    const branchData = {
       ...req.body,
       hospitalId: hospital._id,
       image: req.files && req.files.image ? req.files.image[0].path : req.body.image,
       opdChargeType: req.body.opdChargeType || "hospitalDefault",
       opdCharge: req.body.opdCharge || 0,
-      govtSchemes: [],
-      insurance: { accepted: false, providers: [] },
-      labDetails: { enabled: false, labName: '', images: [] },
-      medicalStore: { enabled: false, images: [] }
-    });
-
-    try { if (req.body.govtSchemes) newBranch.govtSchemes = JSON.parse(req.body.govtSchemes); } catch (e) { console.error("Error parsing govtSchemes:", e); }
-    try { if (req.body.insurance) newBranch.insurance = JSON.parse(req.body.insurance); } catch (e) { console.error("Error parsing insurance:", e); }
-    try { if (req.body.labDetails) newBranch.labDetails = JSON.parse(req.body.labDetails); } catch (e) { console.error("Error parsing labDetails:", e); }
-    try { if (req.body.medicalStore) newBranch.medicalStore = JSON.parse(req.body.medicalStore); } catch (e) { console.error("Error parsing medicalStore:", e); }
+      govtSchemes: tryParse(req.body.govtSchemes, []),
+      insurance: tryParse(req.body.insurance, { accepted: false, providers: [] }),
+      labDetails: tryParse(req.body.labDetails, { enabled: false, labName: '', images: [] }),
+      medicalStore: tryParse(req.body.medicalStore, { enabled: false, images: [] }),
+      workingDays: tryParse(req.body.workingDays, ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]),
+      services: tryParse(req.body.services, [])
+    };
 
     if (req.files) {
-      if (req.files.labImages) newBranch.labDetails.images = req.files.labImages.map(f => f.path);
-      if (req.files.medicalImages) newBranch.medicalStore.images = req.files.medicalImages.map(f => f.path);
-      await newBranch.save();
+      if (req.files.labImages) {
+        const paths = req.files.labImages.map(f => f.path);
+        branchData.labDetails.images = [...(branchData.labDetails.images || []), ...paths];
+      }
+      if (req.files.medicalImages) {
+        const paths = req.files.medicalImages.map(f => f.path);
+        branchData.medicalStore.images = [...(branchData.medicalStore.images || []), ...paths];
+      }
     }
 
+    const newBranch = await Branch.create(branchData);
     res.status(201).json(newBranch);
   } catch (error) {
+    console.error("Add Branch Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
@@ -48,7 +66,8 @@ exports.addBranch = async (req, res) => {
 exports.updateBranch = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(`Update request for branch ${id} by user ${req.user.id} (${req.user.role})`);
+    console.log(`\n--- Update Branch Request [${id}] ---`);
+    console.log(`User: ${req.user.id}, Role: ${req.user.role}`);
 
     let hospitalId;
     if (req.user.role === 'hospital') {
@@ -58,7 +77,7 @@ exports.updateBranch = async (req, res) => {
     } else if (req.user.role === 'branch') {
       hospitalId = req.user.hospitalId;
       if (!req.user.branchId || id !== req.user.branchId.toString()) {
-        console.error("Authorization failed: Branch ID mismatch or missing.");
+        console.error("Authorization failed: Branch ID mismatch.");
         return res.status(403).json({ msg: "Not authorized to update this branch" });
       }
     } else {
@@ -68,19 +87,41 @@ exports.updateBranch = async (req, res) => {
     const branch = await Branch.findOne({ _id: id, hospitalId });
     if (!branch) return res.status(404).json({ msg: "Branch not found or does not belong to your hospital" });
 
-    const updateData = { ...req.body };
+    const updateData = {};
 
-    // Helper to safely parse JSON or return original/default
+    // 1. Basic Fields
+    const allowedFields = [
+      'branchName', 'city', 'address', 'state', 'pincode', 'latitude', 'longitude',
+      'phone', 'ambulanceAvailable', 'emergency24x7', 'branchCapacity', 
+      'opdChargeType', 'opdCharge', 'about', 'openingTime', 'closingTime', 
+      'startTime', 'endTime', 'emergencyContactNumber', 'slotTime'
+    ];
+
+    allowedFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        if (f === 'ambulanceAvailable' || f === 'emergency24x7') {
+          updateData[f] = req.body[f] === 'true' || req.body[f] === 'on' || req.body[f] === true;
+        } else if (f === 'latitude' || f === 'longitude' || f === 'branchCapacity' || f === 'opdCharge') {
+          updateData[f] = Number(req.body[f]);
+        } else {
+          updateData[f] = req.body[f];
+        }
+      }
+    });
+
+    // 2. Complex Fields
     const tryParse = (val, fallback) => {
       if (!val) return fallback;
       if (typeof val !== 'string') return val;
-      try { return JSON.parse(val); } catch (e) { 
-        console.error("JSON Parse Error:", e.message, "Value:", val);
+      try { 
+        const parsed = JSON.parse(val); 
+        return parsed === null ? fallback : parsed;
+      } catch (e) { 
+        console.warn(`Failed to parse field during update:`, e.message);
         return fallback; 
       }
     };
 
-    // Parse complex fields
     if (req.body.govtSchemes) updateData.govtSchemes = tryParse(req.body.govtSchemes, []);
     if (req.body.insurance) updateData.insurance = tryParse(req.body.insurance, { accepted: false, providers: [] });
     if (req.body.labDetails) updateData.labDetails = tryParse(req.body.labDetails, { enabled: false, labName: '', images: [] });
@@ -88,45 +129,55 @@ exports.updateBranch = async (req, res) => {
     if (req.body.services) updateData.services = tryParse(req.body.services, []);
     if (req.body.workingDays) updateData.workingDays = tryParse(req.body.workingDays, []);
 
-    // Handle Booleans from FormData
-    const toBool = (val) => val === 'true' || val === 'on' || val === true;
-    if (req.body.emergency24x7 !== undefined) updateData.emergency24x7 = toBool(req.body.emergency24x7);
-    if (req.body.ambulanceAvailable !== undefined) updateData.ambulanceAvailable = toBool(req.body.ambulanceAvailable);
-
-    // Handle Image Gallery
+    // 3. Image & Gallery Handling
     if (req.body.existingGallery) {
       updateData.gallery = tryParse(req.body.existingGallery, branch.gallery || []);
     }
 
-    // Handle File Uploads
     if (req.files) {
-      if (req.files.image) {
-        updateData.image = req.files.image[0].path;
-      }
+      if (req.files.image) updateData.image = req.files.image[0].path;
       
       if (req.files.gallery) {
         const newImgs = req.files.gallery.map(f => f.path);
-        updateData.gallery = [...(updateData.gallery || branch.gallery || []), ...newImgs];
+        const existing = updateData.gallery || branch.gallery || [];
+        updateData.gallery = [...existing, ...newImgs].slice(0, 12);
       }
 
-      if (req.files.labImages) {
-        const newImgs = req.files.labImages.map(f => f.path);
-        const existing = tryParse(req.body.existingLabImages, updateData.labDetails?.images || branch.labDetails?.images || []);
-        if (!updateData.labDetails) updateData.labDetails = branch.labDetails ? JSON.parse(JSON.stringify(branch.labDetails)) : { enabled: false, images: [] };
+      // Merge Lab Images
+      if (req.files.labImages || req.body.existingLabImages) {
+        const newImgs = req.files.labImages ? req.files.labImages.map(f => f.path) : [];
+        const existing = tryParse(req.body.existingLabImages, []);
+        
+        // Ensure we don't lose the 'enabled' and other fields if we only update images
+        if (!updateData.labDetails) {
+          updateData.labDetails = branch.labDetails ? JSON.parse(JSON.stringify(branch.labDetails)) : { enabled: false, images: [] };
+        }
         updateData.labDetails.images = [...existing, ...newImgs];
       }
 
-      if (req.files.medicalImages) {
-        const newImgs = req.files.medicalImages.map(f => f.path);
-        const existing = tryParse(req.body.existingMedicalImages, updateData.medicalStore?.images || branch.medicalStore?.images || []);
-        if (!updateData.medicalStore) updateData.medicalStore = branch.medicalStore ? JSON.parse(JSON.stringify(branch.medicalStore)) : { enabled: false, images: [] };
+      // Merge Medical Images
+      if (req.files.medicalImages || req.body.existingMedicalImages) {
+        const newImgs = req.files.medicalImages ? req.files.medicalImages.map(f => f.path) : [];
+        const existing = tryParse(req.body.existingMedicalImages, []);
+        
+        if (!updateData.medicalStore) {
+          updateData.medicalStore = branch.medicalStore ? JSON.parse(JSON.stringify(branch.medicalStore)) : { enabled: false, images: [] };
+        }
         updateData.medicalStore.images = [...existing, ...newImgs];
       }
     }
 
-    // Update and Save
-    branch.set(updateData);
-    const updatedBranch = await branch.save();
+    console.log("Final updateData keys:", Object.keys(updateData));
+    if (updateData.labDetails) console.log("Lab Enabled:", updateData.labDetails.enabled);
+    if (updateData.medicalStore) console.log("Medical Enabled:", updateData.medicalStore.enabled);
+
+    const updatedBranch = await Branch.findOneAndUpdate(
+      { _id: id, hospitalId },
+      { $set: updateData },
+      { new: true, runValidators: false }
+    );
+    
+    if (!updatedBranch) throw new Error("Update failed: Branch not found after filter.");
     
     console.log(`Branch ${id} updated successfully`);
     res.json(updatedBranch);

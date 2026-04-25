@@ -623,7 +623,7 @@ const HospitalDetails = () => {
               {/* Govt Schemes & Insurance */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Govt Schemes */}
-                {hospital.govtSchemes && hospital.govtSchemes.length > 0 && (
+                {((hospital.govtSchemes && hospital.govtSchemes.length > 0) || branches.some(b => b.govtSchemes?.length > 0)) && (
                   <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                       <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center text-green-600">
@@ -632,18 +632,33 @@ const HospitalDetails = () => {
                       Government Schemes
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {hospital.govtSchemes.map((scheme: string, i: number) => (
-                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                      {/* Hospital Schemes */}
+                      {hospital.govtSchemes?.map((scheme: string, i: number) => (
+                        <div key={`h-scheme-${i}`} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
                           <div className="h-2 w-2 rounded-full bg-green-500" />
                           <span className="text-sm font-semibold">{scheme}</span>
                         </div>
                       ))}
+                      {/* Branch Schemes (Distinct) */}
+                      {Array.from(new Set(branches.flatMap(b => b.govtSchemes || [])))
+                        .filter(s => !hospital.govtSchemes?.includes(s))
+                        .map((scheme, i) => (
+                          <div key={`b-scheme-${i}`} className="flex items-center gap-3 p-4 rounded-2xl bg-green-50/50 border border-green-100">
+                            <div className="h-2 w-2 rounded-full bg-green-500" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold">{scheme}</span>
+                              <span className="text-[10px] text-green-600 font-bold uppercase">In Branches</span>
+                            </div>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}
+ 
+
 
                 {/* Insurance */}
-                {hospital.insurance?.accepted && (
+                {(hospital.insurance?.accepted || branches.some(b => b.insurance?.accepted)) && (
                   <div className="rounded-3xl border border-border bg-card p-8 shadow-sm">
                     <h2 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-6">
                       <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
@@ -652,15 +667,27 @@ const HospitalDetails = () => {
                       Insurance Partners
                     </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {hospital.insurance.providers?.map((provider: string, i: number) => (
-                        <div key={i} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
+                      {hospital.insurance?.providers?.map((provider: string, i: number) => (
+                        <div key={`h-ins-${i}`} className="flex items-center gap-3 p-4 rounded-2xl bg-muted/30 border border-border/50">
                           <div className="h-2 w-2 rounded-full bg-blue-500" />
                           <span className="text-sm font-semibold">{provider}</span>
                         </div>
                       ))}
-                      {(!hospital.insurance.providers || hospital.insurance.providers.length === 0) && (
+                      {/* Branch Insurance (Distinct) */}
+                      {Array.from(new Set(branches.flatMap(b => b.insurance?.providers || [])))
+                        .filter(p => !hospital.insurance?.providers?.includes(p))
+                        .map((provider, i) => (
+                          <div key={`b-ins-${i}`} className="flex items-center gap-3 p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+                            <div className="h-2 w-2 rounded-full bg-blue-500" />
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold">{provider}</span>
+                              <span className="text-[10px] text-blue-600 font-bold uppercase">In Branches</span>
+                            </div>
+                          </div>
+                        ))}
+                      {(!hospital.insurance?.providers || hospital.insurance.providers.length === 0) && !branches.some(b => b.insurance?.providers?.length > 0) && (
                         <div className="col-span-full p-4 rounded-2xl bg-muted/30 border border-dashed border-border/50 text-center text-sm text-muted-foreground italic">
-                          Multiple Insurance Providers Accepted
+                          Insurance Accepted
                         </div>
                       )}
                     </div>
@@ -669,17 +696,33 @@ const HospitalDetails = () => {
               </div>
 
               {/* Lab & Diagnostics Section */}
-              {hospital.labDetails?.enabled && (
+              {(hospital.labDetails?.enabled || branches.some(b => b.labDetails?.enabled)) && (
                 <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
                   <div className="grid grid-cols-1 lg:grid-cols-2">
                     <div className="p-8 lg:p-12 space-y-6">
                       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest">
-                        Advanced Diagnostics
+                        {hospital.labDetails?.enabled ? 'In-House Diagnostics' : 'Branch Laboratory Services'}
                       </div>
-                      <h2 className="text-3xl font-black tracking-tight">{hospital.labDetails.labName || 'In-house Lab Center'}</h2>
+                      <h2 className="text-3xl font-black tracking-tight">
+                        {hospital.labDetails?.enabled ? (hospital.labDetails.labName || 'Diagnostic Center') : 'Laboratory & Diagnostics'}
+                      </h2>
                       <p className="text-muted-foreground leading-relaxed">
-                        We offer a comprehensive range of laboratory tests and diagnostic services with state-of-the-art equipment and highly trained staff. Get accurate results delivered directly to your profile.
+                        We offer a comprehensive range of laboratory tests and diagnostic services. {hospital.labDetails?.enabled ? 'Our main facility' : 'Our branches'} are equipped with state-of-the-art equipment and highly trained staff.
                       </p>
+                      
+                      {!hospital.labDetails?.enabled && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold text-primary uppercase tracking-widest">Available at Branches:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {branches.filter(b => b.labDetails?.enabled).map(b => (
+                              <Badge key={b._id} variant="secondary" className="bg-primary/5 text-primary border-primary/10">
+                                {b.branchName}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <CheckCircle2 className="h-4 w-4 text-green-500" /> Certified Laboratory
@@ -690,25 +733,19 @@ const HospitalDetails = () => {
                         <div className="flex items-center gap-2 text-sm font-medium">
                           <CheckCircle2 className="h-4 w-4 text-green-500" /> Govt. Approved
                         </div>
-                        {hospital.labDetails.sample_pickup && (
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <CheckCircle2 className="h-4 w-4 text-green-500" /> Home Sample Pickup
-                          </div>
-                        )}
                       </div>
                     </div>
                     <div className="bg-muted relative h-[300px] lg:h-auto">
-                      {hospital.labDetails.images?.length > 0 ? (
+                      {(hospital.labDetails?.images?.length > 0 || branches.find(b => b.labDetails?.images?.length > 0)) ? (
                         <Swiper
                           modules={[Autoplay, Pagination]}
                           pagination={{ clickable: true }}
                           autoplay={{ delay: 3000 }}
-                          loop={hospital.labDetails.images.length > 1}
                           className="h-full w-full"
                         >
-                          {hospital.labDetails.images.map((img: string, i: number) => (
+                          {(hospital.labDetails?.images || []).concat(branches.flatMap(b => b.labDetails?.images || [])).slice(0, 5).map((img: string, i: number) => (
                             <SwiperSlide key={i}>
-                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE}/${img}`} alt="Lab" className="h-full w-full object-cover" />
+                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/${img}`} alt="Lab" className="h-full w-full object-cover" />
                             </SwiperSlide>
                           ))}
                         </Swiper>
@@ -723,21 +760,20 @@ const HospitalDetails = () => {
               )}
 
               {/* Medical Store Section */}
-              {hospital.medicalStore?.enabled && (
+              {(hospital.medicalStore?.enabled || branches.some(b => b.medicalStore?.enabled)) && (
                 <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-sm">
                   <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex-row-reverse">
                     <div className="bg-muted relative h-[300px] lg:h-auto lg:order-1">
-                      {hospital.medicalStore.images?.length > 0 ? (
+                      {(hospital.medicalStore?.images?.length > 0 || branches.find(b => b.medicalStore?.images?.length > 0)) ? (
                         <Swiper
                           modules={[Autoplay, Pagination]}
                           pagination={{ clickable: true }}
                           autoplay={{ delay: 3500 }}
-                          loop={hospital.medicalStore.images.length > 1}
                           className="h-full w-full"
                         >
-                          {hospital.medicalStore.images.map((img: string, i: number) => (
+                          {(hospital.medicalStore?.images || []).concat(branches.flatMap(b => b.medicalStore?.images || [])).slice(0, 5).map((img: string, i: number) => (
                             <SwiperSlide key={i}>
-                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE}/${img}`} alt="Pharmacy" className="h-full w-full object-cover" />
+                              <img src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/${img}`} alt="Pharmacy" className="h-full w-full object-cover" />
                             </SwiperSlide>
                           ))}
                         </Swiper>
@@ -749,20 +785,34 @@ const HospitalDetails = () => {
                     </div>
                     <div className="p-8 lg:p-12 space-y-6 lg:order-2">
                       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cta/10 text-cta text-xs font-bold uppercase tracking-widest">
-                        Pharmacy Services
+                         {hospital.medicalStore?.enabled ? 'In-House Pharmacy' : 'Branch Pharmacy Services'}
                       </div>
-                      <h2 className="text-3xl font-black tracking-tight">In-house Medical Store</h2>
+                      <h2 className="text-3xl font-black tracking-tight">Medical Store & Pharmacy</h2>
                       <p className="text-muted-foreground leading-relaxed">
-                        Our full-service pharmacy is conveniently located within the hospital premises, providing 24/7 access to essential medications, healthcare products, and expert pharmacist guidance.
+                        Access essential medications and healthcare products. {hospital.medicalStore?.enabled ? 'Our main store' : 'Our branch pharmacies'} provide expert guidance and round-the-clock service.
                       </p>
+
+                      {!hospital.medicalStore?.enabled && (
+                        <div className="space-y-3">
+                          <p className="text-xs font-bold text-cta uppercase tracking-widest">Available at Branches:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {branches.filter(b => b.medicalStore?.enabled).map(b => (
+                              <Badge key={b._id} variant="secondary" className="bg-cta/5 text-cta border-cta/10">
+                                {b.branchName}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {hospital.medicalStore.open_24_7 && (
+                        {(hospital.medicalStore?.open_24_7 || branches.some(b => b.medicalStore?.open_24_7)) && (
                           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
                             <Clock className="h-5 w-5 text-cta" />
                             <span className="text-sm font-semibold">24/7 Service</span>
                           </div>
                         )}
-                        {hospital.medicalStore.home_delivery && (
+                        {(hospital.medicalStore?.home_delivery || branches.some(b => b.medicalStore?.home_delivery)) && (
                           <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50">
                             <Ambulance className="h-5 w-5 text-cta" />
                             <span className="text-sm font-semibold">Home Delivery</span>
