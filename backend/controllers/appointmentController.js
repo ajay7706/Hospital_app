@@ -41,6 +41,12 @@ exports.bookAppointment = async (req, res) => {
       maxQueue = 300; // Force 300 bookings limit per requirement
     }
 
+    const bookingCount = await Appointment.countDocuments({
+      hospitalId,
+      branchId: branchId || null,
+      date
+    });
+
     const slotOccupancy = await Appointment.countDocuments({
       hospitalId,
       branchId: branchId || null,
