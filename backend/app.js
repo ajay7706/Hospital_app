@@ -25,7 +25,8 @@ app.use(cors({
     // Check if origin is in allowed list OR is a vercel preview/subdomain
     const isAllowed = allowedOrigins.indexOf(origin) !== -1 || 
                      origin.endsWith(".vercel.app") || 
-                     origin.includes("localhost");
+                     origin.includes("localhost") ||
+                     origin.includes("clinoza.in");
 
     if (isAllowed) {
       return callback(null, true);
