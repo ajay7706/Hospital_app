@@ -108,10 +108,10 @@ exports.bookAppointment = async (req, res) => {
         peopleAhead
       };
       
-      const msg = `Hello ${patientName}, your appointment at ${hospitalName} is booked. Your Token: ${appointment.tokenNumber}. Status: WAITING.`;
+      const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
+      const msg = `Hello ${patientName}, your appointment at ${hospitalName} is booked. Token: #${appointment.tokenNumber}. Status: WAITING. Track live: ${trackingLink}`;
       
-      await sendAppointmentEmail(patientEmail, notificationDetails, false);
-      if (phone) await sendWhatsAppNotification(phone, msg);
+      await sendAppointmentEmail(patientEmail, notificationDetails, true, true); // Send PDF to Email & WA
     } catch (err) { console.error("Notification Error:", err); }
 
     res.status(201).json({ msg: "Appointment booked successfully", appointment });
@@ -244,17 +244,26 @@ exports.updateAppointmentStatus = async (req, res) => {
       let updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Date: ${appointment.date}, Token: ${appointment.tokenNumber}.`;
 
       if (appointment.status === "Rescheduled") {
-        notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date.`;
+        const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
+        notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date. Track here: ${trackingLink}`;
         updateMsg = notificationDetails.msg;
       } else if (appointment.status === "Completed") {
-        const ratingLink = `${process.env.FRONTEND_URL || 'http://localhost:8080'}/rate?appointmentId=${appointment._id}`;
+        const ratingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/rate?appointmentId=${appointment._id}`;
         notificationDetails.msg = `Your consultation is completed. Please rate your experience: ${ratingLink}`;
         updateMsg = notificationDetails.msg;
+      } else {
+        const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
+        updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Token: #${appointment.tokenNumber}. Track live: ${trackingLink}`;
       }
 
       try {
-        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, appointment.status !== "Completed"); // PDF only for not completed
-        if (appointment.phone) await sendWhatsAppNotification(appointment.phone, updateMsg);
+        const isCompleted = appointment.status === "Completed";
+        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, !isCompleted, !isCompleted); // PDF only if not completed
+        
+        // For completed, send the rating link as text if PDF is skipped
+        if (isCompleted && appointment.phone) {
+          await sendWhatsAppNotification(appointment.phone, updateMsg);
+        }
       } catch (err) {}
     }
 
@@ -352,9 +361,17 @@ exports.getNowServing = async (req, res) => {
 exports.trackAppointment = async (req, res) => {
   try {
     const { token, phone, tokenNumber } = req.query;
+    const { id } = req.params;
     let appointment;
     
-    if (tokenNumber && phone) {
+    if (id || token) {
+      const searchId = id || token;
+      if (mongoose.Types.ObjectId.isValid(searchId)) {
+        appointment = await Appointment.findById(searchId).populate("hospitalId branchId");
+      }
+    } 
+    
+    if (!appointment && tokenNumber && phone) {
       // Precise search by Token Number + Phone
       const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
       appointment = await Appointment.findOne({ 

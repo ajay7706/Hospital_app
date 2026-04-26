@@ -13,8 +13,8 @@ exports.addBranch = async (req, res) => {
     }
 
     const branchCount = await Branch.countDocuments({ hospitalId: hospital._id });
-    if (branchCount >= 4) {
-      return res.status(400).json({ msg: "Maximum 4 branches allowed" });
+    if (branchCount >= 10) {
+      return res.status(400).json({ msg: "Maximum 10 branches allowed" });
     }
 
     // Safe parsing helper

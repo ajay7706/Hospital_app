@@ -72,6 +72,7 @@ const Index = () => {
                         <img 
                           src={getHospitalImage(h)} 
                           alt={h.name || h.hospitalName} 
+                          loading="lazy"
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                         <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg flex items-center gap-1 text-[10px] sm:text-xs font-bold shadow-sm">

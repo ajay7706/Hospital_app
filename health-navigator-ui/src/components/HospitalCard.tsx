@@ -18,6 +18,7 @@ export const HospitalCard = ({ hospital }: HospitalCardProps) => {
         <img 
           src={hospital.image || '/assets/hospital-1.jpg'} 
           alt={hospital.name} 
+          loading="lazy"
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute top-2.5 right-2.5 bg-white/90 dark:bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded-lg flex items-center gap-1 text-[10px] font-bold shadow-sm z-10">

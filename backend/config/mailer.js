@@ -2,6 +2,7 @@ const sgMail = require("@sendgrid/mail");
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 const QRCode = require('qrcode');
+const { cloudinary } = require("./cloudinary");
 
 // Set SendGrid API Key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -138,6 +139,8 @@ const twilioClient = twilio(
 const sendWhatsAppNotification = async (phone, message) => {
   try {
     const textMessage = message || "Notification from Clinoza HealthCare";
+    const mediaUrl = typeof message === 'object' ? message.mediaUrl : null;
+    const body = typeof message === 'object' ? message.body : textMessage;
 
     const formattedPhone = phone.startsWith("whatsapp:") 
       ? phone 
@@ -146,11 +149,17 @@ const sendWhatsAppNotification = async (phone, message) => {
     console.log("Sending WhatsApp to:", formattedPhone);
     console.log("Message:", textMessage);
 
-    await twilioClient.messages.create({
+    const twilioPayload = {
       from: process.env.TWILIO_WHATSAPP_NUMBER,
       to: formattedPhone,
-      body: textMessage,
-    });
+      body: body,
+    };
+
+    if (mediaUrl) {
+      twilioPayload.mediaUrl = [mediaUrl];
+    }
+
+    await twilioClient.messages.create(twilioPayload);
 
     console.log("WhatsApp sent successfully");
   } catch (error) {
@@ -158,13 +167,32 @@ const sendWhatsAppNotification = async (phone, message) => {
   }
 };
 
-const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = true) => {
+const uploadBufferToCloudinary = (buffer, filename) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { 
+        folder: "receipts", 
+        resource_type: "raw", // Use raw for PDF to keep extension
+        public_id: filename.replace(".pdf", "") + "-" + Date.now(),
+        access_mode: "public"
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    uploadStream.end(buffer);
+  });
+};
+
+const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = true, sendWhatsApp = false) => {
   try {
     let attachments = [];
+    let pdfUrl = null;
     
     if (includePDF) {
       // Generate QR Code URL
-      const trackingURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/track-appointment?query=${bookingDetails._id}`;
+      const trackingURL = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${bookingDetails._id}`;
       bookingDetails.trackingURL = trackingURL;
       
       const qrDataURL = await QRCode.toDataURL(trackingURL);
@@ -185,11 +213,23 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = t
         type: "application/pdf",
         disposition: "attachment",
       });
+
+      if (sendWhatsApp && bookingDetails.phone) {
+        try {
+          pdfUrl = await uploadBufferToCloudinary(pdfBuffer, "Appointment_Receipt.pdf");
+          await sendWhatsAppNotification(bookingDetails.phone, {
+            body: `Your appointment receipt for ${bookingDetails.hospitalName}. Track here: ${bookingDetails.trackingURL}`,
+            mediaUrl: pdfUrl
+          });
+        } catch (waError) {
+          console.error("WhatsApp PDF Error:", waError.message);
+        }
+      }
     }
 
     const msg = {
       to: patientEmail,
-      from: process.env.SENDGRID_SENDER_EMAIL,
+      from: "Clinoza <no-reply@clinoza.in>",
       subject: `Appointment Update: ${bookingDetails.status.toUpperCase()} - ${bookingDetails.hospitalName}`,
       text: bookingDetails.msg || `Hello ${bookingDetails.patientName},\n\nYour appointment at ${bookingDetails.hospitalName} status is now: ${bookingDetails.status}.\n\nThank you for using Clinoza HealthCare!`,
       attachments: attachments,
@@ -209,7 +249,7 @@ const sendHospitalApprovalEmail = async (hospitalEmail, hospitalName, status) =>
 
     const msg = {
       to: hospitalEmail,
-      from: process.env.SENDGRID_SENDER_EMAIL,
+      from: "Clinoza <no-reply@clinoza.in>",
       subject: `Hospital Status Update: ${status.toUpperCase()}`,
       text: message,
     };
@@ -225,7 +265,7 @@ const sendHospitalPendingEmail = async (hospitalEmail, hospitalName) => {
   try {
     const msg = {
       to: hospitalEmail,
-      from: process.env.SENDGRID_SENDER_EMAIL,
+      from: "Clinoza <no-reply@clinoza.in>",
       subject: `Hospital Registration: UNDER REVIEW`,
       text: `Hello ${hospitalName},\n\nYour hospital registration is currently UNDER REVIEW.\n\nOur admin team will verify your details and approve it within 24 hours.\n\nYou will receive another email once it is approved.\n\nThank you for joining Clinoza!`,
     };

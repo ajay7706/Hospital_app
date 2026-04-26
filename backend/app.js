@@ -12,8 +12,9 @@ initCronJobs();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8080",
-  "https://hospital-app-rouge.vercel.app",
-  "https://hospital-app-rouge.vercel.app/"
+  "https://clinoza.in",
+  "https://www.clinoza.in",
+  "https://hospital-app-rouge.vercel.app"
 ];
 
 app.use(cors({

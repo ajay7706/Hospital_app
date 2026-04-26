@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Input } from '@/components/ui/input';
@@ -16,11 +17,44 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 export default function TrackAppointment() {
   const { toast } = useToast();
+  const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [tokenNo, setTokenNo] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [appointment, setAppointment] = useState<any>(null);
   const [trackingData, setTrackingData] = useState<any>(null);
+
+  // New precise fetch function
+  const fetchAppointmentById = async (searchId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/appointments/track/${searchId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setAppointment(data.appointment);
+        setTrackingData(data);
+      } else {
+        toast({ 
+          title: 'Appointment Not Found', 
+          description: 'No active appointment matches this link.', 
+          variant: 'destructive' 
+        });
+      }
+    } catch (err) {
+      toast({ title: 'Tracking Error', description: 'Failed to fetch status. Please try again.', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const queryId = searchParams.get('query');
+    const targetId = id || queryId;
+    if (targetId) {
+      fetchAppointmentById(targetId);
+    }
+  }, [id]);
 
   const handleTrack = async () => {
     if (!phone && !tokenNo) {
@@ -70,9 +104,17 @@ export default function TrackAppointment() {
   // Auto-refresh logic (every 30s) if appointment found
   useEffect(() => {
     if (!appointment) return;
-    const interval = setInterval(handleTrack, 30000);
+    const interval = setInterval(() => {
+      const queryId = searchParams.get('query');
+      const targetId = id || queryId;
+      if (targetId) {
+        fetchAppointmentById(targetId);
+      } else {
+        handleTrack();
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, [appointment?.tokenNumber]);
+  }, [appointment?.tokenNumber, id]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -93,7 +135,7 @@ export default function TrackAppointment() {
                    Track Your <span className="text-primary">Status</span>
                  </h1>
                  <p className="text-muted-foreground text-lg mb-10 font-medium">
-                   Apna phone number aur token number dalein status check karne ke liye.
+                   Enter your phone number and token to check your live status.
                  </p>
               </motion.div>
 
