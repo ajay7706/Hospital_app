@@ -138,7 +138,7 @@ const ForgotPassword = () => {
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
             <Calendar className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="text-xl font-bold text-foreground">BookVisit</span>
+          <span className="text-xl font-bold text-foreground">Clinoza</span>
         </Link>
 
         {isDone ? (

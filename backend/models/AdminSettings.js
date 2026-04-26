@@ -2,9 +2,9 @@ const mongoose = require("mongoose");
 
 const AdminSettingsSchema = new mongoose.Schema({
   // 1. GENERAL SETTINGS
-  platformName: { type: String, default: "Apna Clinic" },
+  platformName: { type: String, default: "Clinoza" },
   platformLogo: { type: String },
-  supportEmail: { type: String, default: "support@apnaclinic.com" },
+  supportEmail: { type: String, default: "support@clinoza.com" },
   supportPhone: { type: String, default: "+91 98765 43210" },
   defaultCity: { type: String, default: "Lucknow" },
 

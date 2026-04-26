@@ -36,7 +36,7 @@ export const WhyChooseUs = () => {
           className="mb-12 text-center"
         >
           <h2 className="text-2xl font-bold text-foreground md:text-3xl">
-            Why Choose BookVisit?
+            Why Choose Clinoza?
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
             Experience healthcare booking reimagined with cutting-edge technology

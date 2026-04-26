@@ -131,7 +131,7 @@ const Login = () => {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
               <Plus className="h-7 w-7 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-white">Apna Clinic</span>
+            <span className="text-2xl font-bold text-white">Clinoza</span>
           </Link>
           <h1 className="text-3xl font-bold text-primary-foreground">
             Welcome back to your healthcare companion
@@ -155,7 +155,7 @@ const Login = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <Plus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">Apna Clinic</span>
+            <span className="text-xl font-bold text-foreground">Clinoza</span>
           </Link>
 
           <div className="text-center lg:text-left">

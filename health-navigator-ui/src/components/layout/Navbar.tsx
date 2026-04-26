@@ -88,16 +88,26 @@ export const Navbar = () => {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
-              <Stethoscope className="h-6 w-6" strokeWidth={3} />
+            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-primary/10 p-1">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full text-primary">
+                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M12 6V11M12 11V16M12 11H7M12 11H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <circle cx="12" cy="8" r="1.5" fill="currentColor"/>
+                <path d="M8 18C8 18 9.5 15.5 12 15.5C14.5 15.5 16 18 16 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                <path d="M18 18C18 18 19 19 19 20C19 21 17 21 17 21C17 21 16 20 16 19" fill="currentColor" opacity="0.5"/>
+              </svg>
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black leading-none tracking-tight text-foreground">
-                Apna<span className="text-primary">Clinic</span>
+              <span className="text-2xl font-black leading-none tracking-tight text-foreground">
+                Clinoza
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
-                HealthCare
-              </span>
+              <div className="flex items-center gap-1">
+                <div className="h-[1px] w-4 bg-primary/30" />
+                <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80 whitespace-nowrap">
+                  Care That Connects
+                </span>
+                <div className="h-[1px] w-4 bg-primary/30" />
+              </div>
             </div>
           </Link>
 

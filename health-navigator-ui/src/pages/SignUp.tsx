@@ -137,7 +137,7 @@ const SignUp = () => {
 
       toast({
         title: 'Account created successfully!',
-        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Apna Clinic! Redirecting...',
+        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Clinoza! Redirecting...',
       });
 
       setTimeout(() => {
@@ -163,7 +163,7 @@ const SignUp = () => {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-foreground">
               <Plus className="h-7 w-7 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-primary-foreground">Apna Clinic</span>
+            <span className="text-2xl font-bold text-primary-foreground">Clinoza</span>
           </Link>
           <h1 className="text-3xl font-bold text-primary-foreground">
             Join thousands of users finding better healthcare
@@ -187,7 +187,7 @@ const SignUp = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
               <Plus className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">Apna Clinic</span>
+            <span className="text-xl font-bold text-foreground">Clinoza</span>
           </Link>
 
           <div className="text-center lg:text-left">

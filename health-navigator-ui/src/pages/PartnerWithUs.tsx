@@ -29,7 +29,7 @@ const PartnerWithUs = () => {
               For Healthcare Providers
             </span>
             <h1 className="text-5xl md:text-7xl font-black text-white mb-8 leading-tight tracking-tight">
-              Grow Your Practice with <span className="text-primary">Apna Clinic</span>
+              Grow Your Practice with <span className="text-primary">Clinoza</span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-200 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
               Join India's fastest-growing healthcare network. Manage appointments, reach more patients, and build a digital-first clinic in minutes.

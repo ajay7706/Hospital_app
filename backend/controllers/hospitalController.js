@@ -209,8 +209,8 @@ exports.getHospitalByUserId = async (req, res) => {
     if (req.user.role === 'admin') {
       return res.json({
         _id: "admin-system-id",
-        hospitalName: "Apna Clinic System",
-        name: "Apna Clinic System",
+        hospitalName: "Clinoza System",
+        name: "Clinoza System",
         city: "All Cities",
         userId: req.user.id,
         approvalStatus: "approved",

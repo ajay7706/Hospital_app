@@ -23,7 +23,7 @@ const faqs = [
   {
     question: 'How to contact support?',
     answer:
-      'You can reach us via email at support@apnaclinic.in or call us at +91 9616326950. Our support team is available Monday to Saturday, 9 AM to 6 PM.',
+      'You can reach us via email at support@clinoza.in or call us at +91 9616326950. Our support team is available Monday to Saturday, 9 AM to 6 PM.',
   },
 ];
 
@@ -52,7 +52,7 @@ const Support = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium text-foreground">support@apnaclinic.in</p>
+                <p className="font-medium text-foreground">support@clinoza.in</p>
               </div>
             </div>
             <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5">

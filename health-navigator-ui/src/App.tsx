@@ -25,6 +25,8 @@ import TrackAppointment from "./pages/TrackAppointment";
 import BranchDetails from "./pages/BranchDetails";
 import AboutUs from "./pages/AboutUs";
 import PartnerWithUs from "./pages/PartnerWithUs";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsConditions from "./pages/TermsConditions";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +57,8 @@ const App = () => (
           <Route path="/support" element={<Support />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/partner" element={<PartnerWithUs />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsConditions />} />
           <Route path="/profile" element={<HospitalProfile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

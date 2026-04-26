@@ -25,7 +25,7 @@ const AboutUs = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight"
           >
-            About <span className="text-primary">Apna Clinic</span>
+            About <span className="text-primary">Clinoza</span>
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 30 }}
@@ -51,7 +51,7 @@ const AboutUs = () => {
               We understand the pain of standing in long queues at hospitals, the confusion of finding the right specialist, and the difficulty of booking a simple check-up. 
             </p>
             <p className="text-muted-foreground mb-8 leading-relaxed">
-              At Apna Clinic, we bridge the gap between patients and hospitals using smart technology. Whether it's live tracking your turn or finding a verified clinic nearby, we make sure your health comes first.
+              At Clinoza, we bridge the gap between patients and hospitals using smart technology. Whether it's live tracking your turn or finding a verified clinic nearby, we make sure your health comes first.
             </p>
             
             <div className="grid grid-cols-2 gap-4">
