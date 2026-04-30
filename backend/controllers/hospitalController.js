@@ -114,11 +114,9 @@ exports.getAllHospitals = async (req, res) => {
 
     // Advanced search logic
     if (search) {
-      // Clean search query (remove "near me", "in ", "at ")
       const cleanSearch = search.replace(/near me|in\s+|at\s+/gi, '').trim() || search;
       const searchRegex = new RegExp(cleanSearch, "i");
       
-      // Get all branches that match the search city/name to include their hospitals
       const matchingBranches = await mongoose.model('Branch').find({
         $or: [
           { branchName: searchRegex },
@@ -126,7 +124,7 @@ exports.getAllHospitals = async (req, res) => {
           { address: searchRegex },
           { specialties: searchRegex }
         ]
-      }).select('hospitalId');
+      }).select('hospitalId').lean();
       
       const branchHospitalIds = matchingBranches.map(b => b.hospitalId);
 
@@ -141,10 +139,11 @@ exports.getAllHospitals = async (req, res) => {
 
     if (city) {
       const cityRegex = new RegExp(city, "i");
-      const branchesInCity = await mongoose.model('Branch').find({ city: cityRegex }).select('hospitalId');
+      const branchesInCity = await mongoose.model('Branch').find({ city: cityRegex }).select('hospitalId').lean();
       const hospitalIdsInCity = branchesInCity.map(b => b.hospitalId);
       
       query.$or = [
+        ...(query.$or || []),
         { city: cityRegex },
         { _id: { $in: hospitalIdsInCity } }
       ];
@@ -152,7 +151,7 @@ exports.getAllHospitals = async (req, res) => {
 
     if (specialty) {
       const specRegex = new RegExp(specialty, "i");
-      const branchesWithSpec = await mongoose.model('Branch').find({ specialties: specRegex }).select('hospitalId');
+      const branchesWithSpec = await mongoose.model('Branch').find({ specialties: specRegex }).select('hospitalId').lean();
       const hospitalIdsWithSpec = branchesWithSpec.map(b => b.hospitalId);
 
       query.$or = [
@@ -162,20 +161,44 @@ exports.getAllHospitals = async (req, res) => {
       ];
     }
 
-    const hospitals = await Hospital.find(query).lean();
+    // Optimization: Select only required fields for listing and use lean
+    const hospitals = await Hospital.find(query)
+      .select('hospitalName hospitalLogo image city fullAddress address rating specialties openingTime closingTime emergency24x7 ambulanceAvailable opdCharge')
+      .lean();
     
-    // Enrich with branch data for search filters
-    const enrichedHospitals = await Promise.all(hospitals.map(async (h) => {
-      const branches = await mongoose.model('Branch').find({ hospitalId: h._id }).select('city specialties');
-      const branchCount = branches.length;
-      const branchCities = branches.map(b => b.city);
-      const branchSpecialties = branches.map(b => b.specialties && typeof b.specialties === 'string' ? b.specialties.split(',').map(s => s.trim()) : []).flat();
-      
-      return { ...h, branchCount, branchCities, branchSpecialties };
-    }));
+    if (hospitals.length === 0) return res.json([]);
+
+    const hospitalIds = hospitals.map(h => h._id);
+
+    // Optimization: Get branch data for all hospitals in one query to avoid N+1
+    const branches = await mongoose.model('Branch').find({ hospitalId: { $in: hospitalIds } })
+      .select('hospitalId city specialties')
+      .lean();
+
+    // Map branches to hospitals
+    const branchMap = branches.reduce((acc, b) => {
+      const hId = b.hospitalId.toString();
+      if (!acc[hId]) acc[hId] = { count: 0, cities: [], specialties: [] };
+      acc[hId].count++;
+      acc[hId].cities.push(b.city);
+      const specs = b.specialties && typeof b.specialties === 'string' ? b.specialties.split(',').map(s => s.trim()) : [];
+      acc[hId].specialties.push(...specs);
+      return acc;
+    }, {});
+
+    const enrichedHospitals = hospitals.map(h => {
+      const bData = branchMap[h._id.toString()] || { count: 0, cities: [], specialties: [] };
+      return { 
+        ...h, 
+        branchCount: bData.count, 
+        branchCities: [...new Set(bData.cities)], 
+        branchSpecialties: [...new Set(bData.specialties)] 
+      };
+    });
 
     res.json(enrichedHospitals);
   } catch (error) {
+    console.error("getAllHospitals Error:", error);
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
