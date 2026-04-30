@@ -130,8 +130,8 @@ const Login = () => {
       <div className="hidden flex-1 bg-primary lg:flex lg:flex-col lg:justify-center lg:px-12">
         <div className="mx-auto max-w-md">
           <Link to="/" className="mb-8 flex w-fit items-center gap-2 no-underline hover:no-underline">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm">
-              <Plus className="h-7 w-7 text-primary" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm p-1">
+              <img src="/logo.png" alt="Clinoza Logo" className="h-full w-full object-contain" />
             </div>
             <span className="text-2xl font-bold text-white">Clinoza</span>
           </Link>
@@ -154,8 +154,8 @@ const Login = () => {
         >
           {/* Mobile Logo */}
           <Link to="/" className="mb-8 flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Plus className="h-6 w-6 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-sm p-1">
+              <img src="/logo.png" alt="Clinoza Logo" className="h-full w-full object-contain" />
             </div>
             <span className="text-xl font-bold text-foreground">Clinoza</span>
           </Link>
