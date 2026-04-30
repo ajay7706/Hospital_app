@@ -2,10 +2,15 @@ import { motion } from 'framer-motion';
 import { Shield, Target, Users, Clock, MapPin, CheckCircle2 } from 'lucide-react';
 
 import { Footer } from '@/components/layout/Footer';
+import { SEO } from '@/components/SEO';
 
 const AboutUs = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="About Clinoza" 
+        description="Clinoza is a smart healthcare platform helping users find hospitals and manage services easily and efficiently." 
+      />
       {/* Hero Section */}
       <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
         {/* Background Image with Dark Overlay */}

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+import { SEO } from '@/components/SEO';
 import {
   Form,
   FormControl,
@@ -124,6 +125,7 @@ const Login = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <SEO title="Login - Clinoza" noIndex={true} />
       {/* Left Panel - Branding */}
       <div className="hidden flex-1 bg-primary lg:flex lg:flex-col lg:justify-center lg:px-12">
         <div className="mx-auto max-w-md">

@@ -11,6 +11,7 @@ import { ArrowRight, Star, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import api from '@/lib/api';
+import { SEO } from '@/components/SEO';
 
 const Index = () => {
   const [featuredHospitals, setFeaturedHospitals] = useState<any[]>([]);
@@ -39,6 +40,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Clinoza – Smart Healthcare Platform" 
+        description="Find hospitals and manage healthcare services easily with Clinoza. Fast, secure, and simple platform for better care." 
+      />
       <Navbar />
       <main>
         <HeroSection />

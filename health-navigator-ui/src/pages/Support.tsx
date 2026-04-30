@@ -2,6 +2,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { SEO } from '@/components/SEO';
 import {
   Accordion,
   AccordionContent,
@@ -30,6 +31,10 @@ const faqs = [
 const Support = () => {
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Contact Clinoza" 
+        description="Get in touch with Clinoza for support, queries, or healthcare help. We are here to assist you anytime." 
+      />
       <Navbar />
       <main className="container mx-auto px-4 py-10 md:py-16">
         <motion.div

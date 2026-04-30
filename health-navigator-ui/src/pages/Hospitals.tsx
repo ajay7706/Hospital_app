@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { getHospitals as getApiHospitals } from '@/lib/api'; // Removed unused api import
 import { Badge } from '@/components/ui/badge';
 import { HospitalCard } from '@/components/HospitalCard';
+import { SEO } from '@/components/SEO';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -99,6 +100,10 @@ const Hospitals = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO 
+        title="Find Hospitals Near You – Clinoza" 
+        description="Search top hospitals near you and access healthcare services easily with Clinoza. Quick, easy, and reliable." 
+      />
       <Navbar />
       <main className="container mx-auto px-4 py-10 md:py-16">
         {/* Header */}
