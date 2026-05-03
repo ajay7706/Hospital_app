@@ -315,32 +315,38 @@ exports.trackAppointment = async (req, res) => {
     const { id } = req.params;
     let appointment;
     
-    if (id || token) {
+    // If tracking by Token Number and Phone
+    if (!appointment && tokenNumber && phone) {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10); // Last 10 digits
+      appointment = await Appointment.findOne({ 
+        tokenNumber: parseInt(tokenNumber), 
+        $or: [
+          { phone: cleanPhone },
+          { phone: `+91${cleanPhone}` }
+        ]
+      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+    } 
+    // Fallback: If tracking by phone only (last 10 digits match)
+    else if (!appointment && phone && !id) {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      appointment = await Appointment.findOne({ 
+        $or: [
+          { phone: cleanPhone },
+          { phone: `+91${cleanPhone}` }
+        ]
+      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+    }
+    // Fallback: If tracking by ID or Custom ID
+    else if (id || token) {
       const searchId = id || token;
-      // Search by Custom ID first
       appointment = await Appointment.findOne({ customId: searchId }).populate("hospitalId branchId");
-      
-      // Fallback to MongoDB ID
       if (!appointment && mongoose.Types.ObjectId.isValid(searchId)) {
         appointment = await Appointment.findById(searchId).populate("hospitalId branchId");
       }
     } 
-    
-    if (!appointment && tokenNumber && phone) {
-      const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
-      appointment = await Appointment.findOne({ 
-        tokenNumber: parseInt(tokenNumber), 
-        phone: searchPhone 
-      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
-    } else if (!appointment && phone) {
-      const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
-      appointment = await Appointment.findOne({ phone: searchPhone })
-        .sort({ createdAt: -1 })
-        .populate("hospitalId branchId");
-    }
 
     if (!appointment) {
-      return res.status(404).json({ message: "No appointment found with given details" });
+      return res.status(404).json({ message: "Appointment nahi mila. Please Token Number aur Phone check karein." });
     }
 
     const tracker = await TokenTracker.findOne({

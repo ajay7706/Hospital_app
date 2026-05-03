@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { cn } from "@/lib/utils";
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
@@ -41,15 +42,9 @@ export default function TrackAppointment() {
       } else {
         setAppointment(null);
         setErrorState(true);
-        toast({ 
-          title: 'Appointment Not Found', 
-          description: 'No active appointment matches this link.', 
-          variant: 'destructive' 
-        });
       }
     } catch (err) {
       setErrorState(true);
-      toast({ title: 'Tracking Error', description: 'Failed to fetch status. Please try again.', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -64,22 +59,19 @@ export default function TrackAppointment() {
   }, [id, searchParams]);
 
   const handleTrack = async () => {
-    if (!phone && !tokenNo) {
-      toast({ title: 'Please enter Token or Phone', variant: 'destructive' });
+    if (!tokenNo) {
+      toast({ title: 'Token Number zaroori hai', description: 'Kripya apna token number daalein.', variant: 'destructive' });
+      return;
+    }
+    if (!phone) {
+      toast({ title: 'Phone Number zaroori hai', variant: 'destructive' });
       return;
     }
     
     const searchToken = tokenNo.trim();
     const searchPhone = phone.trim();
     
-    let queryParams = '';
-    if (searchToken && searchPhone) {
-      queryParams = `tokenNumber=${searchToken}&phone=${searchPhone}`;
-    } else if (searchPhone) {
-      queryParams = `phone=${searchPhone}`;
-    } else {
-      queryParams = `token=${searchToken}`;
-    }
+    const queryParams = `tokenNumber=${searchToken}&phone=${searchPhone}`;
 
     setLoading(true);
     setErrorState(false);
@@ -93,8 +85,8 @@ export default function TrackAppointment() {
         setAppointment(null);
         setErrorState(true);
         toast({ 
-          title: 'Not Found', 
-          description: data.message || 'No appointment found. Please check your details.', 
+          title: 'Appointment Nahi Mila', 
+          description: data.message || 'Details check karein aur firse try karein.', 
           variant: 'destructive' 
         });
       }
@@ -118,7 +110,7 @@ export default function TrackAppointment() {
       const targetId = id || queryId;
       if (targetId) {
         fetchAppointmentById(targetId);
-      } else if (phone || tokenNo) {
+      } else if (phone && tokenNo) {
         handleTrack();
       }
     }, 30000);
@@ -144,7 +136,7 @@ export default function TrackAppointment() {
                    Track Your <span className="text-primary">Status</span>
                  </h1>
                  <p className="text-muted-foreground text-lg mb-10 font-medium">
-                   Enter your phone number and token to check your live status.
+                   Token Number aur Phone daal kar status dekhein.
                  </p>
               </motion.div>
 
@@ -153,7 +145,7 @@ export default function TrackAppointment() {
                    <div className="relative">
                       <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <Input 
-                        placeholder="Token Number" 
+                        placeholder="Token Number (Mandatory)" 
                         className="h-14 pl-12 pr-4 rounded-2xl border-border bg-muted/30 text-lg font-bold"
                         value={tokenNo}
                         onChange={(e) => setTokenNo(e.target.value)}
@@ -173,6 +165,9 @@ export default function TrackAppointment() {
                  <Button onClick={handleTrack} className="w-full mt-4 h-14 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20" disabled={loading}>
                     {loading ? <RefreshCcw className="h-6 w-6 animate-spin" /> : 'Track Status Now'}
                  </Button>
+                 <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest font-bold">
+                    * Token Number daalna zaroori hai status dekhne ke liye.
+                 </p>
               </motion.div>
            </div>
         </section>
@@ -203,7 +198,7 @@ export default function TrackAppointment() {
                   </div>
                   <h2 className="text-2xl font-black text-red-900 mb-2">Appointment Not Found</h2>
                   <p className="text-red-700/70 mb-6">
-                    Hume aapka appointment details nahi mila. Please correct ID ya phone number daalein.
+                    Hume aapka appointment nahi mila. Please Token Number aur Phone Number sahi daalein.
                   </p>
                   <Button variant="outline" onClick={() => setErrorState(false)} className="rounded-xl">Try Again</Button>
                 </motion.div>
@@ -220,7 +215,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Instant Status</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Track your queue position and live status in real-time from anywhere.
+                      Aapki live line position aur doctor consultation updates yahan dekhein.
                     </p>
                   </motion.div>
 
@@ -236,7 +231,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Live Token</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      View the current token number being served at the hospital branch.
+                      Hospital me abhi kaunsa token number serve ho raha hai, ye live dekhein.
                     </p>
                   </motion.div>
 
@@ -252,7 +247,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Save Time</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Wait comfortably from your home and avoid long hospital queues.
+                      Ghar baithe status dekhein aur hospital me intezar karne se bachein.
                     </p>
                   </motion.div>
                 </div>
@@ -263,6 +258,28 @@ export default function TrackAppointment() {
                    animate={{ opacity: 1, y: 0 }}
                    className="max-w-4xl mx-auto space-y-8"
                 >
+                   {/* Status Message Header */}
+                   <div className={cn(
+                     "rounded-[2rem] p-6 text-center border font-bold animate-in fade-in slide-in-from-top-4 duration-700",
+                     appointment.status === 'Completed' ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                     appointment.status === 'Confirmed' ? "bg-blue-50 border-blue-200 text-blue-800" :
+                     "bg-amber-50 border-amber-200 text-amber-800"
+                   )}>
+                     {appointment.status === 'Completed' ? (
+                       <div className="flex flex-col items-center gap-2">
+                         <CheckCircle2 className="h-8 w-8 text-emerald-600 mb-2" />
+                         <h3 className="text-2xl font-black italic">Dhanyawad! Welcome to {appointment.hospitalName}</h3>
+                         <p className="text-sm opacity-80">Aapka checkup safalta purvak pura ho gaya hai. Hum aapke swasthya ki kamna karte hain!</p>
+                       </div>
+                     ) : appointment.status === 'Confirmed' ? (
+                       <p className="text-lg">Aapka appointment <span className="font-black underline">Approved / Confer</span> ho chuka hai. Kripya samay par hospital branch pahunchein.</p>
+                     ) : appointment.status === 'In Consultation' ? (
+                       <p className="text-lg">Aapka <span className="font-black underline">Checkup shuru</span> hai doctor ke saath. Kripya clinic ke bahar dhyan dein.</p>
+                     ) : (
+                       <p className="text-lg">Aapka status: <span className="font-black italic underline">{appointment.status}</span>. Kripya updates ke liye wait karein.</p>
+                     )}
+                   </div>
+
                    {/* Main Live Card */}
                    <div className="bg-primary/90 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-primary/30 relative overflow-hidden group">
                       <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-700" />
@@ -287,9 +304,9 @@ export default function TrackAppointment() {
                       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
                          <div className="space-y-1">
                             <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">Current Status</p>
-                            <p className="text-xl font-black flex items-center gap-2">
+                            <p className="text-xl font-black flex items-center gap-2 capitalize">
                                {appointment.status === 'Completed' ? <CheckCircle2 className="h-5 w-5 text-emerald-400" /> : <Clock className="h-5 w-5 text-amber-400" />}
-                               {appointment.status}
+                               {appointment.status === 'Confirmed' ? 'Approved' : appointment.status === 'In Consultation' ? 'In Checkup' : appointment.status}
                             </p>
                          </div>
                          <div className="space-y-1">
@@ -304,7 +321,7 @@ export default function TrackAppointment() {
                          </div>
                          <div className="flex items-end">
                             <Button onClick={handleTrack} className="w-full bg-white text-primary hover:bg-white/90 h-12 rounded-2xl font-bold gap-2">
-                               <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                               <RefreshCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh Status
                             </Button>
                          </div>
                       </div>
