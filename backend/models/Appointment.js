@@ -72,6 +72,10 @@ const appointmentSchema = new mongoose.Schema({
   isRated: {
     type: Boolean,
     default: false
+  },
+  customId: {
+    type: String,
+    unique: true
   }
 }, { timestamps: true });
 

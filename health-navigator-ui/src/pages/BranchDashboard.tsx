@@ -417,7 +417,7 @@ export default function BranchDashboard() {
                           </td>
                           <td className="py-3.5">
                             <Badge variant="outline" className={cn(getStatusColor(apt.status), "mb-1")}>
-                              {apt.status}
+                              {apt.status === "Confirmed" ? "Approved" : apt.status}
                             </Badge>
                             {apt.assignedDoctorName && (
                               <p className="text-[10px] text-primary font-bold">Dr. {apt.assignedDoctorName}</p>
@@ -441,7 +441,7 @@ export default function BranchDashboard() {
                                       ))}
                                     </select>
                                     <Button size="sm"
-                                      disabled={anyLoading(apt._id)}
+                                      disabled={anyLoading(apt._id) || (stats?.confirmed || 0) >= 200}
                                       onClick={() => {
                                         const select = document.getElementById(`doc-select-branch-${apt._id}`) as HTMLSelectElement;
                                         handleAppointmentAction(apt._id, 'Confirmed', undefined, select.value);
@@ -455,7 +455,7 @@ export default function BranchDashboard() {
                                   
                                   {/* Move to Next Day */}
                                   <Button size="sm" variant="default"
-                                    disabled={anyLoading(apt._id) || (stats?.confirmed || 0) < 200}
+                                    disabled={anyLoading(apt._id) || (stats?.confirmed || 0) >= 200}
                                     onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
                                     className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                                     {isLoading(apt._id, 'Rescheduled')
@@ -478,7 +478,7 @@ export default function BranchDashboard() {
                               {/* Support Confirmed status actions if needed (like Move to Next Day) */}
                               {apt.status === "Confirmed" && (
                                 <Button size="sm" variant="default"
-                                  disabled={anyLoading(apt._id) || (stats?.confirmed || 0) < 200}
+                                  disabled={anyLoading(apt._id) || (stats?.confirmed || 0) >= 200}
                                   onClick={() => handleAppointmentAction(apt._id, 'Rescheduled')}
                                   className="h-7 px-2.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground">
                                   {isLoading(apt._id, 'Rescheduled')

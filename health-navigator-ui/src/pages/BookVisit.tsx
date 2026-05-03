@@ -29,12 +29,16 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { User, Phone, Mail, CalendarIcon, Clock, Building2, Loader2, CheckCircle2, FileText, Ambulance } from 'lucide-react';
+import { User, Phone, Mail, CalendarIcon, Clock, Building2, CheckCircle2, FileText, Ambulance, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+
+// OTP FEATURE FLAG
+// Enable when DLT is ready
+const ENABLE_OTP = false;
 
 const bookingSchema = z.object({
   fullName: z.string().min(2, 'Full name is required'),
@@ -50,13 +54,11 @@ const bookingSchema = z.object({
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
 
-const timeSlots = []; // Will be generated dynamically
-
 const BookVisit = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const hospitalName = searchParams.get('hospitalName') || searchParams.get('name') || 'CityCare Hospital';
-  const hospitalLocation = searchParams.get('branchAddress') || searchParams.get('location') || 'Downtown, New York';
+  const hospitalName = searchParams.get('hospitalName') || searchParams.get('name') || 'Hospital';
+  const hospitalLocation = searchParams.get('branchAddress') || searchParams.get('location') || '';
   const hospitalId = searchParams.get('id');
   const branchId = searchParams.get('branchId');
   const branchName = searchParams.get('branchName');
@@ -69,6 +71,7 @@ const BookVisit = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [successData, setSuccessData] = useState<any>(null);
   const [otpStep, setOtpStep] = useState(false);
   const [otp, setOtp] = useState('');
   const [pendingData, setPendingData] = useState<BookingFormValues | null>(null);
@@ -76,7 +79,6 @@ const BookVisit = () => {
   const [todayCount, setTodayCount] = useState(0);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
   const [opdCharge, setOpdCharge] = useState(0);
-  const [branchData, setBranchData] = useState<any>(null);
   const [bookingClosed, setBookingClosed] = useState(false);
   const [occupancy, setOccupancy] = useState<Record<string, number>>({});
   const [generatedSlots, setGeneratedSlots] = useState<string[]>([]);
@@ -136,137 +138,109 @@ const BookVisit = () => {
           const branchRes = await fetch(`${API_BASE}/api/branches/single/${branchId}`);
           if (branchRes.ok) {
             const branch = await branchRes.json();
-            setBranchData(branch);
             if (branch.opdChargeType === 'custom') charge = branch.opdCharge;
             if (branch.startTime) start = branch.startTime;
             if (branch.endTime) end = branch.endTime;
-
-            if (end) {
-              const [h, m] = end.split(':').map(Number);
-              const endDate = new Date();
-              endDate.setHours(h, m, 0, 0);
-              if (new Date() > endDate) setBookingClosed(true);
-            }
           }
         }
         setOpdCharge(charge);
-        const slots = generateSlots(start, end);
-        setGeneratedSlots(slots);
+        setGeneratedSlots(generateSlots(start, end));
         fetchOccupancy(new Date());
       }
-    } catch (err) {
-      console.error('Failed to fetch details', err);
-    } finally {
-      setCheckingAvailability(false);
-    }
+    } catch (err) {} finally { setCheckingAvailability(false); }
   };
 
-  useEffect(() => {
-    fetchDetails();
-  }, [hospitalId, branchId]);
+  useEffect(() => { fetchDetails(); }, [hospitalId, branchId]);
 
   const getAvailableSlots = (selectedDate: Date | undefined): string[] => {
     const slots = generatedSlots.length > 0 ? generatedSlots : generateSlots('09:00', '18:00');
     if (!selectedDate) return slots;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const selectedStr = format(selectedDate, 'yyyy-MM-dd');
-    if (selectedStr !== todayStr) return slots;
+    const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+    if (!isToday) return slots;
     const now = new Date();
     return slots.filter(slot => {
       const match = slot.match(/(\d+):(\d+)\s(AM|PM)/i);
       if (!match) return true;
       let h = parseInt(match[1]);
       const m = parseInt(match[2]);
-      const period = match[3].toUpperCase();
-      if (period === 'PM' && h !== 12) h += 12;
-      if (period === 'AM' && h === 12) h = 0;
+      if (match[3].toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (match[3].toUpperCase() === 'AM' && h === 12) h = 0;
       const slotTime = new Date();
       slotTime.setHours(h, m, 0, 0);
       return slotTime > now;
     });
   };
 
-  const MAX_PER_SLOT = 30;
-  const getSlotCount = (slot: string) => occupancy[slot] || 0;
-  const isSlotFull = (slot: string) => getSlotCount(slot) >= MAX_PER_SLOT;
-  const getNextAvailableSlot = (selectedDate: Date | undefined): string | null => {
-    const slots = getAvailableSlots(selectedDate);
-    return slots.find(s => !isSlotFull(s)) || null;
-  };
-
   const isTodayDisabled = todayCount >= 300 || getAvailableSlots(new Date()).length === 0 || bookingClosed;
-
-  const startTimer = () => {
-    setTimer(120);
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return interval;
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast({
-        title: 'Authentication Required',
-        description: 'Please login or sign up to book an appointment.',
-        variant: 'destructive',
-      });
       navigate(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
       return;
     }
-
-    // Validation: Ensure hospital ID exists in URL
-    const id = searchParams.get('id');
-    if (!id) {
-      toast({
-        title: 'No Hospital Selected',
-        description: 'Please select a hospital card first to book an appointment.',
-        variant: 'destructive',
-      });
+    if (!hospitalId) {
+      toast({ title: 'No Hospital Selected', variant: 'destructive' });
       navigate('/hospitals');
     }
-  }, [navigate, searchParams]);
+  }, [navigate, hospitalId]);
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
-    defaultValues: {
-      fullName: '',
-      phone: '',
-      email: '',
-      age: '',
-      gender: '',
-      symptoms: '',
-      time: '',
-      ambulanceRequired: false,
-    },
+    defaultValues: { fullName: '', phone: '', email: '', age: '', gender: '', symptoms: '', time: '', ambulanceRequired: false },
   });
 
   useEffect(() => {
     if (isEmergency) {
       form.setValue('ambulanceRequired', true);
-      // Auto-set for emergency as per request
       form.setValue('date', new Date());
       form.setValue('time', 'Emergency Now');
+    } else if (isTodayDisabled) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      form.setValue('date', tomorrow);
     } else {
-      // For normal booking, if today is disabled, default to tomorrow
-      if (isTodayDisabled) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        form.setValue('date', tomorrow);
-      } else {
-        form.setValue('date', new Date());
-      }
+      form.setValue('date', new Date());
     }
   }, [form, isEmergency, isTodayDisabled]);
 
+  const processBooking = async (data: BookingFormValues) => {
+    setIsLoading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/appointments/book`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          hospitalId, branchId, hospitalName: displayName, location: hospitalLocation,
+          patientName: data.fullName, patientEmail: data.email,
+          date: data.date ? format(data.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+          time: (isEmergency && (!data.time || data.time === 'Emergency Now')) ? 'Emergency' : data.time,
+          age: data.age, gender: data.gender, symptoms: data.symptoms, phone: data.phone,
+          ambulanceRequired: data.ambulanceRequired, type: isEmergency ? 'Emergency' : 'Normal'
+        }),
+      });
+
+      if (!response.ok) throw new Error((await response.json()).msg || 'Failed to process request');
+      
+      const result = await response.json();
+      setSuccessData(result.appointment);
+      setIsSuccess(true);
+      toast({ title: 'Appointment Booked Successfully!' });
+
+      if (autoCall && branchPhone) window.location.href = `tel:${branchPhone}`;
+    } catch (err: any) {
+      toast({ title: 'Booking Failed', description: err.message, variant: 'destructive' });
+    } finally { setIsLoading(false); }
+  };
+
   const handleInitialSubmit = async (data: BookingFormValues) => {
+    if (!ENABLE_OTP) {
+      await processBooking(data);
+      return;
+    }
+    // OTP logic if enabled...
     setIsLoading(true);
     try {
       const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
@@ -275,150 +249,44 @@ const BookVisit = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: data.phone })
       });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.msg || 'Failed to send OTP');
-      }
-      
+      if (!res.ok) throw new Error((await res.json()).msg || 'Failed to send OTP');
       setPendingData(data);
       setOtpStep(true);
-      startTimer();
-      toast({ title: 'OTP Sent', description: `Development OTP logged in console for ${data.phone}` });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOtpSubmit = async () => {
-    if (!otp || !pendingData) return;
-    setIsLoading(true);
-    try {
-      const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
-      const token = localStorage.getItem('token');
-      
-      // Verify OTP
-      const verifyRes = await fetch(`${API_BASE}/api/otp/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: pendingData.phone, otp })
-      });
-      
-      if (!verifyRes.ok) {
-        const err = await verifyRes.json();
-        throw new Error(err.msg || 'Invalid OTP');
-      }
-
-      // Proceed with booking (Using same endpoint for better data capture if form is filled)
-      const bookingUrl = `${API_BASE}/api/appointments/book`;
-      const bookingBody = {
-            hospitalId,
-            branchId,
-            hospitalName: displayName,
-            location: hospitalLocation,
-            patientName: pendingData.fullName,
-            patientEmail: pendingData.email,
-            date: pendingData.date ? format(pendingData.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-            time: (isEmergency && (!pendingData.time || pendingData.time === 'Emergency Now')) ? 'Emergency' : pendingData.time,
-            age: pendingData.age,
-            gender: pendingData.gender,
-            symptoms: pendingData.symptoms,
-            problem: pendingData.symptoms,
-            phone: pendingData.phone,
-            ambulanceRequired: pendingData.ambulanceRequired,
-            type: isEmergency ? 'Emergency' : 'Normal'
-          };
-
-      const response = await fetch(bookingUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(bookingBody),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.msg || 'Failed to process request');
-      }
-
-      setIsSuccess(true);
-      toast({
-        title: 'Appointment Booked Successfully!',
-        description: autoCall ? 'Verification successful. Opening dialer...' : `Confirmation PDF sent to ${pendingData.email}`,
-      });
-
-      if (autoCall && branchPhone) {
-        window.location.href = `tel:${branchPhone}`;
-      }
-
-      setTimeout(() => {
-        if (returnTo) {
-          navigate(decodeURIComponent(returnTo));
-          return;
-        }
-        navigate('/hospitals');
-      }, autoCall ? 1000 : 3000);
-    } catch (err: any) {
-      toast({
-        title: 'Booking Failed',
-        description: err.message || 'Something went wrong',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+      setTimer(120);
+    } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+    finally { setIsLoading(false); }
   };
 
   if (isSuccess) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="container mx-auto flex min-h-[60vh] items-center justify-center px-4 py-16">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-cta/10">
-              <CheckCircle2 className="h-10 w-10 text-cta" />
+        <main className="container mx-auto flex min-h-[70vh] items-center justify-center px-4 py-16">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md w-full text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-12 w-12 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Appointment Booked Successfully!</h2>
-            <p className="mt-3 text-muted-foreground">
-              A confirmation PDF with appointment details has been sent to your email.
-            </p>
-            <div className="mt-6 rounded-xl border border-border bg-card p-4 text-left shadow-sm inline-block mx-auto">
-              <div className="flex items-center gap-2 mb-2 text-primary">
-                <FileText className="h-5 w-5" />
-                <span className="font-semibold text-sm">Appointment_Receipt.pdf</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Sent to: {form.getValues('email')}</p>
+            <h2 className="text-3xl font-black text-foreground mb-2">Success!</h2>
+            <p className="text-muted-foreground font-medium mb-8">Appointment Request Submitted Successfully</p>
+            
+            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm text-left space-y-4 mb-8">
+               <div className="flex justify-between items-center pb-3 border-b border-border/50">
+                  <span className="text-muted-foreground text-sm font-bold uppercase tracking-wider">Appointment ID</span>
+                  <span className="font-black text-primary">{successData?.customId || successData?._id}</span>
+               </div>
+               <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-2xl text-emerald-700">
+                  <MessageSquare className="h-5 w-5" />
+                  <p className="text-xs font-bold leading-tight">WhatsApp confirmation has been sent to your number.</p>
+               </div>
             </div>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-              <Button
-                variant="default"
-                size="lg"
-                onClick={() => {
-                  setIsSuccess(false);
-                  form.reset();
-                }}
-              >
-                Book Another Visit
+
+            <div className="flex flex-col gap-3">
+              <Button size="lg" className="h-14 rounded-2xl font-bold" onClick={() => navigate(`/track-appointment/${successData?.customId || successData?._id}`)}>
+                Track Appointment Now
               </Button>
-              {branchPhone && (
-                <Button
-                  variant="cta"
-                  size="lg"
-                  className="gap-2"
-                  onClick={() => window.location.href = `tel:${branchPhone}`}
-                >
-                  <Phone className="h-5 w-5" />
-                  Call Now
-                </Button>
-              )}
+              <Button variant="outline" size="lg" className="h-14 rounded-2xl font-bold" onClick={() => navigate('/hospitals')}>
+                Back to Hospitals
+              </Button>
             </div>
           </motion.div>
         </main>
@@ -431,333 +299,129 @@ const BookVisit = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 py-10 md:py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mx-auto max-w-2xl"
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-foreground md:text-3xl">Book Your Visit</h1>
-            <p className="mt-2 text-muted-foreground">
-              Fill in the details below to schedule your appointment at {displayName}
-            </p>
+            <h1 className="text-3xl font-black text-foreground md:text-4xl">Book Your Visit</h1>
+            <p className="mt-2 text-muted-foreground font-medium">Fill in the details below for {displayName}</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-lg sm:p-8">
-            {/* Dynamic hospital info */}
-            <div className="mb-6 flex items-center justify-between rounded-lg bg-primary/5 p-4">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-primary" />
+          <div className="rounded-[2.5rem] border border-border bg-card p-6 shadow-2xl shadow-primary/5 sm:p-10">
+            <div className="mb-8 flex items-center justify-between rounded-3xl bg-primary/5 p-5">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">{displayName}</p>
-                  <p className="text-xs text-muted-foreground">{hospitalLocation}</p>
+                  <p className="text-sm font-black text-foreground">{displayName}</p>
+                  <p className="text-xs text-muted-foreground font-medium">{hospitalLocation}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Consultation Fee</p>
-                <p className="text-lg font-black text-primary">₹{opdCharge || 0}</p>
+                <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">OPD Fee</p>
+                <p className="text-xl font-black text-primary">₹{opdCharge || 0}</p>
               </div>
             </div>
 
-            {isEmergency && (
-              <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
-                <Ambulance className="h-5 w-5" />
-                <div>
-                  <p className="text-sm font-semibold">Emergency Booking</p>
-                  <p className="text-xs text-red-700/80">Form submit karne ke baad aapko hospital details page par redirect kiya jayega.</p>
-                </div>
-              </div>
-            )}
-
-            {otpStep ? (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-bold">Verify OTP</h3>
-                  <span className={cn("text-sm font-bold", timer < 30 ? "text-destructive" : "text-primary")}>
-                    {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">Enter the 6-digit OTP sent to {pendingData?.phone}</p>
-                <Input 
-                  value={otp} 
-                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} 
-                  placeholder="000000" 
-                  maxLength={6} 
-                  className="text-center text-3xl h-14 tracking-[0.5em] font-bold"
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-center text-muted-foreground">
-                  Development OTP logged in console/Render logs
-                </p>
-                <div className="flex gap-4">
-                  <Button variant="outline" className="w-full" onClick={() => setOtpStep(false)} disabled={isLoading}>Back</Button>
-                  <Button className="w-full" onClick={handleOtpSubmit} disabled={isLoading || otp.length < 4} isLoading={isLoading}>
-                    Verify & Book
-                  </Button>
-                </div>
-                {timer === 0 && (
-                  <button 
-                    onClick={() => handleInitialSubmit(pendingData!)} 
-                    className="w-full text-sm text-primary hover:underline"
-                  >
-                    Resend OTP
-                  </button>
-                )}
-              </div>
-            ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleInitialSubmit)} className="space-y-5">
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Patient Full Name</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                            <Input placeholder="John Doe" className="h-12 pl-10" disabled={isLoading} {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                            <Input placeholder="+91 98765 43210" className="h-12 pl-10" disabled={isLoading} {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <form onSubmit={form.handleSubmit(handleInitialSubmit)} className="space-y-6">
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField control={form.control} name="fullName" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold">Patient Name</FormLabel>
+                      <FormControl><div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="John Doe" className="h-12 pl-12 rounded-xl" {...field} />
+                      </div></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="phone" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold">Phone Number</FormLabel>
+                      <FormControl><div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input placeholder="+91 00000 00000" className="h-12 pl-12 rounded-xl" {...field} />
+                      </div></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </div>
 
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold">Email Address</FormLabel>
+                      <FormControl><div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input type="email" placeholder="name@example.com" className="h-12 pl-12 rounded-xl" {...field} />
+                      </div></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                            <Input type="email" placeholder="name@example.com" className="h-12 pl-10" disabled={isLoading} {...field} />
-                          </div>
-                        </FormControl>
+                        <FormLabel className="font-bold">Age</FormLabel>
+                        <FormControl><Input type="number" placeholder="25" className="h-12 rounded-xl" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="age"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Age</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="25" className="h-12" disabled={isLoading} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="gender"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Gender</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isLoading}>
-                            <FormControl>
-                              <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="male">Male</SelectItem>
-                              <SelectItem value="female">Female</SelectItem>
-                              <SelectItem value="other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    )} />
+                    <FormField control={form.control} name="gender" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-bold">Gender</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl>
+                          <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+                        </FormControl><SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent></Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
                   </div>
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="symptoms"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Problem / Symptoms</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe your symptoms or reason for visit..."
-                          className="min-h-[100px] resize-none"
-                          disabled={isLoading}
-                          {...field}
-                        />
-                      </FormControl>
+                <FormField control={form.control} name="symptoms" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-bold">Problem / Symptoms</FormLabel>
+                    <FormControl><Textarea placeholder="Describe symptoms..." className="min-h-[100px] rounded-2xl resize-none" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <FormField control={form.control} name="date" render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="font-bold">Date</FormLabel>
+                      <Popover><PopoverTrigger asChild><FormControl>
+                        <Button variant="outline" className={cn('h-12 w-full justify-start rounded-xl font-medium', !field.value && 'text-muted-foreground')}>
+                          <CalendarIcon className="mr-2 h-4 w-4" /> {field.value ? format(field.value, 'PPP') : 'Select Date'}
+                        </Button>
+                      </FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={field.value} onSelect={(d) => { field.onChange(d); d && fetchOccupancy(d); form.setValue('time', ''); }} disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))} initialFocus className="p-3" /></PopoverContent></Popover>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="ambulanceRequired"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4 bg-muted/20">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none flex items-center gap-2">
-                        <Ambulance className="h-4 w-4 text-primary" />
-                        <FormLabel>
-                          Ambulance Service Required?
-                        </FormLabel>
+                  )} />
+                  <FormField control={form.control} name="time" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold">Time Slot</FormLabel>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                        {getAvailableSlots(form.getValues('date')).map((slot) => (
+                          <button key={slot} type="button" onClick={() => field.onChange(slot)} className={cn('px-3 py-2 rounded-xl border text-xs font-bold transition-all', field.value === slot ? 'bg-primary text-white border-primary shadow-lg' : 'bg-card border-border hover:border-primary/50')}>
+                            {slot}
+                          </button>
+                        ))}
                       </div>
+                      <FormMessage />
                     </FormItem>
-                  )}
-                />
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Appointment Date</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  'h-12 w-full justify-start text-left font-normal',
-                                  !field.value && 'text-muted-foreground'
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={(d) => {
-                                field.onChange(d);
-                                if (d) fetchOccupancy(d);
-                                form.setValue('time', '');
-                              }}
-                              disabled={(date) => {
-                                const today = new Date();
-                                today.setHours(0,0,0,0);
-                                const isBeforeToday = date < today;
-                                const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-                                return isBeforeToday || (isToday && isTodayDisabled);
-                              }}
-                              initialFocus
-                              className={cn('p-3 pointer-events-auto')}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        {format(form.getValues('date') || new Date(), 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && isTodayDisabled && (
-                           <p className="text-[10px] text-red-500 font-bold mt-1 uppercase animate-pulse">
-                             {bookingClosed ? "Today's booking closed. Please select next date." : "Today's slots full. Select next date."}
-                           </p>
-                        )}
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="time"
-                    render={({ field }) => {
-                      const selectedDate = form.getValues('date');
-                      const availableSlots = getAvailableSlots(selectedDate);
-                      const nextSlot = getNextAvailableSlot(selectedDate);
-                      return (
-                        <FormItem>
-                          <FormLabel className="flex items-center justify-between">
-                            <span>Appointment Time</span>
-                            {slotLoading && <span className="text-xs text-muted-foreground">Loading slots...</span>}
-                          </FormLabel>
-                          <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
-                            {availableSlots.map((slot) => {
-                              const count = getSlotCount(slot);
-                              const full = isSlotFull(slot);
-                              const selected = field.value === slot;
-                              const isNext = !full && slot === nextSlot && !field.value;
-                              return (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => {
-                                    if (full) {
-                                      toast({ title: 'Slot Full', description: `This slot is full. ${nextSlot ? `Try ${nextSlot}` : 'All slots are full for this date.'}`, variant: 'destructive' });
-                                    } else {
-                                      field.onChange(slot);
-                                    }
-                                  }}
-                                  className={cn(
-                                    'relative text-left px-3 py-2 rounded-xl border text-xs font-semibold transition-all duration-150',
-                                    selected && 'bg-primary text-primary-foreground border-primary shadow-md scale-[1.02]',
-                                    full && !selected && 'bg-red-50 border-red-200 text-red-500 cursor-not-allowed opacity-80',
-                                    !full && !selected && 'bg-card border-border hover:border-primary/60 hover:bg-primary/5',
-                                    isNext && !selected && 'border-green-400 bg-green-50 text-green-700'
-                                  )}
-                                >
-                                  <div>{slot}</div>
-                                  <div className={cn('text-[10px] font-bold mt-0.5',
-                                    full ? 'text-red-500' : selected ? 'text-primary-foreground/70' : isNext ? 'text-green-600' : 'text-muted-foreground'
-                                  )}>
-                                    {full ? '🔴 FULL' : isNext ? `✅ ${count}/${MAX_PER_SLOT} (Suggested)` : `${count}/${MAX_PER_SLOT}`}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                            {availableSlots.length === 0 && (
-                              <p className="col-span-2 text-center text-sm text-muted-foreground py-4">No slots available for this date.</p>
-                            )}
-                          </div>
-                          {field.value && (
-                            <p className="text-xs text-primary font-semibold mt-1">✅ Selected: {field.value}</p>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
-                  />
+                  )} />
                 </div>
 
-                <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
-              Confirm Appointment
-            </Button>
+                <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-black shadow-xl shadow-primary/20" disabled={isLoading}>
+                  {isLoading ? 'Processing...' : 'Confirm Appointment'}
+                </Button>
               </form>
             </Form>
-            )}
           </div>
         </motion.div>
       </main>

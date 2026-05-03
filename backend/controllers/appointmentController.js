@@ -20,7 +20,12 @@ exports.bookAppointment = async (req, res) => {
       return res.status(403).json({ msg: "Hospital is not approved yet." });
     }
 
-    // 2. USER RESTRICTION: Allow booking again if already approved, or at different hospitals/dates
+    // 2. Generate Custom ID: HSP-YYYYMMDD-RAND
+    const datePart = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const randPart = Math.floor(1000 + Math.random() * 9000);
+    const customId = `HSP-${datePart}-${randPart}`;
+
+    // 3. USER RESTRICTION: Allow booking again if already approved, or at different hospitals/dates
     const activeBooking = await Appointment.findOne({
       patientId: req.user.id,
       hospitalId,
@@ -31,16 +36,7 @@ exports.bookAppointment = async (req, res) => {
       return res.status(400).json({ msg: "You already have an active appointment at this hospital on this date." });
     }
 
-    let maxQueue = 0;
-    let dailyApprovalLimit = 200;
-    if (branchId) {
-      const branch = await Branch.findById(branchId);
-      if (!branch) return res.status(404).json({ msg: "Branch not found" });
-      maxQueue = 300; // Force 300 bookings limit per requirement
-    } else {
-      maxQueue = 300; // Force 300 bookings limit per requirement
-    }
-
+    let maxQueue = 300;
     const bookingCount = await Appointment.countDocuments({
       hospitalId,
       branchId: branchId || null,
@@ -63,16 +59,17 @@ exports.bookAppointment = async (req, res) => {
       }
     }
 
-    // 4. Calculate OPD Charge
+    // 4. Calculate OPD Charge and get Branch details
     let finalOpdCharge = hospital.opdCharge || 0;
+    let branchDetails = null;
     if (branchId) {
-      const branch = await Branch.findById(branchId);
-      if (branch && branch.opdChargeType === "custom") {
-        finalOpdCharge = branch.opdCharge;
+      branchDetails = await Branch.findById(branchId);
+      if (branchDetails && branchDetails.opdChargeType === "custom") {
+        finalOpdCharge = branchDetails.opdCharge;
       }
     }
 
-    // 5. Create Appointment with Token
+    // 5. Create Appointment
     const appointment = await Appointment.create({
       hospitalId,
       branchId: branchId || null,
@@ -83,41 +80,27 @@ exports.bookAppointment = async (req, res) => {
       patientEmail,
       phone,
       hospitalName,
-      location,
+      location: branchDetails ? branchDetails.address : location,
       problem: problem || "",
       status: "Waiting",
       type: type || "Normal",
       tokenNumber: type === "Emergency" ? 0 : bookingCount + 1,
       ambulanceRequired: ambulanceRequired || false,
-      opdCharge: finalOpdCharge
+      opdCharge: finalOpdCharge,
+      customId: customId
     });
 
-
-    // 5. Notifications
+    // 6. Notifications (Immediate WhatsApp Only)
     try {
-      const branch = branchId ? await Branch.findById(branchId) : null;
-      // Fetch Queue Stats
-      const tracker = await TokenTracker.findOne({ 
-        hospitalId: appointment.hospitalId, 
-        branchId: appointment.branchId || null, 
-        date: appointment.date 
-      });
-      const nowServing = tracker ? tracker.currentToken : 1;
-      const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
-
+      const { sendBookingConfirmationWhatsApp } = require("../config/mailer");
+      
       const notificationDetails = {
         ...appointment.toObject(),
-        supportEmail: hospital.officialEmail,
-        supportPhone: branch ? branch.phone : hospital.contactNumber,
-        branchDetails: branch,
-        nowServing,
-        peopleAhead
+        supportPhone: branchDetails ? branchDetails.phone : hospital.contactNumber,
+        branchName: branchDetails ? branchDetails.branchName : 'Main'
       };
       
-      const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
-      const msg = `Hello ${patientName}, your appointment at ${hospitalName} is booked. Token: #${appointment.tokenNumber}. Status: WAITING. Track live: ${trackingLink}`;
-      
-      await sendAppointmentEmail(patientEmail, notificationDetails, true, true); // Send PDF to Email & WA
+      await sendBookingConfirmationWhatsApp(notificationDetails);
     } catch (err) { console.error("Notification Error:", err); }
 
     res.status(201).json({ msg: "Appointment booked successfully", appointment });
@@ -130,47 +113,41 @@ exports.bookAppointment = async (req, res) => {
 exports.updateAppointmentStatus = async (req, res) => {
   try {
     const { status, nextDate } = req.body;
-    const appointment = await Appointment.findById(req.params.id);
+    const appointment = await Appointment.findById(req.params.id).populate("hospitalId branchId");
     if (!appointment) return res.status(404).json({ msg: "Appointment not found" });
 
     // PERMISSION CHECK
     if (req.user.role === "hospital") {
       if (appointment.branchId) return res.status(403).json({ msg: "Main hospital can only view branch appointments." });
     } else if (req.user.role === "branch") {
-      if (!appointment.branchId || appointment.branchId.toString() !== req.user.branchId?.toString()) {
+      if (!appointment.branchId || appointment.branchId._id.toString() !== req.user.branchId?.toString()) {
         return res.status(403).json({ msg: "Access denied to this branch data." });
       }
     } else if (req.user.role === "doctor") {
-      // Doctor can only move to consultation, lab, or complete
       const allowedDoctorStatuses = ["In Consultation", "Lab Pending", "Completed"];
       if (!allowedDoctorStatuses.includes(status)) {
         return res.status(403).json({ msg: "Doctors can only change status to In Consultation, Lab Pending, or Completed." });
       }
-      
       const doctorProfile = await Doctor.findOne({ userId: req.user.id });
-      if (!doctorProfile || doctorProfile.hospitalId.toString() !== appointment.hospitalId.toString()) {
+      if (!doctorProfile || doctorProfile.hospitalId.toString() !== appointment.hospitalId._id.toString()) {
         return res.status(403).json({ msg: "Access denied. This appointment belongs to another hospital." });
       }
     }
 
-    // SMART LOGIC: Confirmed (with capacity check)
+    // Status logic
     if (status === "Confirmed") {
-        const hospital = await Hospital.findById(appointment.hospitalId);
-        let maxApprovalQueue = 200;
-
         const approvedCount = await Appointment.countDocuments({
-            hospitalId: appointment.hospitalId,
-            branchId: appointment.branchId || null,
+            hospitalId: appointment.hospitalId._id,
+            branchId: appointment.branchId?._id || null,
             date: appointment.date,
             status: "Confirmed"
         });
 
-        if (approvedCount >= maxApprovalQueue) {
+        if (approvedCount >= 200) {
             return res.status(400).json({ msg: "Daily approval limit reached for this date (Limit: 200)." });
         }
         appointment.status = "Confirmed";
         
-        // Handle Doctor Assignment if provided
         if (req.body.doctorId) {
           const doctor = await Doctor.findById(req.body.doctorId);
           if (doctor) {
@@ -179,40 +156,29 @@ exports.updateAppointmentStatus = async (req, res) => {
           }
         }
     } 
-    // SMART LOGIC: Move to Next Day (Rescheduled)
     else if (status === "Rescheduled") {
       const targetDate = nextDate || new Date(new Date(appointment.date).getTime() + 86400000).toISOString().split('T')[0];
-      
-      // Check target day capacity
-      let maxQueue = 300;
-
       const nextDayCount = await Appointment.countDocuments({
-        hospitalId: appointment.hospitalId,
-        branchId: appointment.branchId || null,
+        hospitalId: appointment.hospitalId._id,
+        branchId: appointment.branchId?._id || null,
         date: targetDate
       });
 
-      if (nextDayCount >= maxQueue) {
-        return res.status(400).json({ msg: "Next day is full." });
-      }
+      if (nextDayCount >= 300) return res.status(400).json({ msg: "Next day is full." });
 
       appointment.date = targetDate;
       appointment.status = "Rescheduled";
       appointment.tokenNumber = nextDayCount + 1;
     } 
-    else if (status === "Not Selected") {
-        appointment.status = "Not Selected";
-    }
     else {
       appointment.status = status;
     }
 
-    // Handle Token Progression
     if (status === "Completed") {
       await TokenTracker.findOneAndUpdate(
         { 
-          hospitalId: appointment.hospitalId, 
-          branchId: appointment.branchId || null, 
+          hospitalId: appointment.hospitalId._id, 
+          branchId: appointment.branchId?._id || null, 
           date: appointment.date 
         },
         { $inc: { currentToken: 1 } },
@@ -222,16 +188,11 @@ exports.updateAppointmentStatus = async (req, res) => {
 
     await appointment.save();
 
-
-    // Trigger PDF & WhatsApp on Confirm/Reschedule/Complete
-    if (["Confirmed", "Rescheduled", "Completed"].includes(appointment.status)) {
-      const hospital = await Hospital.findById(appointment.hospitalId);
-      const branch = appointment.branchId ? await Branch.findById(appointment.branchId) : null;
-      
-      // Fetch Queue Stats
+    // Trigger Notifications on Confirm/Reschedule
+    if (["Confirmed", "Rescheduled"].includes(appointment.status)) {
       const tracker = await TokenTracker.findOne({ 
-        hospitalId: appointment.hospitalId, 
-        branchId: appointment.branchId || null, 
+        hospitalId: appointment.hospitalId._id, 
+        branchId: appointment.branchId?._id || null, 
         date: appointment.date 
       });
       const nowServing = tracker ? tracker.currentToken : 1;
@@ -239,38 +200,19 @@ exports.updateAppointmentStatus = async (req, res) => {
 
       const notificationDetails = {
         ...appointment.toObject(),
-        supportEmail: hospital?.officialEmail,
-        supportPhone: branch ? branch.phone : hospital?.contactNumber,
-        branchDetails: branch,
+        supportEmail: appointment.hospitalId?.officialEmail,
+        supportPhone: appointment.branchId ? appointment.branchId.phone : appointment.hospitalId?.contactNumber,
+        branchName: appointment.branchId ? appointment.branchId.branchName : 'Main',
         nowServing,
         peopleAhead
       };
 
-      const branchName = branch ? `(${branch.branchName} Branch)` : '';
-      let updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Date: ${appointment.date}, Token: ${appointment.tokenNumber}.`;
-
-      if (appointment.status === "Rescheduled") {
-        const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
-        notificationDetails.msg = `Your appointment has been rescheduled to ${appointment.date}. Please visit hospital on given date. Track here: ${trackingLink}`;
-        updateMsg = notificationDetails.msg;
-      } else if (appointment.status === "Completed") {
-        const ratingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/rate?appointmentId=${appointment._id}`;
-        notificationDetails.msg = `Your consultation is completed. Please rate your experience: ${ratingLink}`;
-        updateMsg = notificationDetails.msg;
-      } else {
-        const trackingLink = `${process.env.FRONTEND_URL || 'https://clinoza.in'}/track/${appointment._id}`;
-        updateMsg = `Appointment at ${appointment.hospitalName} ${branchName} is ${appointment.status.toUpperCase()}. Token: #${appointment.tokenNumber}. Track live: ${trackingLink}`;
-      }
-
       try {
-        const isCompleted = appointment.status === "Completed";
-        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, !isCompleted, !isCompleted); // PDF only if not completed
-        
-        // For completed, send the rating link as text if PDF is skipped
-        if (isCompleted && appointment.phone) {
-          await sendWhatsAppNotification(appointment.phone, updateMsg);
-        }
-      } catch (err) {}
+        const { sendAppointmentEmail } = require("../config/mailer");
+        // For confirmed: Send Email + PDF + WhatsApp
+        // For rescheduled: Send Email + PDF
+        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true, status === "Confirmed");
+      } catch (err) { console.error("Update Notification Error:", err); }
     }
 
     res.json({ msg: `Status updated to ${status}`, appointment });
@@ -372,25 +314,22 @@ exports.trackAppointment = async (req, res) => {
     
     if (id || token) {
       const searchId = id || token;
-      if (mongoose.Types.ObjectId.isValid(searchId)) {
+      // Search by Custom ID first
+      appointment = await Appointment.findOne({ customId: searchId }).populate("hospitalId branchId");
+      
+      // Fallback to MongoDB ID
+      if (!appointment && mongoose.Types.ObjectId.isValid(searchId)) {
         appointment = await Appointment.findById(searchId).populate("hospitalId branchId");
       }
     } 
     
     if (!appointment && tokenNumber && phone) {
-      // Precise search by Token Number + Phone
       const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
       appointment = await Appointment.findOne({ 
         tokenNumber: parseInt(tokenNumber), 
         phone: searchPhone 
       }).sort({ createdAt: -1 }).populate("hospitalId branchId");
-    } else if (token) {
-      // Legacy/Alternative: Track by ID (token string)
-      if (mongoose.Types.ObjectId.isValid(token)) {
-        appointment = await Appointment.findById(token).populate("hospitalId branchId");
-      }
-    } else if (phone) {
-      // Find latest appointment by phone
+    } else if (!appointment && phone) {
       const searchPhone = phone.startsWith('+91') ? phone : `+91${phone}`;
       appointment = await Appointment.findOne({ phone: searchPhone })
         .sort({ createdAt: -1 })
@@ -402,34 +341,35 @@ exports.trackAppointment = async (req, res) => {
     }
 
     const tracker = await TokenTracker.findOne({
-      hospitalId: appointment.hospitalId,
-      branchId: appointment.branchId || null,
+      hospitalId: appointment.hospitalId?._id || appointment.hospitalId,
+      branchId: appointment.branchId?._id || null,
       date: appointment.date
     });
 
     const nowServing = tracker ? tracker.currentToken : 1;
     const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
 
-    // Build the specific response requested
     const response = {
+      _id: appointment._id,
+      customId: appointment.customId,
       patientName: appointment.patientName,
       phone: appointment.phone,
       status: appointment.status,
       doctorName: appointment.assignedDoctorName || "To be assigned",
       hospitalName: appointment.hospitalName,
       branchName: appointment.branchId?.branchName || "Main",
-      opdFee: appointment.opdFee || 0,
+      opdFee: appointment.opdCharge || 0,
       appointmentDate: appointment.date,
       time: appointment.time,
       problem: appointment.problem,
       paymentStatus: appointment.paymentStatus || "Pending",
       nowServing,
-      peopleAhead
+      peopleAhead,
+      tokenNumber: appointment.tokenNumber
     };
 
     res.json({
-      appointment: response,
-      rawAppointment: appointment // kept for legacy if needed
+      appointment: response
     });
   } catch (error) {
     console.error("Track Appointment Error:", error);
