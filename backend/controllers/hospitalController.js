@@ -85,12 +85,14 @@ exports.addHospital = async (req, res) => {
     try {
       if (hospital.officialEmail) {
         console.log(`Attempting to send pending email to: ${hospital.officialEmail}`);
-        await sendHospitalPendingEmail(hospital.officialEmail, hospital.hospitalName);
+        sendHospitalPendingEmail(hospital.officialEmail, hospital.hospitalName)
+          .catch(err => console.error("Background Pending Email Error:", err));
       }
       
       if (hospital.contactNumber) {
         const waMessage = `Hello ${hospital.hospitalName}, your registration is UNDER REVIEW. We will notify you once approved within 24 hours. Thank you!`;
-        await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+        sendWhatsAppNotification(hospital.contactNumber, waMessage)
+          .catch(err => console.error("Background WhatsApp Error:", err));
       }
     } catch (notifError) {
       console.error("Notification Error (skipping):", notifError.message);
@@ -618,7 +620,8 @@ exports.approveHospital = async (req, res) => {
     // Send email notification to hospital owner
     if (hospital.officialEmail) {
       console.log(`Sending approval email to: ${hospital.officialEmail}`);
-      await sendHospitalApprovalEmail(hospital.officialEmail, hospital.hospitalName, "approved");
+      sendHospitalApprovalEmail(hospital.officialEmail, hospital.hospitalName, "approved")
+        .catch(err => console.error("Background Approval Email Error:", err));
     } else {
       console.log("No official email for hospital, skipping approval email.");
     }
@@ -626,7 +629,8 @@ exports.approveHospital = async (req, res) => {
     // Send WhatsApp notification for approval
     if (hospital.contactNumber) {
       const waMessage = `Congratulations! Your hospital "${hospital.hospitalName}" has been APPROVED. You can now manage your dashboard.`;
-      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+      sendWhatsAppNotification(hospital.contactNumber, waMessage)
+        .catch(err => console.error("Background WhatsApp Error:", err));
     }
 
     res.json({ msg: "Your hospital has been approved successfully.", hospital });
@@ -653,7 +657,8 @@ exports.rejectHospital = async (req, res) => {
     // Send email notification to hospital owner
     if (hospital.officialEmail) {
       console.log(`Sending rejection email to: ${hospital.officialEmail}`);
-      await sendHospitalApprovalEmail(hospital.officialEmail, hospital.hospitalName, "rejected");
+      sendHospitalApprovalEmail(hospital.officialEmail, hospital.hospitalName, "rejected")
+        .catch(err => console.error("Background Rejection Email Error:", err));
     } else {
       console.log("No official email for hospital, skipping rejection email.");
     }
@@ -661,7 +666,8 @@ exports.rejectHospital = async (req, res) => {
     // Send WhatsApp notification for rejection
     if (hospital.contactNumber) {
       const waMessage = `Hello ${hospital.hospitalName}, your registration status has been updated to REJECTED. Please contact support for more details.`;
-      await sendWhatsAppNotification(hospital.contactNumber, waMessage);
+      sendWhatsAppNotification(hospital.contactNumber, waMessage)
+        .catch(err => console.error("Background WhatsApp Error:", err));
     }
 
     res.json({ msg: "Hospital has been rejected.", hospital });

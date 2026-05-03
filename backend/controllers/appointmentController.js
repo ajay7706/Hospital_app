@@ -100,10 +100,12 @@ exports.bookAppointment = async (req, res) => {
         branchName: branchDetails ? branchDetails.branchName : 'Main'
       };
       
-      await sendBookingConfirmationWhatsApp(notificationDetails);
-    } catch (err) { console.error("Notification Error:", err); }
+      // Send WhatsApp in background so user doesn't wait
+      sendBookingConfirmationWhatsApp(notificationDetails)
+        .catch(err => console.error("Booking Notification Error:", err));
+    } catch (err) { console.error("Notification Trigger Error:", err); }
 
-    res.status(201).json({ msg: "Appointment booked successfully", appointment });
+    res.status(201).json({ msg: "Appointment booked successfully. Confirmation WhatsApp is being sent.", appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
@@ -209,13 +211,14 @@ exports.updateAppointmentStatus = async (req, res) => {
 
       try {
         const { sendAppointmentEmail } = require("../config/mailer");
-        // For confirmed: Send Email + PDF + WhatsApp
-        // For rescheduled: Send Email + PDF
-        await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true, status === "Confirmed");
-      } catch (err) { console.error("Update Notification Error:", err); }
+        // We do NOT await here so the API responds instantly and dashboard doesn't get stuck
+        // Email will continue to send in the background
+        sendAppointmentEmail(appointment.patientEmail, notificationDetails, true, status === "Confirmed")
+          .catch(err => console.error("Background Mailer Error:", err));
+      } catch (err) { console.error("Update Notification Trigger Error:", err); }
     }
 
-    res.json({ msg: `Status updated to ${status}`, appointment });
+    res.json({ msg: `Status updated to ${status}. Patient notification in progress.`, appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }

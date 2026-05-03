@@ -11,13 +11,36 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-// Nodemailer Setup
+// Nodemailer Setup with enhanced configuration for Cloud environments (Render/Vercel)
 const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // true for 465, false for other ports
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    pass: process.env.EMAIL_PASS, // MUST be an App Password for Gmail
   },
+  tls: {
+    // Force IPv4 to prevent ENETUNREACH on IPv6-only cloud networks
+    // This is a common fix for Render/Vercel SMTP issues
+    rejectUnauthorized: false
+  },
+  // Connection timeout settings
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 5000,
+  socketTimeout: 15000,
+  family: 4 // Force IPv4
+});
+
+// Transporter Verification
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ Mailer Connection Error:", error.message);
+    console.log("👉 Check if EMAIL_USER/EMAIL_PASS are correct and using an App Password.");
+  } else {
+    console.log("✅ Mailer is ready to send messages");
+  }
 });
 
 /**
