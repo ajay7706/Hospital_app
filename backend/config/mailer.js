@@ -1,50 +1,41 @@
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 const PDFDocument = require("pdfkit");
 const { PassThrough } = require("stream");
 const QRCode = require('qrcode');
 const { cloudinary } = require("./cloudinary");
 const twilio = require("twilio");
 
+// Validation of environment variables
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const SENDER_EMAIL = process.env.SENDGRID_SENDER_EMAIL || process.env.SENDER_EMAIL;
+
+if (!SENDGRID_API_KEY) {
+  console.error("❌ SENDGRID_API_KEY is missing in environment variables.");
+} else {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log("✅ SendGrid API Key initialized");
+}
+
+if (!SENDER_EMAIL) {
+  console.error("❌ SENDER_EMAIL/SENDGRID_SENDER_EMAIL is missing in environment variables.");
+}
+
 // Twilio Setup
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
-// Nodemailer Setup with enhanced configuration for Cloud environments (Render/Vercel)
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true, // true for 465, false for other ports
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // MUST be an App Password for Gmail
-  },
-  tls: {
-    // Force IPv4 to prevent ENETUNREACH on IPv6-only cloud networks
-    // This is a common fix for Render/Vercel SMTP issues
-    rejectUnauthorized: false
-  },
-  // Connection timeout settings
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 5000,
-  socketTimeout: 15000,
-  family: 4 // Force IPv4
-});
-
-// Transporter Verification
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Mailer Connection Error:", error.message);
-    console.log("👉 Check if EMAIL_USER/EMAIL_PASS are correct and using an App Password.");
-  } else {
-    console.log("✅ Mailer is ready to send messages");
+let twilioClient;
+try {
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+    console.log("✅ Twilio initialized");
   }
-});
+} catch (error) {
+  console.error("❌ Twilio Initialization Error:", error.message);
+}
 
 /**
- * Improved Professional PDF Generation
+ * Professional PDF Generation
  */
 const createProfessionalPDF = (doc, details, qrDataURL) => {
   const pageWidth = 595.28; // A4 width
@@ -58,21 +49,27 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
   const lightText = "#64748b";
   const bgColor = "#f8fafc";
 
-  // --- Background ---
+  // --- Header Background ---
   doc.rect(0, 0, pageWidth, 120).fill(primaryColor);
   
   // --- Hospital Logo / Name ---
-  // If logo exists, we could use doc.image(details.logoUrl, ...)
-  // For now, let's create a professional text-based logo
-  doc.fillColor("#ffffff")
-     .circle(margin + 30, 60, 30).fill();
-  
-  doc.fillColor(primaryColor)
-     .fontSize(24)
-     .text("H", margin + 20, 50, { bold: true });
+  // Using hospital logo if available
+  if (details.hospitalLogo) {
+     try {
+       // Note: pdfkit might need local path or buffer for images, but often handles URLs
+       // However, to be safe with Cloudinary URLs, we just use text if it fails or use a placeholder
+       doc.image(details.hospitalLogo, margin, 30, { width: 60 });
+     } catch (e) {
+       doc.fillColor("#ffffff").circle(margin + 30, 60, 30).fill();
+       doc.fillColor(primaryColor).fontSize(24).text("H", margin + 20, 50, { bold: true });
+     }
+  } else {
+    doc.fillColor("#ffffff").circle(margin + 30, 60, 30).fill();
+    doc.fillColor(primaryColor).fontSize(24).text("H", margin + 20, 50, { bold: true });
+  }
 
   doc.fillColor("#ffffff")
-     .fontSize(24)
+     .fontSize(20)
      .text(details.hospitalName || "Hospital", margin + 75, 45, { bold: true })
      .fontSize(10)
      .text(details.branchName ? `${details.branchName} Branch` : "Main Branch", margin + 75, 75, { characterSpacing: 1 });
@@ -81,7 +78,7 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
   doc.fillColor(secondaryColor).roundedRect(pageWidth - 220, 35, 180, 50, 5).fill();
   doc.fillColor("#ffffff")
      .fontSize(8).text("APPOINTMENT ID", pageWidth - 210, 45)
-     .fontSize(12).text(details.customId || details._id.toString().slice(-8).toUpperCase(), pageWidth - 210, 58, { bold: true });
+     .fontSize(12).text(details.customId || (details._id ? details._id.toString().slice(-8).toUpperCase() : "N/A"), pageWidth - 210, 58, { bold: true });
 
   // --- Body ---
   let currentY = 150;
@@ -120,7 +117,7 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
   doc.fillColor(secondaryColor).circle(margin + 240, currentY + 70, 40).fill();
   doc.fillColor("#ffffff")
      .fontSize(8).text("TOKEN", margin + 225, currentY + 55)
-     .fontSize(24).text(details.tokenNumber.toString(), margin + 225, currentY + 65, { bold: true });
+     .fontSize(24).text(details.tokenNumber ? details.tokenNumber.toString() : "0", margin + 225, currentY + 65, { bold: true });
 
   // Right Column
   doc.fillColor(lightText).fontSize(9).text("DOCTOR", margin + 330, currentY + 45);
@@ -134,7 +131,7 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
   // Location Card
   doc.fillColor(bgColor).roundedRect(margin, currentY, pageWidth - (margin * 2), 80, 10).fill();
   doc.fillColor(textColor).fontSize(14).text("Hospital Location", margin + 20, currentY + 15, { bold: true });
-  doc.fillColor(lightText).fontSize(10).text(details.location || details.branchDetails?.address || "Address not provided", margin + 20, currentY + 40, { width: 350 });
+  doc.fillColor(lightText).fontSize(10).text(details.location || (details.branchDetails && details.branchDetails.address) || "Address not provided", margin + 20, currentY + 40, { width: 350 });
 
   // QR Code on right of Location
   if (qrDataURL) {
@@ -162,13 +159,17 @@ const createProfessionalPDF = (doc, details, qrDataURL) => {
  * Send WhatsApp Notification via Twilio
  */
 const sendWhatsAppNotification = async (phone, message) => {
+  if (!twilioClient) {
+    console.error("❌ Twilio client not initialized. Cannot send WhatsApp.");
+    return null;
+  }
   try {
     const body = typeof message === 'object' ? message.body : message;
     const mediaUrl = typeof message === 'object' ? message.mediaUrl : null;
 
     const formattedPhone = phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone.startsWith('+') ? phone : '+91' + phone}`;
 
-    console.log(`Sending WhatsApp to ${formattedPhone}...`);
+    console.log(`[WhatsApp] Attempting send to ${formattedPhone}...`);
 
     const payload = {
       from: process.env.TWILIO_WHATSAPP_NUMBER,
@@ -181,10 +182,11 @@ const sendWhatsAppNotification = async (phone, message) => {
     }
 
     const result = await twilioClient.messages.create(payload);
-    console.log("WhatsApp sent! SID:", result.sid);
+    console.log("✅ WhatsApp sent! SID:", result.sid);
     return result;
   } catch (error) {
-    console.error("Twilio WhatsApp Error:", error.message);
+    console.error("❌ Twilio WhatsApp Error:", error.message);
+    return null;
   }
 };
 
@@ -221,63 +223,116 @@ const sendAppointmentEmail = async (patientEmail, bookingDetails, includePDF = t
     bookingDetails.trackingURL = trackingURL;
 
     if (includePDF) {
-      const qrDataURL = await QRCode.toDataURL(trackingURL);
-      const doc = new PDFDocument({ size: "A4", margin: 40 });
-      const stream = new PassThrough();
-      doc.pipe(stream);
-      createProfessionalPDF(doc, bookingDetails, qrDataURL);
-      doc.end();
+      try {
+        const qrDataURL = await QRCode.toDataURL(trackingURL);
+        const doc = new PDFDocument({ size: "A4", margin: 40 });
+        const stream = new PassThrough();
+        doc.pipe(stream);
+        createProfessionalPDF(doc, bookingDetails, qrDataURL);
+        doc.end();
 
-      const chunks = [];
-      for await (const chunk of stream) { chunks.push(chunk); }
-      pdfBuffer = Buffer.concat(chunks);
-      
-      attachments.push({
-        filename: "Appointment_Slip.pdf",
-        content: pdfBuffer,
-      });
+        const chunks = [];
+        for await (const chunk of stream) { chunks.push(chunk); }
+        pdfBuffer = Buffer.concat(chunks);
+        
+        attachments.push({
+          filename: "Appointment_Slip.pdf",
+          content: pdfBuffer.toString("base64"),
+          type: "application/pdf",
+          disposition: "attachment",
+        });
 
-      if (sendWhatsApp && bookingDetails.phone) {
-        try {
-          pdfUrl = await uploadBufferToCloudinary(pdfBuffer, "Appointment_Slip.pdf");
-        } catch (waError) {
-          console.error("Cloudinary Upload Error:", waError.message);
+        if (sendWhatsApp && bookingDetails.phone) {
+          try {
+            pdfUrl = await uploadBufferToCloudinary(pdfBuffer, "Appointment_Slip.pdf");
+          } catch (waError) {
+            console.error("❌ Cloudinary Upload Error:", waError.message);
+          }
         }
+      } catch (pdfErr) {
+        console.error("❌ PDF Generation Error:", pdfErr.message);
       }
     }
 
-    // Email Content
+    // Professional Email Content
     const emailSubject = bookingDetails.status === "Confirmed" 
-      ? `Appointment Approved - ${bookingDetails.hospitalName}`
-      : `Appointment Update - ${bookingDetails.hospitalName}`;
+      ? `Confirmed: Your Appointment at ${bookingDetails.hospitalName}`
+      : `Update: Appointment ${bookingDetails.status} - ${bookingDetails.hospitalName}`;
 
-    const emailBody = `Dear ${bookingDetails.patientName},
+    const plainTextBody = `Dear ${bookingDetails.patientName},
 
-Your appointment has been ${bookingDetails.status === 'Confirmed' ? 'approved' : 'updated'}.
+Your appointment has been ${bookingDetails.status === 'Confirmed' ? 'confirmed and approved' : 'updated to ' + bookingDetails.status}.
 
-${includePDF ? 'Please find your appointment slip attached.' : ''}
-
+Appointment Details:
+-------------------
 Hospital: ${bookingDetails.hospitalName}
 Branch: ${bookingDetails.branchName || 'Main'}
 Date: ${bookingDetails.date}
 Time: ${bookingDetails.time}
 Appointment ID: ${bookingDetails.customId || bookingDetails._id}
 
-Track Appointment: ${trackingURL}
+${includePDF ? 'Please find your official appointment slip attached to this email.' : ''}
 
-Regards,
-${bookingDetails.hospitalName}`;
+You can track your real-time status here: ${trackingURL}
 
-    const mailOptions = {
-      from: `"Clinoza HealthCare" <${process.env.EMAIL_USER}>`,
+If you have any questions, please contact the hospital at ${bookingDetails.supportPhone || 'our support line'}.
+
+Best Regards,
+The ${bookingDetails.hospitalName} Team`;
+
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px;">
+        <h2 style="color: #2563eb;">Appointment ${bookingDetails.status === 'Confirmed' ? 'Confirmed' : 'Update'}</h2>
+        <p>Dear <strong>${bookingDetails.patientName}</strong>,</p>
+        <p>Your appointment at <strong>${bookingDetails.hospitalName}</strong> has been ${bookingDetails.status === 'Confirmed' ? '<span style="color: #059669; font-weight: bold;">Approved</span>' : 'updated to <strong>' + bookingDetails.status + '</strong>'}.</p>
+        
+        <div style="background-color: #f8fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; font-size: 16px;">Appointment Summary</h3>
+          <table style="width: 100%; font-size: 14px;">
+            <tr><td style="padding: 5px 0;"><strong>Date:</strong></td><td>${bookingDetails.date}</td></tr>
+            <tr><td style="padding: 5px 0;"><strong>Time:</strong></td><td>${bookingDetails.time}</td></tr>
+            <tr><td style="padding: 5px 0;"><strong>ID:</strong></td><td>${bookingDetails.customId || bookingDetails._id}</td></tr>
+            <tr><td style="padding: 5px 0;"><strong>Token:</strong></td><td>${bookingDetails.tokenNumber || 'Assigned at hospital'}</td></tr>
+          </table>
+        </div>
+
+        <p>You can track your appointment status and queue position in real-time:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${trackingURL}" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Track Appointment</a>
+        </div>
+
+        <p style="font-size: 12px; color: #64748b; margin-top: 40px;">
+          If you have any questions, please reach out to ${bookingDetails.hospitalName} directly at ${bookingDetails.supportPhone}.
+          <br><br>
+          <em>This is an automated message from Clinoza Healthcare on behalf of ${bookingDetails.hospitalName}.</em>
+        </p>
+      </div>
+    `;
+
+    const msg = {
       to: patientEmail,
+      from: {
+        email: SENDER_EMAIL,
+        name: bookingDetails.hospitalName || "Clinoza HealthCare"
+      },
       subject: emailSubject,
-      text: emailBody,
+      text: plainTextBody,
+      html: htmlBody,
       attachments: attachments,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${patientEmail}`);
+    if (!SENDGRID_API_KEY) {
+       console.warn("⚠️ SendGrid API Key missing. Email skipped.");
+       return { status: "Email Pending" };
+    }
+
+    try {
+      await sgMail.send(msg);
+      console.log(`✅ Email sent to ${patientEmail} via SendGrid`);
+    } catch (error) {
+      console.error("❌ SendGrid Email Error:", error.response ? error.response.body : error.message);
+      return { status: "Email Pending" };
+    }
 
     // WhatsApp Approval Message
     if (sendWhatsApp && bookingDetails.phone && bookingDetails.status === "Confirmed") {
@@ -288,18 +343,15 @@ Dear *${bookingDetails.patientName}*,
 Your appointment has been approved.
 
 *Appointment Details:*
-Hospital: ${bookingDetails.hospitalName}
-Branch: ${bookingDetails.branchName || 'Main'}
 Date: ${bookingDetails.date}
 Time: ${bookingDetails.time}
-Appointment ID: ${bookingDetails.customId || bookingDetails._id}
+ID: ${bookingDetails.customId || bookingDetails._id}
+Token: ${bookingDetails.tokenNumber || 'N/A'}
 
-Please carry your appointment slip.
-
-Track Appointment:
+Track Live Status:
 ${trackingURL}
 
-Thank you.`;
+Thank you for choosing ${bookingDetails.hospitalName}.`;
 
       await sendWhatsAppNotification(bookingDetails.phone, {
         body: waMessage,
@@ -307,8 +359,11 @@ Thank you.`;
       });
     }
 
+    return { status: "Email Sent" };
+
   } catch (error) {
-    console.error("Mailer Error:", error);
+    console.error("❌ Mailer logic error:", error.message);
+    return { status: "Email Pending" };
   }
 };
 
@@ -323,56 +378,62 @@ const sendBookingConfirmationWhatsApp = async (bookingDetails) => {
 
 Dear *${bookingDetails.patientName}*,
 
-Your appointment request has been successfully received.
+Your appointment request has been received.
 
-*Appointment Details:*
+*Details:*
 Hospital: ${bookingDetails.hospitalName}
-Branch: ${bookingDetails.branchName || 'Main'}
 Date: ${bookingDetails.date}
 Time: ${bookingDetails.time}
-Appointment ID: ${bookingDetails.customId || bookingDetails._id}
+ID: ${bookingDetails.customId || bookingDetails._id}
 
-Your appointment is currently under review.
+Status: *Under Review*
 
-Track Appointment:
+Track Progress:
 ${trackingURL}
 
-For assistance:
-📞 ${bookingDetails.supportPhone || '+91 0000000000'}
-
-Thank you for choosing ${bookingDetails.hospitalName}`;
+For assistance: ${bookingDetails.supportPhone || ''}`;
 
     await sendWhatsAppNotification(bookingDetails.phone, waMessage);
   } catch (error) {
-    console.error("Booking WhatsApp Error:", error);
+    console.error("❌ Booking WhatsApp Error:", error.message);
   }
 };
 
 const sendHospitalApprovalEmail = async (hospitalEmail, hospitalName, status) => {
   try {
-    const mailOptions = {
-      from: `"Clinoza Team" <${process.env.EMAIL_USER}>`,
+    const emailSubject = `Hospital Status Update: ${status.toUpperCase()}`;
+    const text = `Hello ${hospitalName},\n\nYour hospital registration status has been updated to: ${status.toUpperCase()}.\n\n${status === 'approved' ? 'You can now log in and manage your dashboard.' : 'Please contact support for more details.'}\n\nThank you,\nClinoza Team`;
+
+    const msg = {
       to: hospitalEmail,
-      subject: `Hospital Status Update: ${status.toUpperCase()}`,
-      text: `Hello ${hospitalName},\n\nYour hospital registration status has been updated to: ${status.toUpperCase()}.\n\n${status === 'approved' ? 'You can now log in and manage your dashboard.' : 'Please contact support for more details.'}\n\nThank you,\nClinoza Team`,
+      from: SENDER_EMAIL,
+      subject: emailSubject,
+      text: text,
+      html: `<h3>Status Updated</h3><p>${text.replace(/\n/g, '<br>')}</p>`
     };
-    await transporter.sendMail(mailOptions);
+
+    if (SENDGRID_API_KEY) {
+      await sgMail.send(msg);
+      console.log(`✅ Approval email sent to ${hospitalEmail}`);
+    }
   } catch (error) {
-    console.error("Hospital Approval Email Error:", error);
+    console.error("❌ Hospital Approval Email Error:", error.message);
   }
 };
 
 const sendHospitalPendingEmail = async (hospitalEmail, hospitalName) => {
   try {
-    const mailOptions = {
-      from: `"Clinoza Team" <${process.env.EMAIL_USER}>`,
+    const msg = {
       to: hospitalEmail,
+      from: SENDER_EMAIL,
       subject: `Hospital Registration: UNDER REVIEW`,
       text: `Hello ${hospitalName},\n\nYour hospital registration is currently UNDER REVIEW.\n\nOur admin team will verify your details and approve it within 24 hours.\n\nYou will receive another email once it is approved.\n\nThank you for joining Clinoza!`,
     };
-    await transporter.sendMail(mailOptions);
+    if (SENDGRID_API_KEY) {
+      await sgMail.send(msg);
+    }
   } catch (error) {
-    console.error("Hospital Pending Email Error:", error);
+    console.error("❌ Hospital Pending Email Error:", error.message);
   }
 };
 

@@ -101,8 +101,10 @@ exports.bookAppointment = async (req, res) => {
       };
       
       // Send WhatsApp in background so user doesn't wait
-      sendBookingConfirmationWhatsApp(notificationDetails)
-        .catch(err => console.error("Booking Notification Error:", err));
+      sendBookingConfirmationWhatsApp({
+        ...notificationDetails,
+        hospitalLogo: hospital.hospitalLogo
+      }).catch(err => console.error("Booking Notification Error:", err));
     } catch (err) { console.error("Notification Trigger Error:", err); }
 
     res.status(201).json({ msg: "Appointment booked successfully. Confirmation WhatsApp is being sent.", appointment });
@@ -211,14 +213,26 @@ exports.updateAppointmentStatus = async (req, res) => {
 
       try {
         const { sendAppointmentEmail } = require("../config/mailer");
-        // We do NOT await here so the API responds instantly and dashboard doesn't get stuck
-        // Email will continue to send in the background
-        sendAppointmentEmail(appointment.patientEmail, notificationDetails, true, status === "Confirmed")
-          .catch(err => console.error("Background Mailer Error:", err));
-      } catch (err) { console.error("Update Notification Trigger Error:", err); }
+        
+        // Passing hospitalLogo from populated hospitalId
+        notificationDetails.hospitalLogo = appointment.hospitalId?.hospitalLogo;
+
+        // Task 10: Return clear status. We await here to ensure we know the result.
+        // If deliverability is a priority, awaiting ensures the hospital knows if it went through.
+        const mailResult = await sendAppointmentEmail(appointment.patientEmail, notificationDetails, true, status === "Confirmed");
+        
+        return res.json({ 
+          msg: `Status updated to ${status}.`, 
+          emailStatus: mailResult.status,
+          appointment 
+        });
+      } catch (err) { 
+        console.error("Update Notification Trigger Error:", err);
+        return res.json({ msg: `Status updated to ${status}. Email failed.`, emailStatus: "Email Pending", appointment });
+      }
     }
 
-    res.json({ msg: `Status updated to ${status}. Patient notification in progress.`, appointment });
+    res.json({ msg: `Status updated to ${status}.`, appointment });
   } catch (error) {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
