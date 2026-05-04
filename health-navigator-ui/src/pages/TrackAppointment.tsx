@@ -60,11 +60,11 @@ export default function TrackAppointment() {
 
   const handleTrack = async () => {
     if (!tokenNo) {
-      toast({ title: 'Token Number zaroori hai', description: 'Kripya apna token number daalein.', variant: 'destructive' });
+      toast({ title: 'Token Number is required', description: 'Please enter your token number to track status.', variant: 'destructive' });
       return;
     }
     if (!phone) {
-      toast({ title: 'Phone Number zaroori hai', variant: 'destructive' });
+      toast({ title: 'Phone Number is required', variant: 'destructive' });
       return;
     }
     
@@ -85,8 +85,8 @@ export default function TrackAppointment() {
         setAppointment(null);
         setErrorState(true);
         toast({ 
-          title: 'Appointment Nahi Mila', 
-          description: data.message || 'Details check karein aur firse try karein.', 
+          title: 'Appointment Not Found', 
+          description: data.message || 'Please check your details and try again.', 
           variant: 'destructive' 
         });
       }
@@ -136,8 +136,8 @@ export default function TrackAppointment() {
                    Track Your <span className="text-primary">Status</span>
                  </h1>
                  <p className="text-muted-foreground text-lg mb-10 font-medium">
-                   Token Number aur Phone daal kar status dekhein.
-                 </p>
+                    Enter your token number and phone number to check your appointment status.
+                  </p>
               </motion.div>
 
               <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="p-4 bg-card border border-border rounded-[2rem] shadow-xl shadow-primary/5">
@@ -166,7 +166,7 @@ export default function TrackAppointment() {
                     {loading ? <RefreshCcw className="h-6 w-6 animate-spin" /> : 'Track Status Now'}
                  </Button>
                  <p className="text-[10px] text-muted-foreground mt-3 uppercase tracking-widest font-bold">
-                    * Token Number daalna zaroori hai status dekhne ke liye.
+                    * Token number is required to track your appointment status.
                  </p>
               </motion.div>
            </div>
@@ -198,7 +198,7 @@ export default function TrackAppointment() {
                   </div>
                   <h2 className="text-2xl font-black text-red-900 mb-2">Appointment Not Found</h2>
                   <p className="text-red-700/70 mb-6">
-                    Hume aapka appointment nahi mila. Please Token Number aur Phone Number sahi daalein.
+                    We couldn't find your appointment. Please ensure your Token Number and Phone Number are correct.
                   </p>
                   <Button variant="outline" onClick={() => setErrorState(false)} className="rounded-xl">Try Again</Button>
                 </motion.div>
@@ -215,7 +215,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Instant Status</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Aapki live line position aur doctor consultation updates yahan dekhein.
+                      View your live queue position and doctor consultation updates here.
                     </p>
                   </motion.div>
 
@@ -231,7 +231,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Live Token</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Hospital me abhi kaunsa token number serve ho raha hai, ye live dekhein.
+                      See which token number is currently being served at the hospital in real-time.
                     </p>
                   </motion.div>
 
@@ -247,7 +247,7 @@ export default function TrackAppointment() {
                     </div>
                     <h3 className="text-xl font-bold mb-3">Save Time</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      Ghar baithe status dekhein aur hospital me intezar karne se bachein.
+                      Track your status from home and avoid long waiting times at the hospital.
                     </p>
                   </motion.div>
                 </div>
@@ -265,20 +265,20 @@ export default function TrackAppointment() {
                      appointment.status === 'Confirmed' ? "bg-blue-50 border-blue-200 text-blue-800" :
                      "bg-amber-50 border-amber-200 text-amber-800"
                    )}>
-                     {appointment.status === 'Completed' ? (
-                       <div className="flex flex-col items-center gap-2">
-                         <CheckCircle2 className="h-8 w-8 text-emerald-600 mb-2" />
-                         <h3 className="text-2xl font-black italic">Dhanyawad! Welcome to {appointment.hospitalName}</h3>
-                         <p className="text-sm opacity-80">Aapka checkup safalta purvak pura ho gaya hai. Hum aapke swasthya ki kamna karte hain!</p>
-                       </div>
-                     ) : appointment.status === 'Confirmed' ? (
-                       <p className="text-lg">Aapka appointment <span className="font-black underline">Approved / Confer</span> ho chuka hai. Kripya samay par hospital branch pahunchein.</p>
-                     ) : appointment.status === 'In Consultation' ? (
-                       <p className="text-lg">Aapka <span className="font-black underline">Checkup shuru</span> hai doctor ke saath. Kripya clinic ke bahar dhyan dein.</p>
-                     ) : (
-                       <p className="text-lg">Aapka status: <span className="font-black italic underline">{appointment.status}</span>. Kripya updates ke liye wait karein.</p>
-                     )}
-                   </div>
+                      {appointment.status === 'Completed' ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <CheckCircle2 className="h-8 w-8 text-emerald-600 mb-2" />
+                          <h3 className="text-2xl font-black italic">Thank You! Welcome to {appointment.hospitalName}</h3>
+                          <p className="text-sm opacity-80">Your appointment has been completed successfully. We wish you a speedy recovery!</p>
+                        </div>
+                      ) : appointment.status === 'Confirmed' ? (
+                        <p className="text-lg">Your appointment has been <span className="font-black underline">Confirmed</span>. Please arrive at the hospital branch on time.</p>
+                      ) : appointment.status === 'In Consultation' ? (
+                        <p className="text-lg">Your <span className="font-black underline">Consultation</span> with the doctor has started. Please proceed to the clinic area.</p>
+                      ) : (
+                        <p className="text-lg">Your Appointment Status: <span className="font-black italic underline">{appointment.status}</span>. Please wait for further updates.</p>
+                      )}
+                    </div>
 
                    {/* Main Live Card */}
                    <div className="bg-primary/90 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-primary/30 relative overflow-hidden group">
@@ -359,7 +359,7 @@ export default function TrackAppointment() {
                          </div>
                          <h4 className="text-xl font-bold text-emerald-900 mb-2">Live Sync Active</h4>
                          <p className="text-emerald-700/70 text-sm max-w-[200px]">
-                            Yeh page har 30 seconds me automatically update hota hai.
+                            This page updates automatically every 30 seconds.
                          </p>
                          <Button variant="link" className="text-emerald-600 font-bold mt-4 animate-bounce" onClick={handleTrack}>
                             Force Refresh Now <ChevronRight className="h-4 w-4 ml-1" />

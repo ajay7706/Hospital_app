@@ -134,7 +134,7 @@ export default function DoctorDashboard() {
         <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div>
               <h2 className="text-3xl font-black text-foreground">Welcome back, Doctor</h2>
-              <p className="text-muted-foreground">Aapke pas aaj {appointments.filter(a => a.status !== 'Completed').length} active consultations hain.</p>
+              <p className="mt-1 text-sm text-blue-600 font-medium">You have {appointments.filter(a => a.status !== 'Completed').length} active consultations today.</p>
            </div>
            <div className="flex items-center gap-3 bg-card border border-border p-1.5 rounded-2xl shadow-sm">
               <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${filter === 'all' ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:bg-muted'}`}>All</button>
@@ -271,7 +271,7 @@ export default function DoctorDashboard() {
               {filteredApts.length === 0 && (
                  <div className="text-center py-20 bg-card/30 rounded-3xl border border-dashed border-border mt-6">
                     <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-                    <p className="text-muted-foreground font-medium">Is category me koi appointments nahi hain.</p>
+                    <p className="text-muted-foreground italic">No appointments found in this category.</p>
                  </div>
               )}
            </div>

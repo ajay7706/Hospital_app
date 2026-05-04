@@ -134,7 +134,7 @@ const HospitalDetails = () => {
   useEffect(() => {
     const booked = searchParams.get('emergencyBooked') === '1';
     if (!booked) return;
-    toast({ title: 'Booking completed', description: 'Ab Emergency Call dabake number dial kar sakte ho.' });
+    toast({ title: 'Booking completed', description: 'You can now press the Emergency Call button to dial.' });
     navigate(`/hospital-details?id=${hospitalId}`, { replace: true });
   }, [hospitalId, navigate, searchParams, toast]);
 
@@ -459,7 +459,7 @@ const HospitalDetails = () => {
                       <Ambulance className="h-5 w-5" /> 🚑 Emergency Call
                     </h3>
                     <p className="mt-2 text-sm text-red-600/80">
-                      Pehle emergency booking form fill karein, phir call karein.
+                      Please fill out the emergency booking form first, then call.
                     </p>
                     <div className="mt-4 space-y-2">
                       <Button onClick={() => handleEmergencyClick()} className="w-full bg-red-600 hover:bg-red-700 shadow-md">

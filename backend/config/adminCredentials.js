@@ -1,7 +1,6 @@
 /**
  * Admin Credentials Configuration
- * 
- * Is file ko aap admin dashboard login ke liye use kar sakte hain.
+ * You can use these credentials to log into the admin dashboard.
  */
 
 module.exports = {

@@ -303,7 +303,7 @@ const EditProfile = () => {
       <main className="container mx-auto max-w-4xl px-4 py-10 md:py-14">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border bg-card shadow-sm p-6 sm:p-8">
           <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Basic profile update karein. Doctors, branches, gallery, documents yaha include nahi hai.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Update your basic profile information here. Doctors, branches, gallery, and documents are managed separately.</p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 space-y-8">
@@ -603,7 +603,7 @@ const EditProfile = () => {
                         OPD Consultation Charge (₹) *
                       </FormLabel>
                       <FormControl><Input type="number" placeholder="e.g. 500" {...field} className="bg-background border-primary/20 focus:ring-primary/40 h-11 text-lg font-semibold" /></FormControl>
-                      <p className="text-[11px] text-muted-foreground italic font-medium">Ye charge patients ko website ke Hospital Cards pe dikhaya jayega.</p>
+                      <p className="text-[11px] text-muted-foreground italic font-medium">This charge will be displayed to patients on the hospital information cards.</p>
                       <FormMessage />
                     </FormItem>
                   )} />

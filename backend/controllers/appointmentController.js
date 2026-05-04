@@ -360,7 +360,7 @@ exports.trackAppointment = async (req, res) => {
     } 
 
     if (!appointment) {
-      return res.status(404).json({ message: "Appointment nahi mila. Please Token Number aur Phone check karein." });
+      return res.status(404).json({ message: "Appointment not found. Please check your Token Number and Phone Number." });
     }
 
     const tracker = await TokenTracker.findOne({

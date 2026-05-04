@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Calendar, Facebook, Twitter, Linkedin, Youtube } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 const footerLinks = {
   forHospitals: [
@@ -12,12 +12,7 @@ const footerLinks = {
   ],
 };
 
-const socialLinks = [
-  { icon: Facebook, href: '#', label: 'Facebook' },
-  { icon: Twitter, href: '#', label: 'Twitter' },
-  { icon: Linkedin, href: '#', label: 'LinkedIn' },
-  { icon: Youtube, href: '#', label: 'YouTube' },
-];
+
 
 export const Footer = () => {
   return (
@@ -79,24 +74,6 @@ export const Footer = () => {
             </ul>
           </div>
 
-          {/* Social Links */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider">
-              Connect With Us
-            </h3>
-            <div className="flex gap-3">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/10 transition-colors hover:bg-primary-foreground/20"
-                >
-                  <social.icon className="h-5 w-5" />
-                </a>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Bottom Bar */}
