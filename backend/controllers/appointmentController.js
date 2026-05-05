@@ -329,35 +329,45 @@ exports.trackAppointment = async (req, res) => {
     const { id } = req.params;
     let appointment;
     
+    console.log("Tracking request:", { token, phone, tokenNumber, id });
+
     // If tracking by Token Number and Phone
-    if (!appointment && tokenNumber && phone) {
+    if (tokenNumber && phone) {
       const cleanPhone = phone.replace(/\D/g, '').slice(-10); // Last 10 digits
-      appointment = await Appointment.findOne({ 
-        tokenNumber: parseInt(tokenNumber), 
-        $or: [
-          { phone: cleanPhone },
-          { phone: `+91${cleanPhone}` }
-        ]
-      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+      const tNum = parseInt(tokenNumber);
+      
+      if (!isNaN(tNum)) {
+        appointment = await Appointment.findOne({ 
+          tokenNumber: tNum, 
+          $or: [
+            { phone: new RegExp(cleanPhone + '$') }, // Ends with cleanPhone
+            { phone: cleanPhone },
+            { phone: `+91${cleanPhone}` }
+          ]
+        }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+      }
     } 
-    // Fallback: If tracking by phone only (last 10 digits match)
-    else if (!appointment && phone && !id) {
-      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-      appointment = await Appointment.findOne({ 
-        $or: [
-          { phone: cleanPhone },
-          { phone: `+91${cleanPhone}` }
-        ]
-      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
-    }
-    // Fallback: If tracking by ID or Custom ID
-    else if (id || token) {
+    
+    // Fallback: If tracking by Custom ID or MongoDB ID
+    if (!appointment && (id || token)) {
       const searchId = id || token;
       appointment = await Appointment.findOne({ customId: searchId }).populate("hospitalId branchId");
       if (!appointment && mongoose.Types.ObjectId.isValid(searchId)) {
         appointment = await Appointment.findById(searchId).populate("hospitalId branchId");
       }
     } 
+
+    // Fallback: If tracking by phone only
+    if (!appointment && phone && !tokenNumber && !id && !token) {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      appointment = await Appointment.findOne({ 
+        $or: [
+          { phone: new RegExp(cleanPhone + '$') },
+          { phone: cleanPhone },
+          { phone: `+91${cleanPhone}` }
+        ]
+      }).sort({ createdAt: -1 }).populate("hospitalId branchId");
+    }
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found. Please check your Token Number and Phone Number." });
@@ -371,6 +381,20 @@ exports.trackAppointment = async (req, res) => {
 
     const nowServing = tracker ? tracker.currentToken : 1;
     const peopleAhead = Math.max(0, appointment.tokenNumber - nowServing);
+
+    // Custom status message based on status and people ahead
+    let statusMessage = "";
+    if (appointment.status === 'Completed') {
+      statusMessage = `Thank you for visiting! Your consultation is completed.`;
+    } else if (appointment.status === 'In Consultation') {
+      statusMessage = `You are currently in consultation with the doctor.`;
+    } else if (peopleAhead === 0) {
+      statusMessage = `It's your turn! Please proceed to the doctor's cabin.`;
+    } else if (peopleAhead === 1) {
+      statusMessage = `You are next! Please be ready near the doctor's cabin.`;
+    } else {
+      statusMessage = `There are ${peopleAhead} patients ahead of you. Please wait for your turn.`;
+    }
 
     const response = {
       _id: appointment._id,
@@ -388,7 +412,8 @@ exports.trackAppointment = async (req, res) => {
       paymentStatus: appointment.paymentStatus || "Pending",
       nowServing,
       peopleAhead,
-      tokenNumber: appointment.tokenNumber
+      tokenNumber: appointment.tokenNumber,
+      statusMessage: statusMessage
     };
 
     res.json({
@@ -399,6 +424,7 @@ exports.trackAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 // Get Slot Occupancy
 exports.getSlotOccupancy = async (req, res) => {
   try {

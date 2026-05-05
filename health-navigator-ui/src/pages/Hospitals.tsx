@@ -28,6 +28,10 @@ interface Hospital {
   emergency24x7: boolean;
   ambulanceAvailable: boolean;
   opdCharge: number;
+  govtSchemes?: any[];
+  insurance?: { accepted: boolean };
+  labDetails?: { enabled: boolean };
+  medicalStore?: { enabled: boolean };
 }
 
 

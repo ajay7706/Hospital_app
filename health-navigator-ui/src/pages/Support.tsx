@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Mail, Phone, MessageCircle } from 'lucide-react';
@@ -10,25 +11,36 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 
-const faqs = [
-  {
-    question: 'How to book an appointment?',
-    answer:
-      'Go to the Hospitals page, find a hospital, and click "Book Visit". Fill in your details, select a date and time, then confirm your appointment.',
-  },
-  {
-    question: 'How to register a hospital?',
-    answer:
-      'Click "Sign Up", select the "Hospital" role, and create your account. After signing up, complete the Hospital Setup form with your hospital details.',
-  },
-  {
-    question: 'How to contact support?',
-    answer:
-      'You can reach us via email at support@clinoza.in or call us at +91 9616326950. Our support team is available Monday to Saturday, 9 AM to 6 PM.',
-  },
-];
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
 const Support = () => {
+  const [settings, setSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/hospitals/settings`)
+      .then(res => res.json())
+      .then(data => setSettings(data))
+      .catch(err => console.error('Failed to fetch settings:', err));
+  }, []);
+
+  const faqs = [
+    {
+      question: 'How to book an appointment?',
+      answer:
+        'Go to the Hospitals page, find a hospital, and click "Book Visit". Fill in your details, select a date and time, then confirm your appointment.',
+    },
+    {
+      question: 'How to register a hospital?',
+      answer:
+        'Click "Sign Up", select the "Hospital" role, and create your account. After signing up, complete the Hospital Setup form with your hospital details.',
+    },
+    {
+      question: 'How to contact support?',
+      answer:
+        `You can reach us via email at ${settings?.supportEmail || 'support@clinoza.in'} or call us at ${settings?.supportPhone || '+91 9616326950'}. Our support team is available Monday to Saturday, 9 AM to 6 PM.`,
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <SEO 
@@ -57,7 +69,7 @@ const Support = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium text-foreground">support@clinoza.in</p>
+                <p className="font-medium text-foreground">{settings?.supportEmail || 'support@clinoza.in'}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5">
@@ -66,7 +78,7 @@ const Support = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Phone</p>
-                <p className="font-medium text-foreground">+91 9616326950</p>
+                <p className="font-medium text-foreground">{settings?.supportPhone || '+91 9616326950'}</p>
               </div>
             </div>
           </div>

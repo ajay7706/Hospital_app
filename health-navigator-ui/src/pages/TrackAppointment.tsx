@@ -268,15 +268,17 @@ export default function TrackAppointment() {
                       {appointment.status === 'Completed' ? (
                         <div className="flex flex-col items-center gap-2">
                           <CheckCircle2 className="h-8 w-8 text-emerald-600 mb-2" />
-                          <h3 className="text-2xl font-black italic">Thank You! Welcome to {appointment.hospitalName}</h3>
-                          <p className="text-sm opacity-80">Your appointment has been completed successfully. We wish you a speedy recovery!</p>
+                          <h3 className="text-2xl font-black italic">Welcome to {appointment.hospitalName}</h3>
+                          <p className="text-lg font-bold">Doctor has completed your consultation. We wish you a speedy recovery!</p>
                         </div>
-                      ) : appointment.status === 'Confirmed' ? (
-                        <p className="text-lg">Your appointment has been <span className="font-black underline">Confirmed</span>. Please arrive at the hospital branch on time.</p>
-                      ) : appointment.status === 'In Consultation' ? (
-                        <p className="text-lg">Your <span className="font-black underline">Consultation</span> with the doctor has started. Please proceed to the clinic area.</p>
                       ) : (
-                        <p className="text-lg">Your Appointment Status: <span className="font-black italic underline">{appointment.status}</span>. Please wait for further updates.</p>
+                        <div className="flex flex-col items-center gap-2">
+                           <Clock className="h-8 w-8 text-amber-600 mb-2" />
+                           <h3 className="text-xl font-bold">{appointment.statusMessage || `Your status is ${appointment.status}`}</h3>
+                           {appointment.peopleAhead > 0 && (
+                             <p className="text-lg">Aapke aage <span className="text-2xl font-black text-primary">{appointment.peopleAhead}</span> patients hain.</p>
+                           )}
+                        </div>
                       )}
                     </div>
 
@@ -314,7 +316,7 @@ export default function TrackAppointment() {
                             <p className="text-4xl font-black text-white glow-text">#{appointment.nowServing || 0}</p>
                          </div>
                          <div className="space-y-1">
-                            <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">People Ahead</p>
+                            <p className="text-[10px] uppercase font-bold text-white/60 tracking-wider">Patients Ahead</p>
                             <p className="text-4xl font-black text-amber-300">
                                {appointment.peopleAhead > 0 ? appointment.peopleAhead : 'YOUR TURN!'}
                             </p>

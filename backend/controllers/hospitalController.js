@@ -165,7 +165,7 @@ exports.getAllHospitals = async (req, res) => {
 
     // Optimization: Select only required fields for listing and use lean
     const hospitals = await Hospital.find(query)
-      .select('hospitalName hospitalLogo image city fullAddress address rating specialties openingTime closingTime emergency24x7 ambulanceAvailable opdCharge')
+      .select('hospitalName hospitalLogo image city fullAddress address rating specialties openingTime closingTime emergency24x7 ambulanceAvailable opdCharge govtSchemes insurance labDetails medicalStore')
       .lean();
     
     if (hospitals.length === 0) return res.json([]);
@@ -724,4 +724,21 @@ exports.getHospitalBranchesDetail = async (req, res) => {
     res.status(500).json({ msg: "Server error", error: error.message });
   }
 };
+
+exports.getPublicSettings = async (req, res) => {
+  try {
+    const settings = await AdminSettings.findOne().select('platformName platformLogo supportEmail supportPhone defaultCity updatedAt');
+    if (!settings) {
+      return res.json({
+        platformName: "Clinoza",
+        supportEmail: "support@clinoza.com",
+        supportPhone: "+91 98765 43210"
+      });
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ msg: "Server error", error: error.message });
+  }
+};
+
 

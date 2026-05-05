@@ -12,6 +12,7 @@ const {
 
 // Public routes
 router.get("/all", getAllHospitals);
+router.get("/settings", require("../controllers/hospitalController").getPublicSettings);
 router.get("/me", protect, isHospital, getHospitalByUserId);
 router.get("/:id", optionalProtect, getHospitalById);
 

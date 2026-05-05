@@ -71,6 +71,7 @@ const SignUp = () => {
     return interval;
   };
 
+/*
   const onSendOtp = async (data: SignUpFormValues) => {
     setIsLoading(true);
     try {
@@ -149,9 +150,51 @@ const SignUp = () => {
       setIsLoading(false);
     }
   };
+*/
+
+  const onSubmitDirect = async (data: SignUpFormValues) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          password: data.password,
+          role: selectedRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Signup failed');
+      }
+
+      const result = await response.json();
+
+      if (result.token) localStorage.setItem('token', result.token);
+      if (result.user) localStorage.setItem('user', JSON.stringify(result.user));
+
+      toast({
+        title: 'Account created successfully!',
+        description: selectedRole === 'hospital' ? 'Complete your hospital profile to get started.' : 'Welcome to Clinoza! Redirecting...',
+      });
+
+      setTimeout(() => {
+        navigate(selectedRole === 'hospital' ? '/hospital-setup' : '/login');
+      }, 1000);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (data: SignUpFormValues) => {
-    await onSendOtp(data);
+    // await onSendOtp(data); // Commented out OTP step
+    await onSubmitDirect(data);
   };
 
   return (
@@ -197,52 +240,10 @@ const SignUp = () => {
             </p>
           </div>
 
-          {otpStep ? (
+          {/* OTP step commented out */}
+          {false && otpStep ? (
             <div className="mt-8 space-y-6">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Verification Code</span>
-                  <span className={cn("text-xs font-bold", timer < 30 ? "text-destructive" : "text-primary")}>
-                    {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
-                  </span>
-                </div>
-                <Input
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  className="h-14 text-center text-3xl tracking-[0.5em] font-bold"
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-center text-muted-foreground">
-                  Development OTP logged in console/Render logs
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  className="flex-1" 
-                  onClick={() => setOtpStep(false)}
-                  disabled={isLoading}
-                >
-                  Back
-                </Button>
-                <Button 
-                  className="flex-1" 
-                  onClick={onVerifyOtp}
-                  disabled={isLoading || otp.length < 4}
-                  isLoading={isLoading}
-                >
-                  Verify & Signup
-                </Button>
-              </div>
-              {timer === 0 && (
-                <button 
-                  onClick={() => onSendOtp(pendingData!)} 
-                  className="w-full text-sm text-primary hover:underline"
-                >
-                  Resend OTP
-                </button>
-              )}
+              {/* ... OTP content ... */}
             </div>
           ) : (
             <>
