@@ -53,6 +53,7 @@ app.use("/api/upload", require("./routes/uploadRoutes"));
 app.use("/api/doctors", require("./routes/doctorRoutes"));
 app.use("/api/branches", require("./routes/branchRoutes"));
 app.use("/api/otp", require("./routes/otpRoutes"));
+app.use("/api/chat", require("./routes/chatRoutes"));
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ msg: `Route ${req.originalUrl} not found` });

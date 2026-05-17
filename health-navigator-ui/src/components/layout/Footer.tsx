@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
 
 const footerLinks = {
   forHospitals: [
@@ -12,8 +11,6 @@ const footerLinks = {
   ],
 };
 
-
-
 export const Footer = () => {
   return (
     <footer className="bg-primary text-primary-foreground">
@@ -21,15 +18,11 @@ export const Footer = () => {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Logo & Description */}
           <div className="lg:col-span-1">
-            <Link to="/" className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-foreground/10 text-primary-foreground p-1.5">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-full">
-                  <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <path d="M12 6V11M12 11V16M12 11H7M12 11H17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  <circle cx="12" cy="8" r="1.5" fill="currentColor"/>
-                </svg>
+            <Link to="/" className="mb-4 flex items-center gap-2.5">
+              <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm p-1.5 shrink-0">
+                <img src="/logo.png" alt="Clinoza Logo" className="h-full w-full object-contain" />
               </div>
-              <span className="text-xl font-bold">Clinoza</span>
+              <span className="text-2xl font-black tracking-tight">Clinoza</span>
             </Link>
             <p className="mt-4 text-sm text-primary-foreground/70">
               Find and book the best hospitals near you with AI-powered recommendations.
@@ -71,6 +64,29 @@ export const Footer = () => {
                   </Link>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/* Contact Details (Filling empty space on right) */}
+          <div>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider">
+              Contact Us
+            </h3>
+            <ul className="space-y-3">
+              <li className="text-sm text-primary-foreground/70">
+                <span className="block font-medium text-primary-foreground/90">Email:</span>
+                <a href="mailto:support@clinoza.com" className="hover:text-primary-foreground transition-colors">
+                  support@clinoza.com
+                </a>
+              </li>
+              <li className="text-sm text-primary-foreground/70">
+                <span className="block font-medium text-primary-foreground/90">HQ Office:</span>
+                <span>New Delhi, Delhi 110001, India</span>
+              </li>
+              <li className="text-sm text-primary-foreground/70">
+                <span className="block font-medium text-primary-foreground/90">Availability:</span>
+                <span>24x7 Customer Support</span>
+              </li>
             </ul>
           </div>
 

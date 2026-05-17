@@ -27,6 +27,8 @@ import AboutUs from "./pages/AboutUs";
 import PartnerWithUs from "./pages/PartnerWithUs";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
+import ClinozaAI from "./pages/ClinozaAI";
+
 
 const queryClient = new QueryClient();
 
@@ -63,7 +65,9 @@ const App = () => (
           <Route path="/terms" element={<TermsConditions />} />
           <Route path="/profile" element={<HospitalProfile />} />
           <Route path="/edit-profile" element={<EditProfile />} />
+          <Route path="/clinoza-ai" element={<ClinozaAI />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

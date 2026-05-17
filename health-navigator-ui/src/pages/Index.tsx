@@ -7,7 +7,8 @@ import { HowItWorks } from '@/components/home/HowItWorks';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { ForHospitals } from '@/components/home/ForHospitals';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Star, MapPin } from 'lucide-react';
+import { ArrowRight, Star, MapPin, Bot, Sparkles } from 'lucide-react';
+
 import { motion } from 'framer-motion';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import api from '@/lib/api';
@@ -154,7 +155,28 @@ const Index = () => {
         <ForHospitals />
       </main>
       <Footer />
+      
+      {/* Floating Clinoza AI Assistant Button */}
+      <motion.div
+        className="fixed bottom-6 right-6 z-50 pointer-events-auto"
+        initial={{ scale: 0, opacity: 0, y: 50 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ delay: 0.8, type: "spring", stiffness: 260, damping: 20 }}
+      >
+        <Link to="/clinoza-ai">
+          <Button 
+            className="bg-primary hover:bg-primary/95 text-white font-extrabold text-xs sm:text-sm px-4.5 py-6 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/45 transition-all flex items-center gap-2 group border border-white/20 relative overflow-hidden active:scale-95"
+            title="Ask Clinoza AI"
+          >
+            <span className="absolute -inset-1 rounded-full bg-primary/25 animate-ping pointer-events-none" />
+            <Bot className="h-5 w-5 sm:h-5.5 sm:w-5.5 transition-transform group-hover:scale-115 group-hover:rotate-12 duration-300" />
+            <span className="tracking-wide font-black">Ask Clinoza AI</span>
+            <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-300 animate-pulse shrink-0" />
+          </Button>
+        </Link>
+      </motion.div>
     </div>
+
   );
 };
 export default Index;
