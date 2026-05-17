@@ -80,10 +80,6 @@ export const Footer = () => {
                 </a>
               </li>
               <li className="text-sm text-primary-foreground/70">
-                <span className="block font-medium text-primary-foreground/90">HQ Office:</span>
-                <span>New Delhi, Delhi 110001, India</span>
-              </li>
-              <li className="text-sm text-primary-foreground/70">
                 <span className="block font-medium text-primary-foreground/90">Availability:</span>
                 <span>24x7 Customer Support</span>
               </li>
